@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/fetch-signals",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/send-alerts",
+      "schedule": "15 0 * * *"
+    }
+  ]
+}
