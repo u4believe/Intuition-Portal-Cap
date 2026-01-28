@@ -64,7 +64,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
-          <CardDescription>Sign up to get started with Lore</CardDescription>
+          <CardDescription>Sign up to get started with Intuition Portal Cap</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
