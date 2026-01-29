@@ -74,8 +74,8 @@ export function ViewTriplesModal({ open, onOpenChange, tripleLabel }: ViewTriple
     setError(null)
     try {
       const query = `
-        query GetTriples {
-          vaults(limit: 100, order_by: {market_cap: desc}) {
+        subscription Term {
+          vaults {
             term {
               triple {
                 subject {
@@ -94,7 +94,6 @@ export function ViewTriplesModal({ open, onOpenChange, tripleLabel }: ViewTriple
             market_cap
             total_assets
             total_shares
-            current_share_price
             positions {
               account_id
               shares
@@ -117,19 +116,26 @@ export function ViewTriplesModal({ open, onOpenChange, tripleLabel }: ViewTriple
               last_share_price
               change_count
             }
+            current_share_price
           }
         }
       `
-
       const result = await queryIntuitionGraphQL(query)
-      if (result && result.vaults) {
-        setTriplesData(result.vaults)
+      console.log("[v0] Triples data fetched:", result)
+      
+      if (result && result.data && result.data.vaults) {
+        // Filter to show only the selected triple
+        const filteredData = result.data.vaults.filter((vault: any) => {
+          const label = `${vault.term?.triple?.subject?.label} ${vault.term?.triple?.predicate?.label} ${vault.term?.triple?.object?.label}`
+          return label.includes(tripleLabel)
+        })
+        setTriplesData(filteredData.length > 0 ? filteredData : result.data.vaults)
       } else {
-        setError('No data available')
+        setError('No data received from server')
       }
     } catch (err) {
-      console.error('Error fetching triples data:', err)
-      setError('Failed to fetch triples data')
+      console.error("[v0] Error fetching triples:", err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
       setIsLoading(false)
     }
