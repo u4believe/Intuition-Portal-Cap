@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, ChevronUp, ChevronDown } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
+import { ViewTriplesModal } from '@/components/landing/view-triples-modal'
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
 type SortOrder = 'asc' | 'desc'
@@ -21,6 +22,8 @@ export default function TriplesTable() {
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
+  const [viewTriplesOpen, setViewTriplesOpen] = useState(false)
+  const [selectedTripleForView, setSelectedTripleForView] = useState<string>('')
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -116,6 +119,9 @@ export default function TriplesTable() {
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
                     Watch
                   </th>
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                    View
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -206,6 +212,20 @@ export default function TriplesTable() {
                         {isWatched(triple.label) ? 'Watching' : 'Watch'}
                       </button>
                     </td>
+                    <td className="py-2 px-2 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setSelectedTripleForView(triple.label)
+                          setViewTriplesOpen(true)
+                        }}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1"
+                        title="View Triple Details"
+                      >
+                        <Eye className="w-4 h-4 text-teal-600" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -224,6 +244,11 @@ export default function TriplesTable() {
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
         }}
+      />
+      <ViewTriplesModal
+        open={viewTriplesOpen}
+        onOpenChange={setViewTriplesOpen}
+        tripleLabel={selectedTripleForView}
       />
     </>
   )
