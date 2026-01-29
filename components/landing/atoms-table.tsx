@@ -202,13 +202,13 @@ export default function AtomsTable() {
                           e.stopPropagation()
                           handleWatchClick(atom.label)
                         }}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(atom.label)
-                            ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                            : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700'
                         }`}
                       >
-                        {isWatched(atom.label) ? 'Watch✓' : 'Watch'}
+                        {isWatched(atom.label) ? 'Watching' : 'Watch'}
                       </button>
                     </td>
                   </tr>

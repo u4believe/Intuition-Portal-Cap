@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, ChevronUp, ChevronDown } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useAllClaims } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
+import { ViewClaimsModal } from '@/components/landing/view-claims-modal'
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
 type SortOrder = 'asc' | 'desc'
@@ -19,6 +20,7 @@ export default function ClaimsTable() {
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null)
+  const [viewClaimsOpen, setViewClaimsOpen] = useState(false)
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
@@ -117,6 +119,9 @@ export default function ClaimsTable() {
                   <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
                     Watch
                   </th>
+                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                    View
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -205,6 +210,19 @@ export default function ClaimsTable() {
                         }`}
                       >
                         {isWatched(claim.label) ? 'Watching' : 'Watch'}
+                      </button>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setViewClaimsOpen(true)
+                        }}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1"
+                        title="View Claim Details"
+                      >
+                        <Eye className="w-4 h-4 text-teal-600" />
                       </button>
                     </td>
                   </tr>
