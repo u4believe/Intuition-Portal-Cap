@@ -37,35 +37,35 @@ Lore is now a fully decentralized dApp with no backend server. All data fetching
 ## Deployment Options
 
 ### Option 1: Vercel (Recommended)
-```bash
+\`\`\`bash
 npm run build
 vercel deploy --yes
-```
+\`\`\`
 No configuration needed, works with static export.
 
 ### Option 2: GitHub Pages
-```bash
+\`\`\`bash
 npm run build
 git add .next
 git commit -m "Build"
 git push
 # Enable GitHub Pages in repo settings
-```
+\`\`\`
 
 ### Option 3: IPFS (True Decentralization)
-```bash
+\`\`\`bash
 npm run build
 # Upload .next/static to Pinata, Web3.Storage, or similar
-```
+\`\`\`
 
 ## Environment Setup
 
 Create `.env.local`:
-```env
+\`\`\`env
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_id_here
 NEXT_PUBLIC_PUSH_CHANNEL_ADDRESS=your_channel
 NEXT_PUBLIC_PUSH_API_KEY=your_key
-```
+\`\`\`
 
 Get these from:
 - WalletConnect: https://cloud.walletconnect.com
@@ -73,7 +73,7 @@ Get these from:
 
 ## Flow Diagram
 
-```
+\`\`\`
 User Flow:
 1. User visits app
 2. Clicks "Connect Wallet" (RainbowKit)
@@ -84,7 +84,7 @@ User Flow:
    - Browse claims (direct GraphQL)
    - Set notifications (localStorage + Push Protocol)
    - All data stays on client-side
-```
+\`\`\`
 
 ## No Backend Needed
 

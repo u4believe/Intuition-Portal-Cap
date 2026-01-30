@@ -27,7 +27,7 @@ A decentralized signal and monitoring application for the Intuition Portal, buil
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone https://github.com/yourusername/lore.git
 cd lore
@@ -38,57 +38,57 @@ npm install
 # Set environment variables
 cp .env.example .env.local
 # Edit .env.local with your WalletConnect Project ID and Push Protocol settings
-```
+\`\`\`
 
 ### Development
 
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 Visit http://localhost:3000 to see the app.
 
 ### Build & Deploy
 
-```bash
+\`\`\`bash
 # Build for static export
 npm run build
 
 # The output is in the .next/static directory, ready to deploy
-```
+\`\`\`
 
 #### Deploy to Vercel (without functions)
 
-```bash
+\`\`\`bash
 vercel deploy --yes
-```
+\`\`\`
 
 #### Deploy to GitHub Pages
 
-```bash
+\`\`\`bash
 npm run build
 # Copy .next/static to your gh-pages branch
-```
+\`\`\`
 
 #### Deploy to IPFS
 
-```bash
+\`\`\`bash
 npm run build
 # Upload .next/static directory to IPFS using Pinata, Web3.Storage, or similar
-```
+\`\`\`
 
 ## Environment Variables
 
 Create `.env.local`:
 
-```env
+\`\`\`env
 # WalletConnect
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_project_id
 
 # Push Protocol (optional for email notifications)
 NEXT_PUBLIC_PUSH_CHANNEL_ADDRESS=your_channel_address
 NEXT_PUBLIC_PUSH_API_KEY=your_api_key
-```
+\`\`\`
 
 ## Features
 
@@ -109,13 +109,13 @@ NEXT_PUBLIC_PUSH_API_KEY=your_api_key
 
 ## Architecture Diagram
 
-```
+\`\`\`
 User (Wallet) → Lore dApp (React) → Intuition GraphQL API
                     ↓
              localStorage (preferences)
                     ↓
              Push Protocol (email alerts)
-```
+\`\`\`
 
 ## Contributing
 
