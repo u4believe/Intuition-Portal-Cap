@@ -2,14 +2,15 @@ import React from "react"
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Providers } from './providers'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Lore - AI Signal App',
-  description: 'Real-time monitoring and alerts for Intuition Portal claims',
+  title: 'Portal Cap - Claims Intelligence Platform',
+  description: 'Real-time monitoring and analytics for Intuition Portal claims and market data',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -38,7 +39,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

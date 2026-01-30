@@ -1,47 +1,16 @@
 "use client"
 
 import { useRef } from "react"
-
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Flame, TrendingUp, LogIn, LogOut } from "lucide-react"
-import { getEventIcon } from "@/utils/eventIcons" // Assuming this is where getEventIcon is declared
-
-interface Event {
-  type: "deposit" | "redemption"
-  tripleName: string
-  senderId?: string
-  receiverId?: string
-  timestamp: string
-}
+import { Flame } from "lucide-react"
+import { useRecentEvents } from "@/hooks/useIntuitionData"
 
 export default function RecentEvents() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: events = [], isLoading: loading } = useRecentEvents()
   const [isHovered, setIsHovered] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch("/api/recent-events")
-        const data = await response.json()
-        const sortedEvents = (data.events || []).sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        )
-        setEvents(sortedEvents)
-      } catch (error) {
-        console.error("[v0] Error fetching events:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchEvents()
-    const interval = setInterval(fetchEvents, 10000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     if (!isHovered && scrollContainerRef.current && contentRef.current) {
@@ -65,24 +34,34 @@ export default function RecentEvents() {
   }, [isHovered, events])
 
   const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
+    try {
+      // Handle ISO format timestamps
+      const date = new Date(timestamp)
+      
+      if (isNaN(date.getTime())) {
+        return "Recently"
+      }
+      
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
 
-    if (diffMins < 1) return "just now"
-    if (diffMins < 60) return `${diffMins}m ago`
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-    return date.toLocaleDateString()
+      if (diffMins < 1) return "just now"
+      if (diffMins < 60) return `${diffMins}m ago`
+      const diffHours = Math.floor(diffMins / 60)
+      if (diffHours < 24) return `${diffHours}h ago`
+      return date.toLocaleDateString()
+    } catch {
+      return "Recently"
+    }
   }
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
       case "deposit":
-        return "bg-green-500/20 text-green-300"
+        return "bg-teal-500/20 text-teal-300"
       case "redemption":
-        return "bg-red-500/20 text-red-300"
+        return "bg-orange-500/20 text-orange-300"
       default:
         return "bg-blue-500/20 text-blue-300"
     }
@@ -129,26 +108,31 @@ export default function RecentEvents() {
           <div ref={contentRef} className="space-y-2">
             {events.map((event, index) => (
               <div
-                key={`${event.tripleName}-${event.timestamp}-${index}`}
+                key={`${event.id}-${index}`}
                 className="p-2 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-cyan-500/30 hover:bg-slate-900/70 transition-all duration-300"
               >
                 {/* Compact Event Layout */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-xs font-medium text-white truncate">{event.tripleName}</p>
+                      <p className="text-xs font-medium text-white truncate">{event.atomLabel}</p>
                       <Badge className={`text-xs whitespace-nowrap h-5 ${getEventColor(event.type)}`}>
                         {getEventLabel(event.type)}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex items-center justify-between gap-1 text-xs text-slate-400">
                       <span className="truncate">
                         {event.type === "deposit"
-                          ? `Sent by ${event.senderId?.slice(0, 6)}...${event.senderId?.slice(-4)}`
-                          : `Received by ${event.receiverId?.slice(0, 6)}...${event.receiverId?.slice(-4)}`}
+                          ? `From ${event.senderId?.slice(0, 6)}...${event.senderId?.slice(-4)}`
+                          : `To ${event.receiverId?.slice(0, 6)}...${event.receiverId?.slice(-4)}`}
                       </span>
-                      <span>{formatTime(event.timestamp)}</span>
+                      <span className="whitespace-nowrap">{formatTime(event.createdAt)}</span>
                     </div>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className={`text-xs font-semibold ${event.type === 'deposit' ? 'text-teal-300' : 'text-orange-300'}`}>
+                      {event.assets.toLocaleString('en-US', { maximumFractionDigits: 2 })} TRUST
+                    </p>
                   </div>
                 </div>
               </div>
