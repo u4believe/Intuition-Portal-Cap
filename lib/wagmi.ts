@@ -1,4 +1,4 @@
-import { createConfig, http } from 'wagmi';
+import { createConfig, http } from 'wagmi'
 import {
   arbitrum,
   base,
@@ -6,15 +6,15 @@ import {
   optimism,
   polygon,
   sepolia,
-} from 'wagmi/chains';
-import { injected, walletConnect } from 'wagmi/connectors';
+} from 'wagmi/chains'
+import { injected, walletConnect } from 'wagmi/connectors'
 
 export const config = createConfig({
   chains: [mainnet, sepolia, polygon, optimism, arbitrum, base],
   connectors: [
-    injected(),
+    injected({ shimDisconnect: true }),
     walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'default',
+      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
     }),
   ],
   transports: {
@@ -25,5 +25,5 @@ export const config = createConfig({
     [arbitrum.id]: http(),
     [base.id]: http(),
   },
-  ssr: true,
-});
+  ssr: false,
+})
