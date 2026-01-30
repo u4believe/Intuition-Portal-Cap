@@ -1,91 +1,108 @@
-"use client"
+'use client'
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@supabase/ssr"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type React from 'react'
+import { useRouter } from 'next/navigation'
+import { useAccount, useSignMessage } from 'wagmi'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { WalletConnectButton } from '@/components/wallet-connect-button'
+import { useAuthCheck } from '@/hooks/useAuth'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { address, isConnected } = useAccount()
+  const { signMessageAsync } = useSignMessage()
+  const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, authLoading, router])
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
+  // Auto-sign when wallet connects if not already authenticated
+  useEffect(() => {
+    if (isConnected && address && !isAuthenticated && !loading) {
+      handleWalletLogin()
+    }
+  }, [isConnected, address, isAuthenticated, loading])
+
+  async function handleWalletLogin() {
+    if (!address) return
+    setError('')
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // Sign a message to prove wallet ownership
+      const message = `Sign this message to authenticate with Intuition Portal Cap\n\nWallet: ${address}\nTimestamp: ${Date.now()}`
+      const signature = await signMessageAsync({ message })
 
-      if (error) {
-        setError(error.message)
-        return
-      }
+      // Store authentication in localStorage
+      localStorage.setItem('portal_cap_auth', JSON.stringify({
+        address,
+        message,
+        signature,
+        timestamp: Date.now(),
+      }))
 
-      router.push("/dashboard")
+      router.push('/dashboard')
     } catch (err: any) {
-      setError("An unexpected error occurred")
+      setError(err.message || 'Failed to sign message')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-slate-400">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Lore</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardTitle>Intuition Portal Cap</CardTitle>
+          <CardDescription>Sign in with your wallet</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <div className="text-sm text-destructive">{error}</div>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-          <p className="text-sm text-center mt-4">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
+          <div className="space-y-4">
+            {!isConnected ? (
+              <WalletConnectButton />
+            ) : (
+              <>
+                <div className="p-3 bg-slate-800 rounded-lg text-sm">
+                  <p className="text-slate-400">Connected: {address?.slice(0, 6)}...{address?.slice(-4)}</p>
+                </div>
+
+                <Button
+                  onClick={handleWalletLogin}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Signing...' : 'Sign and Login'}
+                </Button>
+              </>
+            )}
+
+            {error && <div className="text-sm text-destructive text-center">{error}</div>}
+
+            <p className="text-sm text-center text-muted-foreground">
+              Connect your wallet to get started
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
