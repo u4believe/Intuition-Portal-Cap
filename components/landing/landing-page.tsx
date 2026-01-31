@@ -145,7 +145,7 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h2 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
@@ -159,7 +159,7 @@ export default function LandingPage() {
             <Link href="#claims">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2"
+                className="bg-primary hover:bg-primary/90 text-white gap-2"
               >
                 Start Watching <ArrowRight className="w-4 h-4" />
               </Button>
@@ -168,7 +168,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-teal-200 text-teal-700 hover:bg-teal-50 bg-transparent"
+                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
               >
                 View Claims
               </Button>
@@ -207,7 +207,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('vaults')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -217,7 +217,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('tripples')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'tripples'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -227,7 +227,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('atoms')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
