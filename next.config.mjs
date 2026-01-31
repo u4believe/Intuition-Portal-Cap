@@ -9,6 +9,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Turbopack configuration for Next.js 16
+  turbopack: {},
   // No API routes since we're fully decentralized
   webpack: (config) => {
     config.resolve.fallback = {
