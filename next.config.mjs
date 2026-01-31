@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export for decentralized deployment
-  output: 'export',
-  // Disable image optimization for static sites
+  // Disable image optimization for dynamic deployment
   images: {
     unoptimized: true,
   },
