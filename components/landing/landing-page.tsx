@@ -28,12 +28,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-[5.625rem]">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <img 
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vportal.JPG-wbX9tJrbZ7jeXBXu5ZKlA9sGfXpm61.jpeg" 
+                src="/logo.jpg" 
                 alt="Portal Cap Logo" 
-                className="h-12 w-auto"
+                className="h-12 w-auto rounded-full"
               />
             </Link>
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white text-xs font-medium transition-all">
+            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
               Dashboard
             </Link>
           </div>
@@ -53,7 +53,7 @@ export default function LandingPage() {
                     placeholder="Search claims..."
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                   />
                 </div>
@@ -67,7 +67,7 @@ export default function LandingPage() {
               <Star className="w-4 h-4" />
               <span>Watchlist</span>
               {watchedClaims.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-teal-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {watchedClaims.length}
                 </span>
               )}
@@ -93,13 +93,13 @@ export default function LandingPage() {
               </div>
             )}
 
-            <a href="#features" className="text-sm text-black hover:text-teal-600 transition-colors">
+            <a href="#features" className="text-sm text-black hover:text-primary transition-colors">
               Features
             </a>
             
             {/* Sign In Dropdown */}
             <div className="relative group">
-              <button className="text-sm text-black hover:text-teal-600 transition-colors font-medium">
+              <button className="text-sm text-black hover:text-primary transition-colors font-medium">
                 Sign In
               </button>
               <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -115,7 +115,7 @@ export default function LandingPage() {
             <Link href="/auth/signup">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-white"
               >
                 Get Started
               </Button>
@@ -123,7 +123,7 @@ export default function LandingPage() {
           </nav>
           <div className="md:hidden flex gap-2">
             <div className="relative group">
-              <Button variant="ghost" size="sm" className="text-black hover:text-teal-600">
+              <Button variant="ghost" size="sm" className="text-black hover:text-primary">
                 Sign In
               </Button>
               <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
