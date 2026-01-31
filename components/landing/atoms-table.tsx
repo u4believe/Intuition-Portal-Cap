@@ -151,47 +151,47 @@ export default function AtomsTable() {
                           <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-teal-600 transition-colors">{atom.label}</p>
+                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
                           <p className="text-xs text-slate-500 truncate">{atom.creatorLabel}</p>
                         </div>
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors truncate">
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors truncate">
                           {atom.type}
                         </span>
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline">
-                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={atom.sharePriceChange24h >= 0 ? 'text-primary' : 'text-red-600'}>
                           {atom.sharePriceChange24h >= 0 ? '+' : ''}{(atom.sharePriceChange24h / 1e18).toFixed(2)}%
                         </span>
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.positionCount.toLocaleString('en-US')}
                       </Link>
                     </td>
@@ -204,8 +204,8 @@ export default function AtomsTable() {
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(atom.label)
-                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700'
+                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {isWatched(atom.label) ? 'Watching' : 'Watch'}
