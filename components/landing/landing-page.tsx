@@ -1,11 +1,12 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { useUserPreferences } from "@/hooks/useUserPreferences" // Import useUserPreferences hook
+import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { Search, Star } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -17,13 +18,13 @@ export default function LandingPage() {
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
-  const { getWatchedClaims } = useUserPreferences() // Declare useUserPreferences hook
+  const { getWatchedClaims } = useUserPreferences()
   const watchedClaims = getWatchedClaims()
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-slate-950 overflow-x-hidden transition-colors">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-lg sticky top-0 z-50">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-[5.625rem]">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
@@ -38,19 +39,19 @@ export default function LandingPage() {
             <div className="relative">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-sm text-black"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
               >
                 <Search className="w-4 h-4" />
                 <span>Search Claims</span>
               </button>
               {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg p-4 z-50">
+                <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
                   <input
                     type="text"
                     placeholder="Search claims..."
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                   />
                 </div>
@@ -59,7 +60,7 @@ export default function LandingPage() {
 
             <button
               onClick={() => setWatchlistOpen(!watchlistOpen)}
-              className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors text-sm text-black hover:text-slate-900"
+              className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm text-black dark:text-white hover:text-slate-900 dark:hover:text-slate-100"
             >
               <Star className="w-4 h-4" />
               <span>Watchlist</span>
@@ -71,46 +72,49 @@ export default function LandingPage() {
             </button>
 
             {watchlistOpen && (
-              <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-slate-200 rounded-lg shadow-lg p-4 z-50 max-h-[400px] overflow-y-auto">
+              <div className="absolute top-full right-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50 max-h-[400px] overflow-y-auto">
                 {watchedClaims.length > 0 ? (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-slate-900 mb-4">Your Watchlist ({watchedClaims.length})</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Your Watchlist ({watchedClaims.length})</h3>
                     {watchedClaims.map((claim, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50">
+                      <div key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm text-slate-700">{claim}</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300">{claim}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-500 text-center py-8">
+                  <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
                     No claims in your watchlist yet
                   </div>
                 )}
               </div>
             )}
 
-            <a href="#features" className="text-sm text-black hover:text-primary transition-colors">
+            <a href="#features" className="text-sm text-black dark:text-white hover:text-primary transition-colors">
               Features
             </a>
             
-            <Link href="/dashboard" className="text-sm text-black hover:text-primary transition-colors font-medium">
+            <Link href="/dashboard" className="text-sm text-black dark:text-white hover:text-primary transition-colors font-medium">
               Dashboard
             </Link>
 
-            <Link href="/auth/login">
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-slate-300 text-black hover:bg-slate-100 bg-transparent"
-              >
-                Sign In
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link href="/auth/login">
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            </div>
           </nav>
-          <div className="md:hidden flex gap-2">
+          <div className="md:hidden flex gap-2 items-center">
+            <ThemeToggle />
             <Link href="/auth/login">
-              <Button variant="ghost" size="sm" className="text-black hover:text-primary">
+              <Button variant="ghost" size="sm" className="text-black dark:text-white hover:text-primary">
                 Sign In
               </Button>
             </Link>
