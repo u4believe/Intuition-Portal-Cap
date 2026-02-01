@@ -75,8 +75,8 @@ export default function SignInPromptDialog({
           <Button variant="outline" onClick={onClose} className="border-slate-700 bg-transparent">
             Maybe Later
           </Button>
-          <Link href="/auth/signup" className="block">
-            <Button className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 gap-2">
+          <Link href="/auth/login" className="block">
+            <Button className="w-full bg-primary hover:bg-primary/90 gap-2">
               {action} <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
