@@ -145,7 +145,7 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h2 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
@@ -159,7 +159,7 @@ export default function LandingPage() {
             <Link href="#claims">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2"
+                className="bg-primary hover:bg-primary/90 text-white gap-2"
               >
                 Start Watching <ArrowRight className="w-4 h-4" />
               </Button>
@@ -168,7 +168,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-teal-200 text-teal-700 hover:bg-teal-50 bg-transparent"
+                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
               >
                 View Claims
               </Button>
@@ -207,7 +207,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('vaults')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -217,7 +217,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('tripples')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'tripples'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -227,7 +227,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('atoms')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
-                  ? 'bg-teal-500 text-white shadow-lg'
+                  ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -266,9 +266,9 @@ export default function LandingPage() {
           ].map((feature, i) => {
             const Icon = feature.icon
             return (
-              <Card key={i} className="bg-white border-slate-200 hover:border-teal-400 transition-colors shadow-sm">
+              <Card key={i} className="bg-white border-slate-200 hover:border-primary transition-colors shadow-sm">
                 <CardHeader>
-                  <Icon className="w-8 h-8 text-teal-600 mb-2" />
+                  <Icon className="w-8 h-8 text-primary mb-2" />
                   <CardTitle className="text-slate-900">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -282,13 +282,13 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200">
-        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-2xl p-12 text-center space-y-6">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12 text-center space-y-6">
           <h2 className="text-3xl font-bold text-slate-900">Ready to monitor your claims?</h2>
           <p className="text-slate-600">Subscribe to email alerts and stay informed about market movements.</p>
           <Link href="/auth/signup">
             <Button
               size="lg"
-              className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               Get Started Free
             </Button>
