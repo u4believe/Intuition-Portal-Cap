@@ -63,7 +63,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-cyan-400 transition-colors"
+      className="flex items-center gap-1 hover:text-primary transition-colors"
     >
       {label}
       {sortField === field && (
@@ -128,7 +128,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                       <td className="py-4 px-4 text-right text-slate-300">
                         {claim.positionCount.toLocaleString("en-US")}
                       </td>
-                      <td className="py-4 px-4 text-right text-cyan-400 font-medium">
+                      <td className="py-4 px-4 text-right text-primary font-medium">
                         {claim.lastSharePrice.toLocaleString("en-US", {
                           maximumFractionDigits: 8,
                           minimumFractionDigits: 2,
@@ -145,7 +145,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                           onClick={() => handleWatchClick(claim.label)}
                           className={`p-2 rounded-lg transition-all ${
                             isWatched(claim.label)
-                              ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                              ? "bg-primary/20 text-primary hover:bg-primary/30"
                               : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300"
                           }`}
                           title={isWatched(claim.label) ? "Watching this claim" : "Watch this claim"}

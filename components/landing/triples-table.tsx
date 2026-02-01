@@ -61,7 +61,7 @@ export default function TriplesTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-teal-600 transition-colors text-slate-900"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
     >
       {label}
       {sortField === field &&
