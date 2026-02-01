@@ -113,11 +113,11 @@ export default function LiveEvents() {
               {/* Assets Amount */}
               <div className="flex-shrink-0 text-right">
                 <p
-                  className={`font-semibold text-sm ${
-                    event.type === 'deposit'
-                      ? 'text-green-600'
-                      : 'text-orange-600'
-                  }`}
+                  style={{
+                    fontWeight: '600',
+                    fontSize: '0.875rem',
+                    color: event.type === 'deposit' ? '#16a34a' : '#ea580c'
+                  }}
                 >
                   {event.assets.toLocaleString('en-US', { maximumFractionDigits: 2 })} TRUST
                 </p>
