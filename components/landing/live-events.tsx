@@ -90,7 +90,11 @@ export default function LiveEvents() {
               {/* Event Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-slate-900">
+                  <span className={`font-semibold ${
+                    event.type === 'deposit'
+                      ? 'text-teal-600'
+                      : 'text-orange-600'
+                  }`}>
                     {event.type === 'deposit' ? 'Deposit' : 'Redemption'}
                   </span>
                   <span className="text-sm text-slate-600">in {event.atomLabel}</span>
