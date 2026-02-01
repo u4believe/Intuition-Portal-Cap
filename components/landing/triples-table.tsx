@@ -152,7 +152,7 @@ export default function TriplesTable() {
                           <img src={triple.image || '/placeholder.svg'} alt={triple.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-teal-600 transition-colors">{triple.label}</p>
+                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{triple.label}</p>
                           <p className="text-xs text-slate-500 truncate">{triple.subjectLabel}</p>
                         </div>
                       </Link>
@@ -165,22 +165,22 @@ export default function TriplesTable() {
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
@@ -192,7 +192,7 @@ export default function TriplesTable() {
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.positionCount.toLocaleString('en-US')}
                       </Link>
                     </td>
@@ -206,7 +206,7 @@ export default function TriplesTable() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(triple.label)
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700'
+                            : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {isWatched(triple.label) ? 'Watching' : 'Watch'}
@@ -223,7 +223,7 @@ export default function TriplesTable() {
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1"
                         title="View Triple Details"
                       >
-                        <Eye className="w-4 h-4 text-teal-600" />
+                        <Eye className="w-4 h-4 text-primary" />
                       </button>
                     </td>
                   </tr>
