@@ -16,8 +16,8 @@ interface SignInPromptDialogProps {
 export default function SignInPromptDialog({
   isOpen,
   onClose,
-  title = "Subscribe to Email Alerts",
-  description = "Get instant notifications about market cap changes, price movements, and position updates for your favorite claims.",
+  title = "Connect Your Wallet",
+  description = "Sign in with your wallet to start watching claims and receive real-time updates about market cap changes, price movements, and position updates.",
   action = "Watch This Claim",
 }: SignInPromptDialogProps) {
   return (
@@ -40,8 +40,8 @@ export default function SignInPromptDialog({
                 </div>
               </div>
               <div>
-                <p className="font-medium text-sm">Create Your Account</p>
-                <p className="text-xs text-muted-foreground">Sign up with your email address</p>
+                <p className="font-medium text-sm">Connect Your Wallet</p>
+                <p className="text-xs text-muted-foreground">Link your Web3 wallet to your account</p>
               </div>
             </div>
 
@@ -52,8 +52,8 @@ export default function SignInPromptDialog({
                 </div>
               </div>
               <div>
-                <p className="font-medium text-sm">Configure Alerts</p>
-                <p className="text-xs text-muted-foreground">Set your frequency and triggers</p>
+                <p className="font-medium text-sm">Configure Preferences</p>
+                <p className="text-xs text-muted-foreground">Set your monitoring preferences</p>
               </div>
             </div>
 
@@ -65,7 +65,7 @@ export default function SignInPromptDialog({
               </div>
               <div>
                 <p className="font-medium text-sm">Start Watching</p>
-                <p className="text-xs text-muted-foreground">Receive instant email notifications</p>
+                <p className="text-xs text-muted-foreground">Monitor claims in real-time</p>
               </div>
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function SignInPromptDialog({
           <Button variant="outline" onClick={onClose} className="border-slate-700 bg-transparent">
             Maybe Later
           </Button>
-          <Link href="/auth/signup" className="block">
+          <Link href="/auth/login" className="block">
             <Button className="w-full bg-primary hover:bg-primary/90 gap-2">
               {action} <ArrowRight className="w-4 h-4" />
             </Button>
