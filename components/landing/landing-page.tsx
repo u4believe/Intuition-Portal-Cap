@@ -17,6 +17,7 @@ export default function LandingPage() {
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
+  const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const { getWatchedClaims } = useUserPreferences() // Declare useUserPreferences hook
   const watchedClaims = getWatchedClaims()
 
@@ -33,9 +34,11 @@ export default function LandingPage() {
                 className="h-12 w-auto rounded-full"
               />
             </Link>
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
-              Dashboard
-            </Link>
+            <div className="flex items-center gap-16">
+              <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
+                Dashboard
+              </Link>
+            </div>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <div className="relative">
@@ -93,9 +96,12 @@ export default function LandingPage() {
               </div>
             )}
 
-            <a href="#features" className="text-sm text-black hover:text-primary transition-colors">
-              Features
-            </a>
+            <button
+              onClick={() => setComingSoonOpen(true)}
+              className="text-sm text-black hover:text-primary transition-colors"
+            >
+              AI
+            </button>
             
             {/* Sign In Dropdown */}
             <div className="relative group">
@@ -121,23 +127,29 @@ export default function LandingPage() {
               </Button>
             </Link>
           </nav>
-          <div className="md:hidden flex gap-2">
-            <div className="relative group">
-              <Button variant="ghost" size="sm" className="text-black hover:text-primary">
-                Sign In
-              </Button>
-              <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <Link href="/auth/login?method=email" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
-                  Email
-                </Link>
-                <Link href="/auth/login?method=wallet" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
-                  Wallet
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
       </header>
+
+      {/* Coming Soon Modal */}
+      {comingSoonOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center" onClick={() => setComingSoonOpen(false)}>
+          <div
+            className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">AI Features</h2>
+            <p className="text-slate-600 mb-6">
+              Our AI-powered features are coming soon! We're working hard to bring you intelligent insights and analysis to help you make better decisions.
+            </p>
+            <button
+              onClick={() => setComingSoonOpen(false)}
+              className="w-full px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
