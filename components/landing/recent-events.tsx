@@ -59,11 +59,11 @@ export default function RecentEvents() {
   const getEventColor = (eventType: string) => {
     switch (eventType) {
       case "deposit":
-        return "bg-primary/20 text-primary"
+        return "bg-teal-500/20 text-teal-300"
       case "redemption":
         return "bg-orange-500/20 text-orange-300"
       default:
-        return "bg-primary/20 text-primary"
+        return "bg-blue-500/20 text-blue-300"
     }
   }
 
