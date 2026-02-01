@@ -23,21 +23,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-primary">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-lg sticky top-0 z-50">
+      <header className="border-b border-primary/20 bg-primary/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img 
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vportal.JPG-wbX9tJrbZ7jeXBXu5ZKlA9sGfXpm61.jpeg" 
-              alt="Portal Cap Logo" 
-              className="h-10 w-auto"
-            />
+            <h1 className="text-2xl font-bold text-white">Portal Cap</h1>
           </Link>
           <Button
             variant="outline"
             onClick={logout}
-            className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent"
+            className="border-white/30 text-white hover:bg-white/10 bg-transparent"
           >
             Logout
           </Button>
@@ -49,33 +45,33 @@ export default function DashboardPage() {
         <div className="space-y-8">
           <div className="text-center space-y-4">
             <h2 className="text-4xl font-bold text-white">Dashboard</h2>
-            <p className="text-slate-400">Welcome to your Intuition Portal Cap dashboard. More features coming soon.</p>
+            <p className="text-white/80">Welcome to your Intuition Portal Cap dashboard. More features coming soon.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 space-y-3 hover:border-cyan-500/50 transition-colors">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-6 space-y-3 hover:border-white/40 transition-colors backdrop-blur">
               <h3 className="font-semibold text-white">Watched Claims</h3>
-              <p className="text-3xl font-bold text-cyan-400">0</p>
-              <p className="text-sm text-slate-400">Claims you're monitoring</p>
+              <p className="text-3xl font-bold text-white">0</p>
+              <p className="text-sm text-white/70">Claims you're monitoring</p>
             </div>
 
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 space-y-3 hover:border-cyan-500/50 transition-colors">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-6 space-y-3 hover:border-white/40 transition-colors backdrop-blur">
               <h3 className="font-semibold text-white">Recent Events</h3>
-              <p className="text-3xl font-bold text-cyan-400">0</p>
-              <p className="text-sm text-slate-400">Events this week</p>
+              <p className="text-3xl font-bold text-white">0</p>
+              <p className="text-sm text-white/70">Events this week</p>
             </div>
 
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 space-y-3 hover:border-cyan-500/50 transition-colors">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-6 space-y-3 hover:border-white/40 transition-colors backdrop-blur">
               <h3 className="font-semibold text-white">Notifications</h3>
-              <p className="text-3xl font-bold text-cyan-400">0</p>
-              <p className="text-sm text-slate-400">Unread alerts</p>
+              <p className="text-3xl font-bold text-white">0</p>
+              <p className="text-sm text-white/70">Unread alerts</p>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center space-y-4">
-            <p className="text-slate-400">Full dashboard features coming soon!</p>
+          <div className="bg-white/10 border border-white/20 rounded-lg p-8 text-center space-y-4 backdrop-blur">
+            <p className="text-white/80">Full dashboard features coming soon!</p>
             <Link href="/">
-              <Button className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700">
+              <Button className="bg-white text-primary hover:bg-white/90">
                 Back to Home
               </Button>
             </Link>
