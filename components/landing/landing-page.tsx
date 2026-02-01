@@ -126,13 +126,13 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
           <div className="space-y-4">
-            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
+            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 dark:from-primary/80 dark:to-primary/60 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
-            <p className="text-lg text-slate-600 leading-relaxed">
+            <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
               Get instant signals on market cap changes, price movements, and position updates for your favorite claims
               and identities on Intuition.
             </p>
@@ -151,7 +151,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                className="border-primary text-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 bg-transparent"
               >
                 View Claims
               </Button>
@@ -159,18 +159,18 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-200">
+          <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-200 dark:border-slate-700">
             <div>
-              <div className="text-2xl font-bold text-slate-900">24/7</div>
-              <p className="text-sm text-slate-600">Monitoring</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">24/7</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Monitoring</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">Instant</div>
-              <p className="text-sm text-slate-600">Alerts</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">Instant</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Alerts</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">Custom</div>
-              <p className="text-sm text-slate-600">Triggers</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">Custom</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Triggers</p>
             </div>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* All Claims Table Section */}
-      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 to-white border-t border-slate-200 py-20">
+      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800 py-20">
         <div className="w-full px-0 space-y-8">
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
@@ -191,7 +191,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Vaults
@@ -201,7 +201,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'tripples'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Tripples
@@ -211,7 +211,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Atoms
@@ -226,36 +226,49 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200">
-        <h2 className="text-4xl font-bold text-slate-900 text-center mb-12">Powerful Features</h2>
+      <section id="features" className="max-w-7xl mx-auto px-4 py-20 space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
+            Powerful Features for <br/>
+            <span className="bg-gradient-to-r from-primary to-primary/60 dark:from-primary/80 dark:to-primary/50 bg-clip-text text-transparent">
+              Smart Monitoring
+            </span>
+          </h2>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Everything you need to stay on top of your claims and positions.
+          </p>
+        </div>
 
+        {/* Feature Cards */}
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
               icon: TrendingUp,
-              title: "Real-Time Monitoring",
-              description: "Get instant updates on market cap, share price, and position changes across all claims.",
+              title: 'Real-Time Updates',
+              description: 'Get instant notifications about market cap changes and price movements',
             },
             {
               icon: Zap,
-              title: "Custom Alerts",
-              description: "Set up personalized triggers for price changes, market cap shifts, and position updates.",
+              title: 'Custom Alerts',
+              description: 'Set up triggers based on your specific monitoring preferences',
             },
             {
               icon: Lock,
-              title: "Secure & Private",
-              description: "Your data is encrypted and secure. We never share your information with third parties.",
+              title: 'Web3 Native',
+              description: 'Seamless wallet integration with no email required',
             },
           ].map((feature, i) => {
             const Icon = feature.icon
             return (
-              <Card key={i} className="bg-white border-slate-200 hover:border-primary transition-colors shadow-sm">
+              <Card key={i} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-primary/50 transition-colors shadow-sm">
                 <CardHeader>
                   <Icon className="w-8 h-8 text-primary mb-2" />
-                  <CardTitle className="text-slate-900">{feature.title}</CardTitle>
+                  <CardTitle className="text-slate-900 dark:text-white">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">{feature.description}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
                 </CardContent>
               </Card>
             )
@@ -264,10 +277,10 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12 text-center space-y-6">
-          <h2 className="text-3xl font-bold text-slate-900">Ready to monitor your claims?</h2>
-          <p className="text-slate-600">Connect your wallet and start tracking claims in real-time.</p>
+      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200 dark:border-slate-800">
+        <div className="bg-gradient-to-r from-primary/10 dark:from-primary/20 to-primary/5 dark:to-primary/10 border border-primary/20 dark:border-primary/30 rounded-2xl p-12 text-center space-y-6">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Ready to monitor your claims?</h2>
+          <p className="text-slate-600 dark:text-slate-300">Connect your wallet and start tracking claims in real-time.</p>
           <Link href="/auth/login">
             <Button
               size="lg"
