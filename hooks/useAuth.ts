@@ -21,6 +21,19 @@ export function useAuthCheck() {
   const { address } = useAccount()
 
   useEffect(() => {
+    // Clear auth on page refresh to force re-authentication
+    const sessionKey = 'portal_cap_session_id'
+    const currentSessionId = sessionStorage.getItem(sessionKey)
+    const newSessionId = crypto.randomUUID()
+
+    if (!currentSessionId) {
+      // This is a page refresh, clear auth
+      localStorage.removeItem('portal_cap_auth')
+      sessionStorage.setItem(sessionKey, newSessionId)
+    }
+  }, [])
+
+  useEffect(() => {
     const stored = localStorage.getItem('portal_cap_auth')
     
     if (stored) {
@@ -75,6 +88,7 @@ export function useAuthProtected() {
  * Logout user
  */
 export function logout() {
-  localStorage.removeItem('lore_auth')
+  localStorage.removeItem('portal_cap_auth')
+  sessionStorage.removeItem('portal_cap_session_id')
   window.location.href = '/auth/login'
 }
