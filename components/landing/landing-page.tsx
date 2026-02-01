@@ -25,7 +25,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-48">
+          <div className="flex items-center gap-96">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <img 
                 src="/logo.jpg" 
