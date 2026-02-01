@@ -91,8 +91,10 @@ export default function LiveEvents() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className="font-semibold"
-                    style={{ color: event.type === 'deposit' ? '#16a34a' : '#ea580c' }}
+                    style={{ 
+                      color: event.type === 'deposit' ? '#16a34a' : '#ea580c',
+                      fontWeight: '600'
+                    }}
                   >
                     {event.type === 'deposit' ? 'Deposit' : 'Redemption'}
                   </span>
