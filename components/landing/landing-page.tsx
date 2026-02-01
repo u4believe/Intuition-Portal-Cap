@@ -103,27 +103,12 @@ export default function LandingPage() {
               AI
             </button>
             
-            {/* Sign In Dropdown */}
-            <div className="relative group">
-              <button className="text-sm text-black hover:text-primary transition-colors font-medium">
-                Sign In
-              </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <Link href="/auth/login?method=email" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
-                  Sign In with Email
-                </Link>
-                <Link href="/auth/login?method=wallet" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
-                  Sign In with Wallet
-                </Link>
-              </div>
-            </div>
-
             <Link href="/auth/login">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-white"
               >
-                Get Started
+                Sign In
               </Button>
             </Link>
           </nav>
