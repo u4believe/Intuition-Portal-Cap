@@ -159,13 +159,13 @@ export default function ClaimsTable() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors">
+                        <span className="inline-flex items-center justify-center px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors">
                           {claim.type}
                         </span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
@@ -186,7 +186,7 @@ export default function ClaimsTable() {
                     </td>
                     <td className="py-3 px-4 text-center font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline">
-                        <span className={claim.sharePriceChange24h >= 0 ? 'text-primary' : 'text-red-600'}>
+                        <span className={claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {claim.sharePriceChange24h >= 0 ? '+' : ''}{(claim.sharePriceChange24h / 1e18).toFixed(3)}%
                         </span>
                       </Link>
@@ -205,8 +205,8 @@ export default function ClaimsTable() {
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(claim.label)
-                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                : 'bg-primary hover:bg-primary/90 text-white'
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                            : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {isWatched(claim.label) ? 'Watching' : 'Watch'}

@@ -95,7 +95,7 @@ export default function TopClaimsDisplay() {
         <div className="flex justify-center pt-4">
           <Button
             onClick={() => setShowClaimsModal(true)}
-            className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700"
+            className="bg-primary hover:bg-primary/90"
           >
             View All Claims & Holders
           </Button>

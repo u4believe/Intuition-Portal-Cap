@@ -58,7 +58,7 @@ export default function AtomsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-slate-600 transition-colors whitespace-nowrap"
+      className="flex items-center gap-1 hover:text-primary transition-colors whitespace-nowrap"
     >
       {label}
       {sortField === field && (
@@ -158,7 +158,7 @@ export default function AtomsTable() {
                     </td>
                     <td className="py-2 px-2 text-center">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors truncate">
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors truncate">
                           {atom.type}
                         </span>
                       </Link>
@@ -185,7 +185,7 @@ export default function AtomsTable() {
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline">
-                        <span className={atom.sharePriceChange24h >= 0 ? 'text-primary' : 'text-red-600'}>
+                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {atom.sharePriceChange24h >= 0 ? '+' : ''}{(atom.sharePriceChange24h / 1e18).toFixed(2)}%
                         </span>
                       </Link>
@@ -204,8 +204,8 @@ export default function AtomsTable() {
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(atom.label)
-                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                : 'bg-primary hover:bg-primary/90 text-white'
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                            : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {isWatched(atom.label) ? 'Watching' : 'Watch'}
