@@ -10,49 +10,6 @@ interface ViewClaimsModalProps {
   claimLabel: string
 }
 
-interface VaultData {
-  market_cap?: number
-  total_assets?: number
-  total_shares?: number
-  current_share_price?: number
-  share_price_change_stats_daily?: {
-    difference?: number
-    first_share_price?: number
-    last_share_price?: number
-    change_count?: number
-  }
-  deposits?: Array<{
-    id: string
-    created_at: string
-    shares: number
-  }>
-  redemptions?: Array<{
-    id: string
-    created_at: string
-    shares: number
-  }>
-  term?: {
-    triple?: {
-      subject?: {
-        label?: string
-        image?: string
-      }
-      predicate?: {
-        label?: string
-      }
-      object?: {
-        label?: string
-      }
-    }
-  }
-  positions?: Array<{
-    account_id?: string
-    shares?: number
-    total_deposit_assets_after_total_fees?: number
-    total_redeem_assets_for_receiver?: number
-  }>
-}
-
 const VIEW_CLAIMS_QUERY = `
   subscription Term {
     vaults {
@@ -95,13 +52,12 @@ const VIEW_CLAIMS_QUERY = `
         last_share_price
         change_count
       }
-      current_share_price
     }
   }
 `
 
 export function ViewClaimsModal({ open, onOpenChange, claimLabel }: ViewClaimsModalProps) {
-  const [claimsData, setClaimsData] = useState<VaultData[]>([])
+  const [claimsData, setClaimsData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -115,29 +71,13 @@ export function ViewClaimsModal({ open, onOpenChange, claimLabel }: ViewClaimsMo
     setIsLoading(true)
     setError(null)
     try {
+      // Convert subscription to query format
       const query = `
         query GetClaims {
           vaults(limit: 100, order_by: {market_cap: desc}) {
             market_cap
             total_assets
             total_shares
-            current_share_price
-            share_price_change_stats_daily {
-              difference
-              first_share_price
-              last_share_price
-              change_count
-            }
-            deposits(limit: 10) {
-              id
-              created_at
-              shares
-            }
-            redemptions(limit: 10) {
-              id
-              created_at
-              shares
-            }
             term {
               triple {
                 subject {
@@ -158,13 +98,27 @@ export function ViewClaimsModal({ open, onOpenChange, claimLabel }: ViewClaimsMo
               total_deposit_assets_after_total_fees
               total_redeem_assets_for_receiver
             }
+            deposits {
+              id
+              created_at
+              shares
+            }
+            redemptions {
+              id
+              created_at
+              shares
+            }
+            share_price_change_stats_daily {
+              difference
+              first_share_price
+              last_share_price
+            }
           }
         }
       `
-      
-      const result = await queryIntuitionGraphQL(query)
-      if (result?.data?.vaults) {
-        setClaimsData(result.data.vaults)
+      const data = await queryIntuitionGraphQL(query)
+      if (data && data.vaults) {
+        setClaimsData(data.vaults)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch claims data')

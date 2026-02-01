@@ -17,7 +17,6 @@ export default function LandingPage() {
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
-  const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const { getWatchedClaims } = useUserPreferences() // Declare useUserPreferences hook
   const watchedClaims = getWatchedClaims()
 
@@ -26,7 +25,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-96">
+          <div className="flex items-center gap-[5.625rem]">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <img 
                 src="/logo.jpg" 
@@ -34,11 +33,9 @@ export default function LandingPage() {
                 className="h-12 w-auto rounded-full"
               />
             </Link>
-            <div className="flex items-center gap-16">
-              <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
-                Dashboard
-              </Link>
-            </div>
+            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
+              Dashboard
+            </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <div className="relative">
@@ -96,45 +93,51 @@ export default function LandingPage() {
               </div>
             )}
 
-            <button
-              onClick={() => setComingSoonOpen(true)}
-              className="text-sm text-black hover:text-primary transition-colors"
-            >
-              AI
-            </button>
+            <a href="#features" className="text-sm text-black hover:text-primary transition-colors">
+              Features
+            </a>
             
-            <Link href="/auth/login">
+            {/* Sign In Dropdown */}
+            <div className="relative group">
+              <button className="text-sm text-black hover:text-primary transition-colors font-medium">
+                Sign In
+              </button>
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <Link href="/auth/login?method=email" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
+                  Sign In with Email
+                </Link>
+                <Link href="/auth/login?method=wallet" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
+                  Sign In with Wallet
+                </Link>
+              </div>
+            </div>
+
+            <Link href="/auth/signup">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-white"
               >
-                Sign In
+                Get Started
               </Button>
             </Link>
           </nav>
-        </div>
-      </header>
-
-      {/* Coming Soon Modal */}
-      {comingSoonOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center" onClick={() => setComingSoonOpen(false)}>
-          <div
-            className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">AI Features</h2>
-            <p className="text-slate-600 mb-6">
-              Our AI-powered features are coming soon! We're working hard to bring you intelligent insights and analysis to help you make better decisions.
-            </p>
-            <button
-              onClick={() => setComingSoonOpen(false)}
-              className="w-full px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
-            >
-              Got it!
-            </button>
+          <div className="md:hidden flex gap-2">
+            <div className="relative group">
+              <Button variant="ghost" size="sm" className="text-black hover:text-primary">
+                Sign In
+              </Button>
+              <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <Link href="/auth/login?method=email" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
+                  Email
+                </Link>
+                <Link href="/auth/login?method=wallet" className="block px-4 py-2 text-sm text-black hover:bg-slate-100 rounded transition-colors">
+                  Wallet
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </header>
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
@@ -142,7 +145,7 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h2 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
@@ -156,7 +159,7 @@ export default function LandingPage() {
             <Link href="#claims">
               <Button
                 size="lg"
-                className="bg-primary hover:bg-primary/90 text-white gap-2"
+                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2"
               >
                 Start Watching <ArrowRight className="w-4 h-4" />
               </Button>
@@ -165,7 +168,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                className="border-teal-200 text-teal-700 hover:bg-teal-50 bg-transparent"
               >
                 View Claims
               </Button>
@@ -204,7 +207,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('vaults')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
-                  ? 'bg-primary text-white shadow-lg'
+                  ? 'bg-teal-500 text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -214,7 +217,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('tripples')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'tripples'
-                  ? 'bg-primary text-white shadow-lg'
+                  ? 'bg-teal-500 text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >
@@ -224,7 +227,7 @@ export default function LandingPage() {
               onClick={() => setActiveTab('atoms')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
-                  ? 'bg-primary text-white shadow-lg'
+                  ? 'bg-teal-500 text-white shadow-lg'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               }`}
             >

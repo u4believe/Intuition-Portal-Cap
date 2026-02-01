@@ -62,7 +62,7 @@ export default function ClaimsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
+      className="flex items-center gap-1 hover:text-teal-600 transition-colors text-slate-900"
     >
       {label}
       {sortField === field &&
@@ -152,47 +152,47 @@ export default function ClaimsTable() {
                           <img src={claim.image || '/placeholder.svg'} alt={claim.label} className="w-6 h-6 rounded-full" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-sm truncate hover:text-primary transition-colors">{claim.label}</p>
+                          <p className="font-medium text-slate-900 text-sm truncate hover:text-teal-600 transition-colors">{claim.label}</p>
                           <p className="text-xs text-slate-500 truncate">{claim.subjectLabel}</p>
                         </div>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20 transition-colors">
+                        <span className="inline-flex items-center justify-center px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors">
                           {claim.type}
                         </span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.totalShares.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline">
-                        <span className={claim.sharePriceChange24h >= 0 ? 'text-primary' : 'text-red-600'}>
+                        <span className={claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {claim.sharePriceChange24h >= 0 ? '+' : ''}{(claim.sharePriceChange24h / 1e18).toFixed(3)}%
                         </span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-700 text-sm">
-                      <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                      <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.positionCount.toLocaleString('en-US')}
                       </Link>
                     </td>
@@ -205,8 +205,8 @@ export default function ClaimsTable() {
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(claim.label)
-                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                : 'bg-primary hover:bg-primary/90 text-white'
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                            : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700'
                         }`}
                       >
                         {isWatched(claim.label) ? 'Watching' : 'Watch'}
@@ -222,7 +222,7 @@ export default function ClaimsTable() {
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1"
                         title="View Claim Details"
                       >
-                        <Eye className="w-4 h-4 text-primary" />
+                        <Eye className="w-4 h-4 text-teal-600" />
                       </button>
                     </td>
                   </tr>
