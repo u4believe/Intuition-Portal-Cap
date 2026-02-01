@@ -58,7 +58,7 @@ export default function AtomsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-slate-600 transition-colors whitespace-nowrap"
+      className="flex items-center gap-1 hover:text-primary transition-colors whitespace-nowrap"
     >
       {label}
       {sortField === field && (
@@ -151,7 +151,7 @@ export default function AtomsTable() {
                           <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-teal-600 transition-colors">{atom.label}</p>
+                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
                           <p className="text-xs text-slate-500 truncate">{atom.creatorLabel}</p>
                         </div>
                       </Link>
@@ -164,22 +164,22 @@ export default function AtomsTable() {
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
@@ -191,7 +191,7 @@ export default function AtomsTable() {
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
-                      <Link href={`/vault/${atom.termId}`} className="hover:text-teal-600 transition-colors">
+                      <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.positionCount.toLocaleString('en-US')}
                       </Link>
                     </td>
@@ -205,7 +205,7 @@ export default function AtomsTable() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(atom.label)
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700'
+                            : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {isWatched(atom.label) ? 'Watching' : 'Watch'}
