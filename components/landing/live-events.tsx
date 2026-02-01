@@ -76,12 +76,12 @@ export default function LiveEvents() {
               <div
                 className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                   event.type === 'deposit'
-                    ? 'bg-teal-100'
+                    ? 'bg-green-100'
                     : 'bg-orange-100'
                 }`}
               >
                 {event.type === 'deposit' ? (
-                  <ArrowDownLeft className="w-5 h-5 text-teal-600" />
+                  <ArrowDownLeft className="w-5 h-5 text-green-600" />
                 ) : (
                   <ArrowUpRight className="w-5 h-5 text-orange-600" />
                 )}
@@ -92,7 +92,7 @@ export default function LiveEvents() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`font-semibold ${
                     event.type === 'deposit'
-                      ? 'text-teal-600'
+                      ? 'text-green-600'
                       : 'text-orange-600'
                   }`}>
                     {event.type === 'deposit' ? 'Deposit' : 'Redemption'}
@@ -114,7 +114,7 @@ export default function LiveEvents() {
                 <p
                   className={`font-semibold text-sm ${
                     event.type === 'deposit'
-                      ? 'text-teal-600'
+                      ? 'text-green-600'
                       : 'text-orange-600'
                   }`}
                 >
