@@ -1,19 +1,66 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Star, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import Link from 'next/link'
-import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 import { ViewTriplesModal } from '@/components/landing/view-triples-modal'
+import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
+
+interface Triple {
+  label: string
+  type: string
+  subject: { label: string; image?: string }
+  predicate: { label: string }
+  object: { label: string }
+  marketCap?: number
+  totalAssets?: number
+  totalShares?: number
+  currentSharePrice?: number
+  sharePriceChange24h?: number
+  positionCount?: number
+}
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
 type SortOrder = 'asc' | 'desc'
 
+const TRIPLES_QUERY = `
+  query GetTriples {
+    vaults(limit: 1000, order_by: {market_cap: desc}) {
+      term {
+        triple {
+          subject {
+            label
+            image
+          }
+          predicate {
+            label
+          }
+          object {
+            label
+          }
+        }
+        type
+      }
+      market_cap
+      total_assets
+      total_shares
+      positions {
+        account_id
+      }
+      share_price_change_stats_daily {
+        difference
+      }
+      current_share_price
+    }
+  }
+`
+
 export default function TriplesTable() {
-  const { data: triples = [], isLoading: loading } = useTriples(1000)
+  const [triples, setTriples] = useState<Triple[]>([])
+  const [loading, setLoading] = useState(true)
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -24,6 +71,37 @@ export default function TriplesTable() {
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
   const [viewTriplesOpen, setViewTriplesOpen] = useState(false)
   const [selectedTripleForView, setSelectedTripleForView] = useState<string>('')
+
+  useEffect(() => {
+    fetchTriples()
+  }, [])
+
+  const fetchTriples = async () => {
+    setLoading(true)
+    try {
+      const result = await queryIntuitionGraphQL(TRIPLES_QUERY)
+      if (result?.data?.vaults) {
+        const formattedTriples = result.data.vaults.map((vault: any) => ({
+          label: `${vault.term?.triple?.subject?.label} ${vault.term?.triple?.predicate?.label} ${vault.term?.triple?.object?.label}`,
+          type: vault.term?.type || 'Unknown',
+          subject: vault.term?.triple?.subject || {},
+          predicate: vault.term?.triple?.predicate || {},
+          object: vault.term?.triple?.object || {},
+          marketCap: vault.market_cap || 0,
+          totalAssets: vault.total_assets || 0,
+          totalShares: vault.total_shares || 0,
+          currentSharePrice: vault.current_share_price || 0,
+          sharePriceChange24h: vault.share_price_change_stats_daily?.difference || 0,
+          positionCount: vault.positions?.length || 0,
+        }))
+        setTriples(formattedTriples)
+      }
+    } catch (error) {
+      console.error('Failed to fetch triples:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -94,9 +172,6 @@ export default function TriplesTable() {
                 <tr>
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="label" label="Triple" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="type" label="Type" />
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="marketCap" label="Market Cap" />
