@@ -34,7 +34,7 @@ export default function TopClaimsDisplay() {
             claims.map((claim, idx) => (
               <Card
                 key={idx}
-                className="bg-slate-900 border-slate-700 hover:border-cyan-500/50 transition-colors cursor-pointer group"
+                className="bg-slate-900 border-slate-700 hover:border-primary/50 transition-colors cursor-pointer group"
               >
                 <CardContent className="pt-6">
                   <div className="space-y-4">
@@ -48,12 +48,12 @@ export default function TopClaimsDisplay() {
                             className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-bold text-white">#{idx + 1}</span>
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors truncate">
+                          <h3 className="font-semibold text-white group-hover:text-primary transition-colors truncate">
                             {claim.label}
                           </h3>
                           <p className="text-xs text-slate-500">{claim.positionCount} positions</p>
@@ -75,7 +75,7 @@ export default function TopClaimsDisplay() {
                       </div>
                       <div className="bg-slate-800/50 rounded-lg p-3">
                         <p className="text-xs text-slate-500 mb-1">Last Share Price</p>
-                        <p className="font-semibold text-cyan-400">
+                        <p className="font-semibold text-primary">
                           {claim.lastSharePrice.toLocaleString("en-US", {
                             maximumFractionDigits: 8,
                             minimumFractionDigits: 2,
@@ -95,7 +95,7 @@ export default function TopClaimsDisplay() {
         <div className="flex justify-center pt-4">
           <Button
             onClick={() => setShowClaimsModal(true)}
-            className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700"
+            className="bg-primary hover:bg-primary/90"
           >
             View All Claims & Holders
           </Button>
