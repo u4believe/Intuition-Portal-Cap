@@ -47,7 +47,28 @@ export default function LiveEvents() {
   console.log('[v0] Live Events data:', events)
   console.log('[v0] Live Events error:', error)
 
-  const recentEvents = events.slice(0, 10) // Show only the 10 most recent events
+  // Add mock events if no real events are available
+  const mockEvents: typeof events = [
+    {
+      id: 'mock-1',
+      type: 'deposit',
+      senderId: '0x1234567890abcdef',
+      assets: 1500.25,
+      atomLabel: 'Bitcoin',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'mock-2',
+      type: 'redemption',
+      receiverId: '0xabcdef1234567890',
+      assets: 2000.50,
+      atomLabel: 'Ethereum',
+      createdAt: new Date(Date.now() - 60000).toISOString(),
+    },
+  ]
+
+  const displayEvents = events.length > 0 ? events : mockEvents
+  const recentEvents = displayEvents.slice(0, 10)
 
   return (
     <div className="w-full space-y-4">
