@@ -92,8 +92,8 @@ export default function LiveEvents() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`font-semibold ${
                     event.type === 'deposit'
-                      ? 'text-green-600'
-                      : 'text-orange-600'
+                      ? '!text-green-600'
+                      : '!text-orange-600'
                   }`}>
                     {event.type === 'deposit' ? 'Deposit' : 'Redemption'}
                   </span>
