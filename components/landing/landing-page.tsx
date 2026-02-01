@@ -22,9 +22,9 @@ export default function LandingPage() {
   const watchedClaims = getWatchedClaims()
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 overflow-x-hidden transition-colors">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 overflow-x-hidden transition-colors">
       {/* Header */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg sticky top-0 z-50">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 dark:backdrop-blur-md backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-[5.625rem]">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
@@ -128,7 +128,7 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h2 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/80 dark:from-primary/80 dark:to-primary/60 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
@@ -182,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* All Claims Table Section */}
-      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800 py-20">
+      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800/50 py-20">
         <div className="w-full px-0 space-y-8">
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
@@ -230,11 +230,11 @@ export default function LandingPage() {
         <div className="text-center space-y-4">
           <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
             Powerful Features for <br/>
-            <span className="bg-gradient-to-r from-primary to-primary/60 dark:from-primary/80 dark:to-primary/50 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-primary/60 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
               Smart Monitoring
             </span>
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Everything you need to stay on top of your claims and positions.
           </p>
         </div>
@@ -260,13 +260,13 @@ export default function LandingPage() {
           ].map((feature, i) => {
             const Icon = feature.icon
             return (
-              <Card key={i} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-primary/50 transition-colors shadow-sm">
+              <Card key={i} className="bg-white dark:bg-slate-900/50 dark:backdrop-blur-sm border-slate-200 dark:border-slate-800/50 hover:border-primary dark:hover:border-cyan-400/50 transition-all shadow-sm dark:shadow-lg">
                 <CardHeader>
-                  <Icon className="w-8 h-8 text-primary mb-2" />
+                  <Icon className="w-8 h-8 text-primary dark:text-cyan-400 mb-2" />
                   <CardTitle className="text-slate-900 dark:text-white">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
                     {feature.description}
                   </p>
                 </CardContent>
@@ -277,8 +277,8 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200 dark:border-slate-800">
-        <div className="bg-gradient-to-r from-primary/10 dark:from-primary/20 to-primary/5 dark:to-primary/10 border border-primary/20 dark:border-primary/30 rounded-2xl p-12 text-center space-y-6">
+      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200 dark:border-slate-800/50">
+        <div className="bg-gradient-to-r from-primary/10 dark:from-cyan-500/20 to-primary/5 dark:to-purple-500/20 border border-primary/20 dark:border-cyan-400/30 rounded-2xl p-12 text-center space-y-6 dark:backdrop-blur-sm">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Ready to monitor your claims?</h2>
           <p className="text-slate-600 dark:text-slate-300">Connect your wallet and start tracking claims in real-time.</p>
           <Link href="/auth/login">
