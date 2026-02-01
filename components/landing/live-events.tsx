@@ -47,28 +47,7 @@ export default function LiveEvents() {
   console.log('[v0] Live Events data:', events)
   console.log('[v0] Live Events error:', error)
 
-  // Add mock events if no real events are available
-  const mockEvents: typeof events = [
-    {
-      id: 'mock-1',
-      type: 'deposit',
-      senderId: '0x1234567890abcdef',
-      assets: 1500.25,
-      atomLabel: 'Bitcoin',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock-2',
-      type: 'redemption',
-      receiverId: '0xabcdef1234567890',
-      assets: 2000.50,
-      atomLabel: 'Ethereum',
-      createdAt: new Date(Date.now() - 60000).toISOString(),
-    },
-  ]
-
-  const displayEvents = events.length > 0 ? events : mockEvents
-  const recentEvents = displayEvents.slice(0, 10)
+  const recentEvents = events.slice(0, 10) // Show only the 10 most recent events
 
   return (
     <div className="w-full space-y-4">
@@ -97,12 +76,12 @@ export default function LiveEvents() {
               <div
                 className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                   event.type === 'deposit'
-                    ? 'bg-green-100'
+                    ? 'bg-teal-100'
                     : 'bg-orange-100'
                 }`}
               >
                 {event.type === 'deposit' ? (
-                  <ArrowDownLeft className="w-5 h-5 text-green-600" />
+                  <ArrowDownLeft className="w-5 h-5 text-teal-600" />
                 ) : (
                   <ArrowUpRight className="w-5 h-5 text-orange-600" />
                 )}
@@ -111,12 +90,7 @@ export default function LiveEvents() {
               {/* Event Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span
-                    style={{ 
-                      color: event.type === 'deposit' ? '#16a34a' : '#ea580c',
-                      fontWeight: '600'
-                    }}
-                  >
+                  <span className="font-semibold text-slate-900">
                     {event.type === 'deposit' ? 'Deposit' : 'Redemption'}
                   </span>
                   <span className="text-sm text-slate-600">in {event.atomLabel}</span>
@@ -134,11 +108,11 @@ export default function LiveEvents() {
               {/* Assets Amount */}
               <div className="flex-shrink-0 text-right">
                 <p
-                  style={{
-                    fontWeight: '600',
-                    fontSize: '0.875rem',
-                    color: event.type === 'deposit' ? '#16a34a' : '#ea580c'
-                  }}
+                  className={`font-semibold text-sm ${
+                    event.type === 'deposit'
+                      ? 'text-teal-600'
+                      : 'text-orange-600'
+                  }`}
                 >
                   {event.assets.toLocaleString('en-US', { maximumFractionDigits: 2 })} TRUST
                 </p>
