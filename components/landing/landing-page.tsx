@@ -118,7 +118,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <Link href="/auth/signup">
+            <Link href="/auth/login">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-white"
