@@ -69,6 +69,7 @@ export const REDEMPTIONS_QUERY = `
 export const ALL_CLAIMS_QUERY = `
   query GetVaults($limit: Int) {
     vaults(limit: $limit, order_by: {market_cap: desc}) {
+      id
       term_id
       market_cap
       total_shares
@@ -76,6 +77,7 @@ export const ALL_CLAIMS_QUERY = `
       total_assets
       position_count
       term {
+        id
         atom {
           label
           image
