@@ -8,14 +8,27 @@ import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 
 export default function VaultDetailsPage({ params }: { params: { id: string } }) {
-  const { data: claims = [], isLoading } = useAllClaims(1000)
+  const { data: claims = [], isLoading, isError, error } = useAllClaims(1000)
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const [claim, setClaim] = useState<any>(null)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   useEffect(() => {
-    const foundClaim = claims.find((c) => c.termId === params.id)
-    setClaim(foundClaim)
-  }, [claims, params.id])
+    console.log('[v0] Vault page params:', params)
+    console.log('[v0] Available claims:', claims.length)
+    console.log('[v0] Looking for termId:', params.id)
+    
+    if (claims.length > 0) {
+      console.log('[v0] Sample claim termIds:', claims.slice(0, 3).map(c => c.termId))
+      const foundClaim = claims.find((c) => c.termId === params.id)
+      console.log('[v0] Found claim:', foundClaim ? foundClaim.label : 'NOT FOUND')
+      setClaim(foundClaim)
+      
+      if (!foundClaim) {
+        setDebugInfo(`Looking for termId: ${params.id}. Available: ${claims.map(c => c.termId).join(', ').substring(0, 200)}...`)
+      }
+    }
+  }, [claims, params]) // Updated dependency array
 
   const watchedClaims = getWatchedClaims()
   const isWatched = claim ? watchedClaims.includes(claim.label) : false
@@ -32,9 +45,29 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white p-8">
-        <div className="max-w-6xl mx-auto text-center text-slate-500">
-          Loading vault details...
+      <div className="min-h-screen bg-white dark:bg-slate-950 p-8">
+        <div className="max-w-6xl mx-auto text-center text-slate-500 dark:text-slate-400">
+          <div>Loading vault details...</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 mt-4">Vault ID: {params.id}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-slate-950 p-8">
+        <div className="max-w-6xl mx-auto">
+          <Link href="/">
+            <Button variant="ghost" className="flex items-center gap-2 mb-8 text-black dark:text-white">
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </Link>
+          <div className="text-center">
+            <p className="text-red-600 dark:text-red-400 font-semibold">Error loading vault details</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">{error?.message}</p>
+          </div>
         </div>
       </div>
     )
@@ -42,27 +75,37 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
 
   if (!claim) {
     return (
-      <div className="min-h-screen bg-white p-8">
+      <div className="min-h-screen bg-white dark:bg-slate-950 p-8">
         <div className="max-w-6xl mx-auto">
           <Link href="/">
-            <Button variant="ghost" className="flex items-center gap-2 mb-8">
+            <Button variant="ghost" className="flex items-center gap-2 mb-8 text-black dark:text-white">
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
           </Link>
-          <div className="text-center text-slate-500">Vault not found</div>
+          <div className="text-center space-y-4">
+            <p className="text-slate-500 dark:text-slate-400 font-semibold">Vault not found</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm">Vault ID: {params.id}</p>
+            {debugInfo && <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 break-words">{debugInfo}</p>}
+            <p className="text-slate-400 dark:text-slate-500 text-sm">Total vaults available: {claims.length}</p>
+            <Link href="/" className="inline-block mt-4">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
+                Return to Home
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Header */}
-      <div className="border-b border-slate-200 sticky top-0 z-50 bg-white">
+      <div className="border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 bg-white dark:bg-slate-950">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 text-black dark:text-white">
               <ArrowLeft className="w-4 h-4" />
               Back to Vaults
             </Button>
@@ -73,7 +116,7 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
           >
             <Star
               className={`w-6 h-6 ${
-                isWatched ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 hover:text-yellow-400'
+                isWatched ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
               }`}
             />
           </button>
@@ -83,16 +126,16 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Vault Header */}
-        <div className="flex items-center gap-6 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
           {claim.image && (
             <img src={claim.image || "/placeholder.svg"} alt={claim.label} className="w-16 h-16 rounded-full" />
           )}
           <div className="flex-1">
-            <h1 className="text-4xl font-bold text-slate-900">{claim.label}</h1>
-            <p className="text-slate-600 mt-1">Term ID: {claim.termId}</p>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">{claim.label}</h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">Term ID: {claim.termId}</p>
           </div>
           <div className="text-right">
-            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+            <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
               {claim.type}
             </span>
           </div>
@@ -100,67 +143,67 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
 
         {/* Triple Information */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900">Triple Information</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Triple Information</h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Subject</p>
-              <p className="text-lg font-semibold text-slate-900">{claim.subjectLabel}</p>
-              <p className="text-xs text-slate-500 mt-2">Type: {claim.subjectType}</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Subject</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.subjectLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.subjectType}</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Predicate</p>
-              <p className="text-lg font-semibold text-slate-900">{claim.predicateLabel}</p>
-              <p className="text-xs text-slate-500 mt-2">Type: {claim.predicateType}</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Predicate</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.predicateLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.predicateType}</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Object</p>
-              <p className="text-lg font-semibold text-slate-900">{claim.objectLabel}</p>
-              <p className="text-xs text-slate-500 mt-2">Type: {claim.objectType}</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Object</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.objectLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.objectType}</p>
             </div>
           </div>
         </div>
 
         {/* Market Statistics */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900">Market Statistics</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Market Statistics</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Market Cap (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Market Cap (TRUST)</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Total Assets (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Total Assets (TRUST)</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Total Shares</p>
-              <p className="text-3xl font-bold text-slate-900">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Total Shares</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.totalShares.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Current Share Price (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Current Share Price (TRUST)</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Positions</p>
-              <p className="text-3xl font-bold text-slate-900">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Positions</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.positionCount.toLocaleString('en-US')}
               </p>
             </div>
             <div className={`bg-gradient-to-br p-6 rounded-lg border ${
               claim.sharePriceChange24h >= 0
-                ? 'from-green-50 to-green-100 border-green-200'
-                : 'from-red-50 to-red-100 border-red-200'
+                ? 'from-green-50 dark:from-green-900/20 to-green-100 dark:to-green-800/20 border-green-200 dark:border-green-800'
+                : 'from-red-50 dark:from-red-900/20 to-red-100 dark:to-red-800/20 border-red-200 dark:border-red-800'
             }`}>
-              <p className="text-sm text-slate-600 mb-2">Share Price Change (24h)</p>
-              <p className={`text-3xl font-bold ${claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Share Price Change (24h)</p>
+              <p className={`text-3xl font-bold ${claim.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {claim.sharePriceChange24h >= 0 ? '+' : ''}{(claim.sharePriceChange24h / 1e18).toFixed(3)}%
               </p>
             </div>
