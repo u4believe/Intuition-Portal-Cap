@@ -124,7 +124,7 @@ export function useAllClaims(limit: number = 1000) {
           : 0
 
         return {
-          termId: vault.term_id || '',
+          termId: vault.term_id || vault.term?.id || '',
           label: atom?.label || 'Unknown',
           type: atom?.type || 'Unknown',
           image: atom?.image || null,
