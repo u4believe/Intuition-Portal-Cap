@@ -1,11 +1,12 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { useUserPreferences } from "@/hooks/useUserPreferences" // Import useUserPreferences hook
+import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { Search, Star } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -17,13 +18,13 @@ export default function LandingPage() {
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
-  const { getWatchedClaims } = useUserPreferences() // Declare useUserPreferences hook
+  const { getWatchedClaims } = useUserPreferences()
   const watchedClaims = getWatchedClaims()
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 overflow-x-hidden transition-colors">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-lg sticky top-0 z-50">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 dark:backdrop-blur-md backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-[5.625rem]">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
@@ -38,19 +39,19 @@ export default function LandingPage() {
             <div className="relative">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-sm text-black"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
               >
                 <Search className="w-4 h-4" />
                 <span>Search Claims</span>
               </button>
               {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg p-4 z-50">
+                <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
                   <input
                     type="text"
                     placeholder="Search claims..."
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                   />
                 </div>
@@ -59,7 +60,7 @@ export default function LandingPage() {
 
             <button
               onClick={() => setWatchlistOpen(!watchlistOpen)}
-              className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors text-sm text-black hover:text-slate-900"
+              className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm text-black dark:text-white hover:text-slate-900 dark:hover:text-slate-100"
             >
               <Star className="w-4 h-4" />
               <span>Watchlist</span>
@@ -71,46 +72,49 @@ export default function LandingPage() {
             </button>
 
             {watchlistOpen && (
-              <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-slate-200 rounded-lg shadow-lg p-4 z-50 max-h-[400px] overflow-y-auto">
+              <div className="absolute top-full right-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50 max-h-[400px] overflow-y-auto">
                 {watchedClaims.length > 0 ? (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-slate-900 mb-4">Your Watchlist ({watchedClaims.length})</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Your Watchlist ({watchedClaims.length})</h3>
                     {watchedClaims.map((claim, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50">
+                      <div key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm text-slate-700">{claim}</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300">{claim}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-500 text-center py-8">
+                  <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
                     No claims in your watchlist yet
                   </div>
                 )}
               </div>
             )}
 
-            <a href="#features" className="text-sm text-black hover:text-primary transition-colors">
+            <a href="#features" className="text-sm text-black dark:text-white hover:text-primary transition-colors">
               Features
             </a>
             
-            <Link href="/dashboard" className="text-sm text-black hover:text-primary transition-colors font-medium">
+            <Link href="/dashboard" className="text-sm text-black dark:text-white hover:text-primary transition-colors font-medium">
               Dashboard
             </Link>
 
-            <Link href="/auth/login">
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-slate-300 text-black hover:bg-slate-100 bg-transparent"
-              >
-                Sign In
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link href="/auth/login">
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            </div>
           </nav>
-          <div className="md:hidden flex gap-2">
+          <div className="md:hidden flex gap-2 items-center">
+            <ThemeToggle />
             <Link href="/auth/login">
-              <Button variant="ghost" size="sm" className="text-black hover:text-primary">
+              <Button variant="ghost" size="sm" className="text-black dark:text-white hover:text-primary">
                 Sign In
               </Button>
             </Link>
@@ -122,13 +126,13 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
           <div className="space-y-4">
-            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
+            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight">
               Monitor Claims in{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 Real-Time
               </span>
             </h2>
-            <p className="text-lg text-slate-600 leading-relaxed">
+            <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
               Get instant signals on market cap changes, price movements, and position updates for your favorite claims
               and identities on Intuition.
             </p>
@@ -147,7 +151,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                className="border-primary text-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 bg-transparent"
               >
                 View Claims
               </Button>
@@ -155,18 +159,18 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-200">
+          <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-200 dark:border-slate-700">
             <div>
-              <div className="text-2xl font-bold text-slate-900">24/7</div>
-              <p className="text-sm text-slate-600">Monitoring</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">24/7</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Monitoring</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">Instant</div>
-              <p className="text-sm text-slate-600">Alerts</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">Instant</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Alerts</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">Custom</div>
-              <p className="text-sm text-slate-600">Triggers</p>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">Custom</div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Triggers</p>
             </div>
           </div>
         </div>
@@ -178,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* All Claims Table Section */}
-      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 to-white border-t border-slate-200 py-20">
+      <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800/50 py-20">
         <div className="w-full px-0 space-y-8">
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
@@ -187,7 +191,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Vaults
@@ -197,7 +201,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'tripples'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Tripples
@@ -207,7 +211,7 @@ export default function LandingPage() {
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Atoms
@@ -222,36 +226,49 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200">
-        <h2 className="text-4xl font-bold text-slate-900 text-center mb-12">Powerful Features</h2>
+      <section id="features" className="max-w-7xl mx-auto px-4 py-20 space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
+            Powerful Features for <br/>
+            <span className="bg-gradient-to-r from-primary to-primary/60 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
+              Smart Monitoring
+            </span>
+          </h2>
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            Everything you need to stay on top of your claims and positions.
+          </p>
+        </div>
 
+        {/* Feature Cards */}
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
               icon: TrendingUp,
-              title: "Real-Time Monitoring",
-              description: "Get instant updates on market cap, share price, and position changes across all claims.",
+              title: 'Real-Time Updates',
+              description: 'Get instant notifications about market cap changes and price movements',
             },
             {
               icon: Zap,
-              title: "Custom Alerts",
-              description: "Set up personalized triggers for price changes, market cap shifts, and position updates.",
+              title: 'Custom Alerts',
+              description: 'Set up triggers based on your specific monitoring preferences',
             },
             {
               icon: Lock,
-              title: "Secure & Private",
-              description: "Your data is encrypted and secure. We never share your information with third parties.",
+              title: 'Web3 Native',
+              description: 'Seamless wallet integration with no email required',
             },
           ].map((feature, i) => {
             const Icon = feature.icon
             return (
-              <Card key={i} className="bg-white border-slate-200 hover:border-primary transition-colors shadow-sm">
+              <Card key={i} className="bg-white dark:bg-slate-900/50 dark:backdrop-blur-sm border-slate-200 dark:border-slate-800/50 hover:border-primary dark:hover:border-cyan-400/50 transition-all shadow-sm dark:shadow-lg">
                 <CardHeader>
-                  <Icon className="w-8 h-8 text-primary mb-2" />
-                  <CardTitle className="text-slate-900">{feature.title}</CardTitle>
+                  <Icon className="w-8 h-8 text-primary dark:text-cyan-400 mb-2" />
+                  <CardTitle className="text-slate-900 dark:text-white">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">{feature.description}</p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
                 </CardContent>
               </Card>
             )
@@ -260,10 +277,10 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12 text-center space-y-6">
-          <h2 className="text-3xl font-bold text-slate-900">Ready to monitor your claims?</h2>
-          <p className="text-slate-600">Connect your wallet and start tracking claims in real-time.</p>
+      <section className="max-w-7xl mx-auto px-4 py-20 border-t border-slate-200 dark:border-slate-800/50">
+        <div className="bg-gradient-to-r from-primary/10 dark:from-cyan-500/20 to-primary/5 dark:to-purple-500/20 border border-primary/20 dark:border-cyan-400/30 rounded-2xl p-12 text-center space-y-6 dark:backdrop-blur-sm">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Ready to monitor your claims?</h2>
+          <p className="text-slate-600 dark:text-slate-300">Connect your wallet and start tracking claims in real-time.</p>
           <Link href="/auth/login">
             <Button
               size="lg"
