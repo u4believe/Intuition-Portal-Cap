@@ -6,29 +6,51 @@ import { ArrowLeft, Star } from 'lucide-react'
 import { useAllClaims } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
+import { useSearchParams } from 'next/navigation'
 
-export default function VaultDetailsPage({ params }: { params: { id: string } }) {
+export default function VaultDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: claims = [], isLoading, isError, error } = useAllClaims(1000)
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const [claim, setClaim] = useState<any>(null)
   const [debugInfo, setDebugInfo] = useState<string>('')
+  const [termId, setTermId] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log('[v0] Vault page params:', params)
+    let isMounted = true
+
+    const resolveParams = async () => {
+      try {
+        const resolvedParams = await params
+        console.log('[v0] Resolved params:', resolvedParams)
+        if (isMounted) {
+          setTermId(resolvedParams.id)
+        }
+      } catch (err) {
+        console.error('[v0] Error resolving params:', err)
+      }
+    }
+
+    resolveParams()
+    return () => {
+      isMounted = false
+    }
+  }, [params])
+
+  useEffect(() => {
+    console.log('[v0] Looking for termId:', termId)
     console.log('[v0] Available claims:', claims.length)
-    console.log('[v0] Looking for termId:', params.id)
     
-    if (claims.length > 0) {
+    if (termId && claims.length > 0) {
       console.log('[v0] Sample claim termIds:', claims.slice(0, 3).map(c => c.termId))
-      const foundClaim = claims.find((c) => c.termId === params.id)
+      const foundClaim = claims.find((c) => c.termId === termId)
       console.log('[v0] Found claim:', foundClaim ? foundClaim.label : 'NOT FOUND')
       setClaim(foundClaim)
       
       if (!foundClaim) {
-        setDebugInfo(`Looking for termId: ${params.id}. Available: ${claims.map(c => c.termId).join(', ').substring(0, 200)}...`)
+        setDebugInfo(`Looking for termId: ${termId}. Available: ${claims.map(c => c.termId).join(', ').substring(0, 200)}...`)
       }
     }
-  }, [claims, params]) // Updated dependency array
+  }, [claims, termId])
 
   const watchedClaims = getWatchedClaims()
   const isWatched = claim ? watchedClaims.includes(claim.label) : false
@@ -43,12 +65,12 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !termId) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950 p-8">
         <div className="max-w-6xl mx-auto text-center text-slate-500 dark:text-slate-400">
           <div>Loading vault details...</div>
-          <div className="text-xs text-slate-400 dark:text-slate-500 mt-4">Vault ID: {params.id}</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 mt-4">Vault ID: {termId || 'loading'}</div>
         </div>
       </div>
     )
@@ -85,7 +107,7 @@ export default function VaultDetailsPage({ params }: { params: { id: string } })
           </Link>
           <div className="text-center space-y-4">
             <p className="text-slate-500 dark:text-slate-400 font-semibold">Vault not found</p>
-            <p className="text-slate-400 dark:text-slate-500 text-sm">Vault ID: {params.id}</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm">Vault ID: {termId}</p>
             {debugInfo && <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 break-words">{debugInfo}</p>}
             <p className="text-slate-400 dark:text-slate-500 text-sm">Total vaults available: {claims.length}</p>
             <Link href="/" className="inline-block mt-4">
