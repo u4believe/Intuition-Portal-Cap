@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import SearchModal from "./search-modal"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -15,7 +16,6 @@ import AtomsTable from "./atoms-table"
 
 export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
   const { getWatchedClaims } = useUserPreferences()
@@ -36,27 +36,13 @@ export default function LandingPage() {
             </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <div className="relative">
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
-              >
-                <Search className="w-4 h-4" />
-                <span>Search Claims</span>
-              </button>
-              {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
-                  <input
-                    type="text"
-                    placeholder="Search claims..."
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                    autoFocus
-                  />
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
+            >
+              <Search className="w-4 h-4" />
+              <span>Search Claims</span>
+            </button>
 
             <button
               onClick={() => setWatchlistOpen(!watchlistOpen)}
@@ -121,6 +107,8 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
+
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
