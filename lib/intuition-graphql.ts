@@ -99,6 +99,9 @@ export const ALL_CLAIMS_QUERY = `
       }
       share_price_change_stats_daily {
         difference
+        first_share_price
+        last_share_price
+        change_count
       }
       deposits {
         id
