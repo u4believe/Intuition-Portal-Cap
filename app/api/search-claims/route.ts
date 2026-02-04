@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
 
-const GRAPHQL_ENDPOINT = 'https://mainnet.intuition.sh/v1/graphql'
-
-// Search vaults, triples, and atoms
+// Search vaults, triples, and atoms using server-side GraphQL
 const SEARCH_QUERY = `
   query SearchClaims($search: String!, $limit: Int) {
     vaults(where: {term: {atom: {label: {_ilike: $search}}}}, limit: $limit, order_by: {market_cap: desc}) {
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] })
     }
 
-    const response = await fetch(GRAPHQL_ENDPOINT, {
+    const response = await fetch('https://your-graphql-endpoint.com/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,6 +117,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: results.slice(0, 20) })
   } catch (error) {
     console.error('[v0] Search error:', error)
-    return NextResponse.json({ results: [] })
+    return NextResponse.json({ results: [], error: 'Search failed' }, { status: 500 })
   }
 }
