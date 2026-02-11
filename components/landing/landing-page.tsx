@@ -17,7 +17,7 @@ export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'vaults' | 'tripples' | 'atoms'>('vaults')
+  const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('vaults')
   const { getWatchedClaims } = useUserPreferences()
   const watchedClaims = getWatchedClaims()
 
@@ -197,14 +197,14 @@ export default function LandingPage() {
               Vaults
             </button>
             <button
-              onClick={() => setActiveTab('tripples')}
+              onClick={() => setActiveTab('claims')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
-                activeTab === 'tripples'
+                activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              Tripples
+              Claims
             </button>
             <button
               onClick={() => setActiveTab('atoms')}
@@ -220,7 +220,7 @@ export default function LandingPage() {
 
           {/* Tab Content */}
           {activeTab === 'vaults' && <ClaimsTable />}
-          {activeTab === 'tripples' && <TriplesTable />}
+          {activeTab === 'claims' && <TriplesTable />}
           {activeTab === 'atoms' && <AtomsTable />}
         </div>
       </section>
