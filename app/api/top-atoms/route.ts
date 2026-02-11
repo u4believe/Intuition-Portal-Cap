@@ -9,12 +9,14 @@ export async function GET(request: Request) {
     const ATOMS_QUERY = `
       query GetAtoms($limit: Int) {
         vaults(limit: $limit, order_by: {market_cap: desc}) {
+          id
           market_cap
           position_count
           total_shares
           total_assets
           current_share_price
           term {
+            id
             atom {
               label
               image
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
 
       if (!atomsMap.has(atomLabel)) {
         atomsMap.set(atomLabel, {
+          termId: vault.term?.id || vault.id, // Store the term/vault ID
           label: atomLabel,
           image: atom?.image || "",
           marketCap: 0,
