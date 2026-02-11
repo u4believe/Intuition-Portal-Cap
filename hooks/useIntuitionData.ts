@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  queryIntuitionGraphQL,
   DEPOSITS_QUERY,
   REDEMPTIONS_QUERY,
   ALL_CLAIMS_QUERY,
@@ -7,7 +8,6 @@ import {
   TRIPLES_QUERY,
   ATOMS_QUERY,
   convertWeiToEther,
-  queryIntuitionGraphQL,
 } from '@/lib/intuition-graphql'
 
 export interface LiveEvent {
@@ -25,7 +25,6 @@ export interface Claim {
   label: string
   type: string
   image: string | null
-  emoji: string | null
   subjectLabel: string
   subjectType: string
   predicateLabel: string
@@ -60,38 +59,25 @@ export function useRecentEvents() {
   return useQuery({
     queryKey: ['recentEvents'],
     queryFn: async () => {
-      const response = await fetch('/api/recent-events')
-      if (!response.ok) throw new Error('Failed to fetch recent events')
-      const data = await response.json()
-      return data.events || []
-    },
-    staleTime: 30000,
-  })
-}
-
-export function useLiveEvents() {
-  return useQuery({
-    queryKey: ['liveEvents'],
-    queryFn: async () => {
       const allEvents: LiveEvent[] = []
-      let depositsResponse, redemptionsResponse
 
       try {
-        depositsResponse = await queryIntuitionGraphQL(DEPOSITS_QUERY)
-        redemptionsResponse = await queryIntuitionGraphQL(REDEMPTIONS_QUERY)
-
-        (depositsResponse?.deposits || []).forEach((deposit: any) => {
+        // Fetch deposits
+        const depositsData = await queryIntuitionGraphQL(DEPOSITS_QUERY)
+        ;(depositsData?.deposits || []).forEach((deposit: any) => {
           allEvents.push({
             id: deposit.id,
             type: 'deposit',
             senderId: deposit.sender_id,
-            assets: convertWeiToEther(deposit.assets || 0),
+            assets: convertWeiToEther(deposit.assets_after_fees || 0),
             atomLabel: deposit.vault?.term?.atom?.label || 'Unknown',
             createdAt: deposit.created_at,
           })
         })
 
-        (redemptionsResponse?.redemptions || []).forEach((redemption: any) => {
+        // Fetch redemptions
+        const redemptionsData = await queryIntuitionGraphQL(REDEMPTIONS_QUERY)
+        ;(redemptionsData?.redemptions || []).forEach((redemption: any) => {
           allEvents.push({
             id: redemption.id,
             type: 'redemption',
@@ -120,12 +106,62 @@ export function useAllClaims(limit: number = 1000) {
   return useQuery({
     queryKey: ['allClaims', limit],
     queryFn: async () => {
-      const response = await fetch(`/api/all-claims?limit=${limit}`)
-      if (!response.ok) throw new Error('Failed to fetch claims')
-      const data = await response.json()
-      return data.claims || []
+      const data = await queryIntuitionGraphQL(ALL_CLAIMS_QUERY, { limit })
+
+      const claims: Claim[] = (data?.vaults || []).map((vault: any) => {
+        const atom = vault.term?.atom
+        const triple = vault.term?.triple
+        const deposits = vault.deposits || []
+        const redemptions = vault.redemptions || []
+        const positions = vault.positions || []
+        
+        const marketCap = convertWeiToEther(vault.market_cap || 0)
+        const totalShares = convertWeiToEther(vault.total_shares || 0)
+        const currentSharePrice = convertWeiToEther(vault.current_share_price || 0)
+        const totalAssets = convertWeiToEther(vault.total_assets || 0)
+        const sharePriceChange24h = vault.share_price_change_stats_daily?.[0]?.difference 
+          ? parseFloat(vault.share_price_change_stats_daily[0].difference)
+          : 0
+
+        return {
+          termId: vault.term_id || vault.term?.id || '',
+          label: atom?.label || 'Unknown',
+          type: atom?.type || 'Unknown',
+          image: atom?.image || null,
+          subjectLabel: triple?.subject?.label || 'Unknown',
+          subjectType: triple?.subject?.type || 'Unknown',
+          predicateLabel: triple?.predicate?.label || 'Unknown',
+          predicateType: triple?.predicate?.type || 'Unknown',
+          objectLabel: triple?.object?.label || 'Unknown',
+          objectType: triple?.object?.type || 'Unknown',
+          marketCap: marketCap,
+          totalShares: totalShares,
+          currentSharePrice: currentSharePrice,
+          totalAssets: totalAssets,
+          positionCount: vault.position_count || 0,
+          sharePriceChange24h: sharePriceChange24h,
+          deposits: deposits.map((dep: any) => ({
+            id: dep.id,
+            createdAt: dep.created_at,
+            shares: convertWeiToEther(dep.shares || 0),
+          })),
+          redemptions: redemptions.map((red: any) => ({
+            id: red.id,
+            createdAt: red.created_at,
+            shares: convertWeiToEther(red.shares || 0),
+          })),
+          positions: positions.map((pos: any) => ({
+            accountId: pos.account_id,
+            shares: convertWeiToEther(pos.shares || 0),
+            totalDepositAssetsAfterTotalFees: convertWeiToEther(pos.total_deposit_assets_after_total_fees || 0),
+            totalRedeemAssetsForReceiver: convertWeiToEther(pos.total_redeem_assets_for_receiver || 0),
+          })),
+        }
+      })
+
+      return claims
     },
-    staleTime: 86400000,
+    refetchInterval: 86400000, // Refetch every 24 hours (daily)
   })
 }
 
@@ -133,12 +169,32 @@ export function useTopClaims() {
   return useQuery({
     queryKey: ['topClaims'],
     queryFn: async () => {
-      const response = await fetch('/api/top-claims')
-      if (!response.ok) throw new Error('Failed to fetch top claims')
-      const data = await response.json()
-      return data.claims || []
+      const data = await queryIntuitionGraphQL(TOP_CLAIMS_QUERY)
+
+      const claims: Claim[] = (data?.triple_vaults || []).map((vault: any) => {
+        const subject = vault.term?.triple?.subject
+        const positions = subject?.positions || []
+        const marketCap = convertWeiToEther(vault.market_cap || 0)
+        const lastSharePrice = convertWeiToEther(
+          vault.term?.share_price_change_stats_daily?.[0]?.last_share_price || 0
+        )
+
+        return {
+          label: subject?.label || 'Unknown',
+          image: subject?.image,
+          marketCap: marketCap,
+          positionCount: vault.position_count || 0,
+          lastSharePrice: lastSharePrice,
+          holders: positions.map((pos: any) => ({
+            accountId: pos.account_id,
+            shares: convertWeiToEther(pos.shares || 0),
+          })),
+        }
+      })
+
+      return claims
     },
-    staleTime: 86400000,
+    refetchInterval: 86400000, // Refetch every 24 hours (daily)
   })
 }
 

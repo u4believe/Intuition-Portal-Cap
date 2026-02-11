@@ -201,45 +201,28 @@ export const TRIPLES_QUERY = `
 // Query for atoms with vault information
 export const ATOMS_QUERY = `
   query GetAtoms($limit: Int) {
-    atoms(limit: $limit) {
-      term_id
-      label
-      image
-      emoji
-      type
-      created_at
-      creator {
-        id
-        label
-        image
-      }
+    vaults(limit: $limit, order_by: {market_cap: desc}) {
+      market_cap
+      position_count
+      total_shares
+      total_assets
+      current_share_price
       term {
-        type
-        vaults {
-          total_shares
-          market_cap
-          total_assets
-          position_count
-          share_price_change_stats_daily {
-            difference
-            last_share_price
-          }
-          deposits {
-            id
-            created_at
-            shares
-          }
-          redemptions {
-            id
-            created_at
-            shares
-          }
+        atom {
+          label
+          image
           positions {
             account_id
             shares
             total_deposit_assets_after_total_fees
             total_redeem_assets_for_receiver
           }
+        }
+        share_price_change_stats_daily {
+          difference
+          first_share_price
+          last_share_price
+          change_count
         }
       }
     }
