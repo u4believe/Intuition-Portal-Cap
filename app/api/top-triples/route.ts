@@ -4,11 +4,13 @@ import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const limit = parseInt(url.searchParams.get("limit") || "1000")
+    const page = parseInt(url.searchParams.get("page") || "1")
+    const pageSize = 100
+    const offset = (page - 1) * pageSize
 
     const TRIPLES_QUERY = `
-      query GetTriples($limit: Int) {
-        vaults(limit: $limit, order_by: {market_cap: desc}) {
+      query GetTriples($limit: Int, $offset: Int) {
+        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}) {
           market_cap
           position_count
           total_assets
@@ -45,7 +47,23 @@ export async function GET(request: Request) {
       }
     `
 
-    const data = await queryIntuitionGraphQL(TRIPLES_QUERY, { limit })
+    // Get total count
+    const COUNT_QUERY = `
+      query GetVaultsCount {
+        vaults_aggregate {
+          aggregate {
+            count
+          }
+        }
+      }
+    `
+
+    const [data, countData] = await Promise.all([
+      queryIntuitionGraphQL(TRIPLES_QUERY, { limit: pageSize, offset }),
+      queryIntuitionGraphQL(COUNT_QUERY),
+    ])
+
+    const totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
 
     // Transform vaults into triples data, grouping by triple label
     const triplesMap = new Map<string, any>()
@@ -99,9 +117,16 @@ export async function GET(request: Request) {
 
     const triples = Array.from(triplesMap.values())
       .sort((a, b) => b.marketCap - a.marketCap)
-      .slice(0, 100)
 
-    return NextResponse.json({ triples })
+    return NextResponse.json({ 
+      triples,
+      pagination: {
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      }
+    })
   } catch (error) {
     console.error("[v0] Error fetching triples:", error)
     return NextResponse.json({ triples: [], error: "Failed to fetch triples" }, { status: 500 })
