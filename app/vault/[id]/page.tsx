@@ -3,16 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Star } from 'lucide-react'
-import { useAllClaims } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
-import { useSearchParams } from 'next/navigation'
 
 export default function VaultDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { data: claims = [], isLoading, isError, error } = useAllClaims(1000)
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const [claim, setClaim] = useState<any>(null)
-  const [debugInfo, setDebugInfo] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [termId, setTermId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,6 +25,9 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
         }
       } catch (err) {
         console.error('[v0] Error resolving params:', err)
+        if (isMounted) {
+          setError('Failed to load vault')
+        }
       }
     }
 
@@ -37,20 +38,42 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
   }, [params])
 
   useEffect(() => {
-    console.log('[v0] Looking for termId:', termId)
-    console.log('[v0] Available claims:', claims.length)
-    
-    if (termId && claims.length > 0) {
-      console.log('[v0] Sample claim termIds:', claims.slice(0, 3).map(c => c.termId))
-      const foundClaim = claims.find((c) => c.termId === termId)
-      console.log('[v0] Found claim:', foundClaim ? foundClaim.label : 'NOT FOUND')
-      setClaim(foundClaim)
-      
-      if (!foundClaim) {
-        setDebugInfo(`Looking for termId: ${termId}. Available: ${claims.map(c => c.termId).join(', ').substring(0, 200)}...`)
+    if (!termId) return
+
+    const fetchVault = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch(`/api/vault?termId=${termId}`)
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch vault')
+        }
+        
+        const data = await response.json()
+        if (isMounted) {
+          setClaim(data.claim)
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err.message)
+          console.error('[v0] Error fetching vault:', err)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
-  }, [claims, termId])
+
+    let isMounted = true
+    fetchVault()
+    
+    return () => {
+      isMounted = false
+    }
+  }, [termId])
 
   const watchedClaims = getWatchedClaims()
   const isWatched = claim ? watchedClaims.includes(claim.label) : false
@@ -76,7 +99,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
     )
   }
 
-  if (isError) {
+  if (error) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950 p-8">
         <div className="max-w-6xl mx-auto">
@@ -88,7 +111,12 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
           </Link>
           <div className="text-center">
             <p className="text-red-600 dark:text-red-400 font-semibold">Error loading vault details</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">{error?.message}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">{error}</p>
+            <Link href="/" className="inline-block mt-4">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
+                Return to Home
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -108,8 +136,6 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
           <div className="text-center space-y-4">
             <p className="text-slate-500 dark:text-slate-400 font-semibold">Vault not found</p>
             <p className="text-slate-400 dark:text-slate-500 text-sm">Vault ID: {termId}</p>
-            {debugInfo && <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 break-words">{debugInfo}</p>}
-            <p className="text-slate-400 dark:text-slate-500 text-sm">Total vaults available: {claims.length}</p>
             <Link href="/" className="inline-block mt-4">
               <Button className="bg-primary hover:bg-primary/90 text-white">
                 Return to Home
