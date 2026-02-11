@@ -8,7 +8,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h'
 type SortOrder = 'asc' | 'desc'
 
 export default function AtomsTable() {
@@ -82,23 +82,18 @@ export default function AtomsTable() {
           <div className="w-full overflow-x-auto">
             <table className="w-full table-fixed">
               <colgroup>
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '13%' }} />
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
               </colgroup>
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="label" label="Atom" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="type" label="Type" />
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="marketCap" label="Market Cap" />
@@ -156,16 +151,9 @@ export default function AtomsTable() {
                         </div>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center">
-                      <Link href={`/vault/${atom.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors truncate">
-                          {atom.type}
-                        </span>
-                      </Link>
-                    </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
-                        {atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        {atom.marketCap ? atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">

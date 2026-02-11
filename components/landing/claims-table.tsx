@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 import { ViewClaimsModal } from '@/components/landing/view-claims-modal'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h'
 type SortOrder = 'asc' | 'desc'
 
 export default function ClaimsTable() {
@@ -96,9 +96,6 @@ export default function ClaimsTable() {
                     <SortHeader field="label" label="Vault" />
                   </th>
                   <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
-                    <SortHeader field="type" label="Type" />
-                  </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
                     <SortHeader field="marketCap" label="Market Cap (TRUST)" />
                   </th>
                   <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
@@ -155,13 +152,6 @@ export default function ClaimsTable() {
                           <p className="font-medium text-slate-900 text-sm truncate hover:text-primary transition-colors">{claim.label}</p>
                           <p className="text-xs text-slate-500 truncate">{claim.subjectLabel}</p>
                         </div>
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <Link href={`/vault/${claim.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors">
-                          {claim.type}
-                        </span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">

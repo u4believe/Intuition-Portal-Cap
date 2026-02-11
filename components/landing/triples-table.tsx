@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 import { ViewTriplesModal } from '@/components/landing/view-triples-modal'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h' | 'type'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h'
 type SortOrder = 'asc' | 'desc'
 
 export default function TriplesTable() {
@@ -81,22 +81,19 @@ export default function TriplesTable() {
             <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: '28%' }} />
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '4%' }} />
               </colgroup>
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="label" label="Triple" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="type" label="Type" />
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="marketCap" label="Market Cap" />
@@ -155,13 +152,6 @@ export default function TriplesTable() {
                           <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{triple.label}</p>
                           <p className="text-xs text-slate-500 truncate">{triple.subjectLabel}</p>
                         </div>
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center">
-                      <Link href={`/vault/${triple.termId}`} className="hover:no-underline flex justify-center">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition-colors truncate">
-                          {triple.type}
-                        </span>
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
