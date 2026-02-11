@@ -9,14 +9,22 @@ import {
 } from 'wagmi/chains'
 import { injected, walletConnect } from 'wagmi/connectors'
 
+const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID
+
+// Build connectors array - only include walletConnect if projectId is available
+const connectors = [injected({ shimDisconnect: true })]
+
+if (projectId && projectId.trim() !== '') {
+  connectors.push(
+    walletConnect({
+      projectId,
+    })
+  )
+}
+
 export const config = createConfig({
   chains: [mainnet, sepolia, polygon, optimism, arbitrum, base],
-  connectors: [
-    injected({ shimDisconnect: true }),
-    walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
-    }),
-  ],
+  connectors,
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http(),
