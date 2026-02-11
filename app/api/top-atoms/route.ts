@@ -4,11 +4,13 @@ import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const limit = parseInt(url.searchParams.get("limit") || "1000")
+    const page = parseInt(url.searchParams.get("page") || "1")
+    const pageSize = 100
+    const offset = (page - 1) * pageSize
 
     const ATOMS_QUERY = `
-      query GetAtoms($limit: Int) {
-        vaults(limit: $limit, order_by: {market_cap: desc}) {
+      query GetAtoms($limit: Int, $offset: Int) {
+        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}) {
           market_cap
           position_count
           total_shares
@@ -37,7 +39,23 @@ export async function GET(request: Request) {
       }
     `
 
-    const data = await queryIntuitionGraphQL(ATOMS_QUERY, { limit })
+    // Get total count
+    const COUNT_QUERY = `
+      query GetVaultsCount {
+        vaults_aggregate {
+          aggregate {
+            count
+          }
+        }
+      }
+    `
+
+    const [data, countData] = await Promise.all([
+      queryIntuitionGraphQL(ATOMS_QUERY, { limit: pageSize, offset }),
+      queryIntuitionGraphQL(COUNT_QUERY),
+    ])
+
+    const totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
 
     // Transform vaults into atoms data, grouping by atom label
     const atomsMap = new Map<string, any>()
@@ -85,9 +103,16 @@ export async function GET(request: Request) {
 
     const atoms = Array.from(atomsMap.values())
       .sort((a, b) => b.marketCap - a.marketCap)
-      .slice(0, 100)
 
-    return NextResponse.json({ atoms })
+    return NextResponse.json({ 
+      atoms,
+      pagination: {
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      }
+    })
   } catch (error) {
     console.error("[v0] Error fetching atoms:", error)
     return NextResponse.json({ atoms: [], error: "Failed to fetch atoms" }, { status: 500 })

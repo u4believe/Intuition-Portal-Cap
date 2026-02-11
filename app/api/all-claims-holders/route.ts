@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url)
+    const page = parseInt(url.searchParams.get("page") || "1")
+    const pageSize = 100
+    const offset = (page - 1) * pageSize
+
     const CLAIMS_QUERY = `
-      query GetAllClaims($limit: Int) {
-        vaults(limit: $limit, order_by: {market_cap: desc}) {
+      query GetAllClaims($limit: Int, $offset: Int) {
+        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}) {
           market_cap
           position_count
           total_assets
@@ -42,7 +47,23 @@ export async function GET() {
       }
     `
 
-    const data = await queryIntuitionGraphQL(CLAIMS_QUERY, { limit: 1000 })
+    // Also get total count
+    const COUNT_QUERY = `
+      query GetVaultsCount {
+        vaults_aggregate {
+          aggregate {
+            count
+          }
+        }
+      }
+    `
+
+    const [data, countData] = await Promise.all([
+      queryIntuitionGraphQL(CLAIMS_QUERY, { limit: pageSize, offset }),
+      queryIntuitionGraphQL(COUNT_QUERY),
+    ])
+
+    const totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
 
     const claims = (data?.vaults || []).map((vault: any) => {
       const triple = vault.term?.triple
@@ -93,7 +114,15 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ claims })
+    return NextResponse.json({ 
+      claims,
+      pagination: {
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      }
+    })
   } catch (error) {
     console.error("[v0] Error fetching claims:", error)
     return NextResponse.json({ claims: [] })

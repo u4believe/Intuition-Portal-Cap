@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, ChevronUp, ChevronDown } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useAtoms } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
@@ -12,7 +12,9 @@ type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'tota
 type SortOrder = 'asc' | 'desc'
 
 export default function AtomsTable() {
-  const { data: atoms = [], isLoading: loading } = useAtoms(1000)
+  const [currentPage, setCurrentPage] = useState(1)
+  const { data: result = { atoms: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAtoms(currentPage)
+  const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -79,7 +81,8 @@ export default function AtomsTable() {
         ) : sortedAtoms.length === 0 ? (
           <div className="text-center py-12 text-slate-500">No atoms found</div>
         ) : (
-          <div className="w-full overflow-x-auto">
+          <>
+            <div className="w-full overflow-x-auto">
             <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: '35%' }} />
@@ -203,7 +206,33 @@ export default function AtomsTable() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 border-t border-slate-200">
+              <div className="text-sm text-slate-600">
+                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={pagination.page === 1}
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            </>
         )}
       </div>
       {watchDialogOpen && (
