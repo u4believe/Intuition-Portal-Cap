@@ -148,50 +148,36 @@ export const TOP_CLAIMS_QUERY = `
 // Query for triples with vault information
 export const TRIPLES_QUERY = `
   query GetTriples($limit: Int) {
-    triples(limit: $limit) {
-      term_id
-      subject {
-        label
-        image
-        type
-      }
-      predicate {
-        label
-        image
-        type
-      }
-      object {
-        label
-        image
-        type
-      }
+    vaults(limit: $limit, order_by: {market_cap: desc}) {
+      market_cap
+      position_count
+      total_assets
+      total_shares
+      current_share_price
       term {
-        type
-        vaults {
-          total_shares
-          market_cap
-          total_assets
-          position_count
-          share_price_change_stats_daily {
-            difference
-            last_share_price
+        triple {
+          subject {
+            label
+            image
           }
-          deposits {
-            id
-            created_at
-            shares
+          predicate {
+            label
           }
-          redemptions {
-            id
-            created_at
-            shares
+          object {
+            label
           }
-          positions {
-            account_id
-            shares
-            total_deposit_assets_after_total_fees
-            total_redeem_assets_for_receiver
-          }
+        }
+        positions {
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
+        share_price_change_stats_daily {
+          difference
+          first_share_price
+          last_share_price
+          change_count
         }
       }
     }

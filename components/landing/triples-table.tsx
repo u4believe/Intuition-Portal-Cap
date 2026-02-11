@@ -166,34 +166,34 @@ export default function TriplesTable() {
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        {triple.marketCap ? triple.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        {triple.totalAssets ? triple.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        {triple.totalShares ? triple.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:no-underline">
                         <span className={triple.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {triple.sharePriceChange24h >= 0 ? '+' : ''}{(triple.sharePriceChange24h / 1e18).toFixed(2)}%
+                          {triple.sharePriceChange24h >= 0 ? '+' : ''}{((triple.sharePriceChange24h || 0) / 1e18).toFixed(2)}%
                         </span>
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.positionCount.toLocaleString('en-US')}
+                        {triple.positionCount ? triple.positionCount.toLocaleString('en-US') : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center">
