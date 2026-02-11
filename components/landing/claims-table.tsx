@@ -92,34 +92,34 @@ export default function ClaimsTable() {
         ) : (
           <>
             <div className="w-full overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-max">
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
-                  <th className="text-left py-4 px-4 text-xs font-semibold text-slate-900 sticky left-0 bg-slate-50 z-10">
+                  <th className="text-left py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 sticky left-0 bg-slate-50 z-10 whitespace-nowrap">
                     <SortHeader field="label" label="Vault" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     <SortHeader field="marketCap" label="Market Cap (TRUST)" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     <SortHeader field="totalAssets" label="Total Assets (TRUST)" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     <SortHeader field="totalShares" label="Total Shares" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
-                    <SortHeader field="currentSharePrice" label="Share Price (TRUST)" />
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
+                    <SortHeader field="currentSharePrice" label="Share Price" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
-                    <SortHeader field="sharePriceChange24h" label="Share Price (24h)" />
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
+                    <SortHeader field="sharePriceChange24h" label="24h Change" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     <SortHeader field="positionCount" label="Positions" />
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     Watch
                   </th>
-                  <th className="text-center py-4 px-4 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-4 px-3 md:px-4 text-xs font-semibold text-slate-900 whitespace-nowrap">
                     View
                   </th>
                 </tr>
@@ -130,7 +130,7 @@ export default function ClaimsTable() {
                     key={`vault-${idx}`}
                     className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
                   >
-                    <td className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50">
+                    <td className="py-3 px-3 md:px-4 sticky left-0 bg-white group-hover:bg-slate-50">
                       <Link href={`/vault/${claim.termId}`} className="flex items-center gap-2 hover:no-underline">
                         <button
                           onClick={(e) => {
@@ -138,7 +138,7 @@ export default function ClaimsTable() {
                             e.stopPropagation()
                             handleWatchClick(claim.label)
                           }}
-                          className="p-1 hover:scale-125 transition-transform"
+                          className="p-1 hover:scale-125 transition-transform flex-shrink-0"
                         >
                           <Star
                             className={`w-5 h-5 ${
@@ -149,54 +149,54 @@ export default function ClaimsTable() {
                           />
                         </button>
                         {claim.image && (
-                          <img src={claim.image || '/placeholder.svg'} alt={claim.label} className="w-6 h-6 rounded-full" />
+                          <img src={claim.image || '/placeholder.svg'} alt={claim.label} className="w-6 h-6 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-sm truncate hover:text-primary transition-colors">{claim.label}</p>
+                          <p className="font-medium text-slate-900 text-xs md:text-sm truncate hover:text-primary transition-colors">{claim.label}</p>
                           <p className="text-xs text-slate-500 truncate">{claim.subjectLabel}</p>
                         </div>
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center text-slate-900 font-medium text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
                         {claim.marketCap ? claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center text-slate-900 font-medium text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
                         {claim.totalAssets ? claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center text-slate-900 font-medium text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
                         {claim.totalShares ? claim.totalShares.toLocaleString('en-US') : '0'}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center text-slate-900 font-medium text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
                         {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center font-medium text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center font-medium text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline">
                         <span className={claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {claim.sharePriceChange24h >= 0 ? '+' : ''}{((claim.sharePriceChange24h || 0) / 1e18).toFixed(3)}%
                         </span>
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center text-slate-700 text-sm">
+                    <td className="py-3 px-3 md:px-4 text-center text-slate-700 text-xs md:text-sm whitespace-nowrap">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
                         {claim.positionCount ? claim.positionCount.toLocaleString('en-US') : '0'}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                       <button
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
                           handleWatchClick(claim.label)
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(claim.label)
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
                             : 'bg-primary hover:bg-primary/90 text-white'
@@ -205,7 +205,7 @@ export default function ClaimsTable() {
                         {isWatched(claim.label) ? 'Watching' : 'Watch'}
                       </button>
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                       <button
                         onClick={(e) => {
                           e.preventDefault()
