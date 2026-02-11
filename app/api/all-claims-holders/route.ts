@@ -6,7 +6,6 @@ export async function GET() {
     const CLAIMS_QUERY = `
       query GetAllClaims($limit: Int) {
         vaults(limit: $limit, order_by: {market_cap: desc}) {
-          id
           market_cap
           position_count
           total_assets
@@ -67,7 +66,7 @@ export async function GET() {
       }
 
       return {
-        termId: vault.term?.id || vault.id,
+        termId: vault.term?.id || "",
         label: `${subject} - ${predicate} - ${object}`,
         type: "Triple",
         image: triple?.subject?.image || null,

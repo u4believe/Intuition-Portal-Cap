@@ -9,7 +9,6 @@ export async function GET(request: Request) {
     const TRIPLES_QUERY = `
       query GetTriples($limit: Int) {
         vaults(limit: $limit, order_by: {market_cap: desc}) {
-          id
           market_cap
           position_count
           total_assets
@@ -60,7 +59,7 @@ export async function GET(request: Request) {
 
       if (!triplesMap.has(tripleLabel)) {
         triplesMap.set(tripleLabel, {
-          termId: vault.term?.id || vault.id, // Store the term/vault ID
+          termId: vault.term?.id || "", // Use term.id since vault.id doesn't exist
           label: tripleLabel,
           subjectLabel: subject,
           predicateLabel: predicate,
