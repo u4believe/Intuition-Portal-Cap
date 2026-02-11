@@ -122,6 +122,11 @@ export default function LandingPage() {
         </div>
       </header>
 
+      {/* Mobile Live Events Carousel - Only visible on mobile */}
+      <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <LiveEvents />
+      </div>
+
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
