@@ -131,7 +131,7 @@ export default function RecentEvents() {
                   </div>
                   <div className="flex-shrink-0 text-right">
                     <p className={`text-xs font-semibold ${event.type === 'deposit' ? 'text-teal-300' : 'text-orange-300'}`}>
-                      {event.assets ? event.assets.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'} TRUST
+                      {event.assets.toLocaleString('en-US', { maximumFractionDigits: 2 })} TRUST
                     </p>
                   </div>
                 </div>
