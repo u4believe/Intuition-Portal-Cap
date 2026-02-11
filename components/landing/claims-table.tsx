@@ -166,34 +166,34 @@ export default function ClaimsTable() {
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-teal-600 transition-colors">
-                        {claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        {claim.marketCap ? claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        {claim.totalAssets ? claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.totalShares.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        {claim.totalShares ? claim.totalShares.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-900 font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}
+                        {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center font-medium text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline">
                         <span className={claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {claim.sharePriceChange24h >= 0 ? '+' : ''}{(claim.sharePriceChange24h / 1e18).toFixed(3)}%
+                          {claim.sharePriceChange24h >= 0 ? '+' : ''}{((claim.sharePriceChange24h || 0) / 1e18).toFixed(3)}%
                         </span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center text-slate-700 text-sm">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.positionCount.toLocaleString('en-US')}
+                        {claim.positionCount ? claim.positionCount.toLocaleString('en-US') : '0'}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-center">

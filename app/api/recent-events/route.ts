@@ -26,7 +26,7 @@ export async function GET() {
         redemptions(limit: $limit, order_by: {created_at: desc}) {
           id
           created_at
-          assets_for_receiver
+          assets
           receiver_id
           vault {
             term {
@@ -61,7 +61,7 @@ export async function GET() {
     try {
       const redemptionsData = await queryIntuitionGraphQL(REDEMPTIONS_QUERY, { limit: 50 })
       ;(redemptionsData?.redemptions || []).forEach((redemption: any) => {
-        const assets = redemption.assets_for_receiver ? parseFloat(redemption.assets_for_receiver) / 1e18 : 0
+        const assets = redemption.assets ? parseFloat(redemption.assets) / 1e18 : 0
         allEvents.push({
           id: redemption.id,
           type: "redemption",
