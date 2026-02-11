@@ -267,58 +267,39 @@ export function useAtoms(limit: number = 1000) {
   return useQuery({
     queryKey: ['atoms', limit],
     queryFn: async () => {
-      const data = await queryIntuitionGraphQL(ATOMS_QUERY, { limit })
-
-      const atoms: Claim[] = (data?.atoms || []).map((atom: any) => {
-        const vault = atom.term?.vaults?.[0] || {}
-        const deposits = vault.deposits || []
-        const redemptions = vault.redemptions || []
-        const positions = vault.positions || []
-        
-        const marketCap = convertWeiToEther(vault.market_cap || 0)
-        const totalShares = convertWeiToEther(vault.total_shares || 0)
-        const currentSharePrice = totalShares > 0 ? marketCap / totalShares : 0
-        const totalAssets = convertWeiToEther(vault.total_assets || 0)
-        const sharePriceChange24h = vault.share_price_change_stats_daily?.[0]?.difference 
-          ? parseFloat(vault.share_price_change_stats_daily[0].difference)
-          : 0
-
-        return {
-          termId: atom.term_id || '',
-          label: atom.label || 'Unknown',
-          type: atom.type || 'Unknown',
-          image: atom.image || null,
-          emoji: atom.emoji || null,
-          createdAt: atom.created_at,
-          creatorLabel: atom.creator?.label || 'Unknown',
-          creatorImage: atom.creator?.image || null,
-          marketCap: marketCap,
-          totalShares: totalShares,
-          currentSharePrice: currentSharePrice,
-          totalAssets: totalAssets,
-          positionCount: vault.position_count || 0,
-          sharePriceChange24h: sharePriceChange24h,
-          deposits: deposits.map((dep: any) => ({
-            id: dep.id,
-            createdAt: dep.created_at,
-            shares: convertWeiToEther(dep.shares || 0),
-          })),
-          redemptions: redemptions.map((red: any) => ({
-            id: red.id,
-            createdAt: red.created_at,
-            shares: convertWeiToEther(red.shares || 0),
-          })),
-          positions: positions.map((pos: any) => ({
-            accountId: pos.account_id,
-            shares: convertWeiToEther(pos.shares || 0),
-            totalDepositAssetsAfterTotalFees: convertWeiToEther(pos.total_deposit_assets_after_total_fees || 0),
-            totalRedeemAssetsForReceiver: convertWeiToEther(pos.total_redeem_assets_for_receiver || 0),
-          })),
-        }
-      })
-
-      return atoms
+      const response = await fetch(`/api/top-atoms?limit=${limit}`)
+      if (!response.ok) throw new Error('Failed to fetch atoms')
+      const data = await response.json()
+      
+      // Transform API response to match Claim interface
+      return (data.atoms || []).map((atom: any) => ({
+        termId: '', // Atoms don't have a direct termId, they're aggregated
+        label: atom.label || 'Unknown',
+        type: 'Atom',
+        image: atom.image || null,
+        subjectLabel: '',
+        subjectType: '',
+        predicateLabel: '',
+        predicateType: '',
+        objectLabel: '',
+        objectType: '',
+        marketCap: atom.marketCap || 0,
+        totalShares: atom.totalShares || 0,
+        currentSharePrice: atom.currentSharePrice || 0,
+        totalAssets: atom.totalAssets || 0,
+        positionCount: atom.positionCount || 0,
+        sharePriceChange24h: atom.sharePriceChange24h || 0,
+        creatorLabel: '',
+        deposits: [],
+        redemptions: [],
+        positions: (atom.positions || []).map((pos: any) => ({
+          accountId: pos.account_id || '',
+          shares: (pos.shares || 0) / 1e18,
+          totalDepositAssetsAfterTotalFees: (pos.total_deposit_assets_after_total_fees || 0) / 1e18,
+          totalRedeemAssetsForReceiver: (pos.total_redeem_assets_for_receiver || 0) / 1e18,
+        })),
+      }))
     },
-    refetchInterval: 86400000, // Refetch every 24 hours (daily)
+    staleTime: 86400000, // 24 hours
   })
 }
