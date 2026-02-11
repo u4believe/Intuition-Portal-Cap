@@ -1,104 +1,107 @@
 import { NextResponse } from "next/server"
+import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
-const GRAPHQL_ENDPOINT = "https://mainnet.intuition.sh/v1/graphql"
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get("limit") || "1000")
 
-const TRIPLE_VAULTS_QUERY = `
-  query TopTripleVaults {
-    triple_vaults(limit: 100, order_by: [{market_cap: desc}]) {
-      market_cap
-      position_count
-      term {
-        total_market_cap
-        triple {
-          subject {
-            label
-            image
+    const TRIPLES_QUERY = `
+      query GetTriples($limit: Int) {
+        vaults(limit: $limit, order_by: {market_cap: desc}) {
+          market_cap
+          position_count
+          total_assets
+          total_shares
+          current_share_price
+          term {
+            triple {
+              subject {
+                label
+                image
+              }
+              predicate {
+                label
+              }
+              object {
+                label
+              }
+            }
+            positions {
+              account_id
+              shares
+              total_deposit_assets_after_total_fees
+              total_redeem_assets_for_receiver
+            }
+            share_price_change_stats_daily {
+              difference
+              first_share_price
+              last_share_price
+              change_count
+            }
           }
         }
-        share_price_change_stats_daily(limit: 1, order_by: [{bucket: desc}]) {
-          last_share_price
-        }
       }
-      counter_term {
-        total_market_cap
-        share_price_change_stats_daily(limit: 1, order_by: [{bucket: desc}]) {
-          last_share_price
-        }
-      }
-    }
-  }
-`
+    `
 
-export async function GET() {
-  try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: TRIPLE_VAULTS_QUERY,
-      }),
-    })
+    const data = await queryIntuitionGraphQL(TRIPLES_QUERY, { limit })
 
-    if (!response.ok) {
-      throw new Error(`Intuition API error: ${response.statusText}`)
-    }
+    // Transform vaults into triples data, grouping by triple label
+    const triplesMap = new Map<string, any>()
 
-    const data = await response.json()
+    ;(data?.vaults || []).forEach((vault: any) => {
+      const triple = vault.term?.triple
+      const subject = triple?.subject?.label || "Unknown"
+      const predicate = triple?.predicate?.label || "Unknown"
+      const object = triple?.object?.label || "Unknown"
+      const tripleLabel = `${subject} - ${predicate} - ${object}`
 
-    if (data.errors) {
-      console.error("[v0] GraphQL errors:", data.errors)
-      return NextResponse.json({ triples: [] })
-    }
-
-    const claimMap = new Map<string, any>()
-    ;(data.data?.triple_vaults || []).forEach((vault: any) => {
-      const label = vault.term?.triple?.subject?.label || "Unknown"
-      const image = vault.term?.triple?.subject?.image || ""
-
-      if (!claimMap.has(label)) {
-        claimMap.set(label, {
-          label,
-          image,
-          totalMarketCapWei: BigInt(0),
-          termLastSharePrice: null as any,
-          counterLastSharePrice: null as any,
+      if (!triplesMap.has(tripleLabel)) {
+        triplesMap.set(tripleLabel, {
+          label: tripleLabel,
+          subjectLabel: subject,
+          predicateLabel: predicate,
+          objectLabel: object,
+          image: triple?.subject?.image || "",
+          marketCap: 0,
+          totalAssets: 0,
+          totalShares: 0,
+          currentSharePrice: 0,
           positionCount: 0,
+          sharePriceChange24h: 0,
+          positions: [],
         })
       }
 
-      const claim = claimMap.get(label)!
-      claim.totalMarketCapWei += BigInt(vault.market_cap || 0)
-      claim.termLastSharePrice = vault.term?.share_price_change_stats_daily?.[0]?.last_share_price || 0
-      claim.counterLastSharePrice = vault.counter_term?.share_price_change_stats_daily?.[0]?.last_share_price || 0
-      claim.positionCount = Math.max(claim.positionCount, vault.position_count || 0)
+      const tripleData = triplesMap.get(tripleLabel)!
+      tripleData.marketCap += vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
+      tripleData.totalAssets += vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
+      tripleData.totalShares += vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
+      tripleData.currentSharePrice = Math.max(
+        tripleData.currentSharePrice,
+        vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0
+      )
+      tripleData.positionCount += vault.position_count || 0
+
+      const sharePriceChange = vault.term?.share_price_change_stats_daily?.[0]
+      if (sharePriceChange) {
+        const lastPrice = parseFloat(sharePriceChange.last_share_price || "0") / 1e18
+        const firstPrice = parseFloat(sharePriceChange.first_share_price || "0") / 1e18
+        if (firstPrice > 0) {
+          tripleData.sharePriceChange24h = ((lastPrice - firstPrice) / firstPrice) * 100
+        }
+      }
+
+      tripleData.positions.push(...(vault.term?.positions || []))
     })
 
-    const triples = Array.from(claimMap.values())
-      .map((claim: any) => {
-        const totalMarketCapEther = Number(claim.totalMarketCapWei) / 1e18
-        const lastSharePrice = (Number(claim.termLastSharePrice) + Number(claim.counterLastSharePrice)) / 2 / 1e18
+    const triples = Array.from(triplesMap.values())
+      .sort((a, b) => b.marketCap - a.marketCap)
+      .slice(0, 100)
 
-        return {
-          label: claim.label,
-          image: claim.image,
-          market_cap: totalMarketCapEther,
-          last_share_price: lastSharePrice,
-          position_count: claim.positionCount,
-        }
-      })
-      .sort((a: any, b: any) => (b.market_cap || 0) - (a.market_cap || 0))
-      .slice(0, 10)
-      .map((triple: any, index: number) => ({
-        ...triple,
-        id: `triple-${triple.label}-${index}`,
-        rank: index + 1,
-      }))
-
-    return NextResponse.json({ triples, success: true })
-  } catch (error: any) {
-    console.error("[v0] Error fetching top triples:", error)
-    return NextResponse.json({ triples: [], error: error.message }, { status: 500 })
+    return NextResponse.json({ triples })
+  } catch (error) {
+    console.error("[v0] Error fetching triples:", error)
+    return NextResponse.json({ triples: [], error: "Failed to fetch triples" }, { status: 500 })
   }
 }
