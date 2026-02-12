@@ -71,6 +71,8 @@ export default function ClaimsTable() {
     }
     return num.toLocaleString('en-US', { maximumFractionDigits: 0 })
   }
+
+  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
       className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
