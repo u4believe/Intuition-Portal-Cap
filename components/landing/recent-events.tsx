@@ -80,29 +80,37 @@ export default function RecentEvents() {
 
   if (loading) {
     return (
-      <div className="h-[320px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border border-slate-300 dark:border-slate-700 p-6 animate-pulse" />
+      <div className="h-[320px] bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-slate-700 p-6 animate-pulse" />
     )
   }
 
   return (
-    <div className="relative h-[320px] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl border border-slate-300 dark:border-slate-700 p-6 overflow-hidden">
+    <div className="relative h-[320px] bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-slate-700 p-6 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10"></div>
 
       <div className="relative h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-300 dark:border-slate-700">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-700">
           <Flame className="w-5 h-5 text-orange-400" />
-          <h3 className="text-sm font-semibold text-black dark:text-white">Live Events</h3>
-          <Badge variant="secondary" className="ml-auto bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 text-xs">
+          <h3 className="text-sm font-semibold text-white">Live Events</h3>
+          <Badge variant="secondary" className="ml-auto bg-cyan-500/20 text-cyan-300 text-xs">
             Real-time
           </Badge>
         </div>
 
         {/* Fixed Height Events Container with Auto-Scroll - Pausable on Hover */}
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto mt-3 group" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-            <div ref={contentRef} className="space-y-2">
-              {events.map((event, index) => (
-                <div key={`${event.id}-${index}`} className="p-2 bg-white dark:bg-slate-900/50 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-cyan-500/30 dark:hover:border-cyan-500/30 hover:bg-slate-50 dark:hover:bg-slate-900/70 transition-all duration-300">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto mt-3 group"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div ref={contentRef} className="space-y-2">
+            {events.map((event, index) => (
+              <div
+                key={`${event.id}-${index}`}
+                className="p-2 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-cyan-500/30 hover:bg-slate-900/70 transition-all duration-300"
+              >
                 {/* Compact Event Layout */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
