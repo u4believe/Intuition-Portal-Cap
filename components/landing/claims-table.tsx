@@ -94,15 +94,15 @@ export default function ClaimsTable() {
             <div className="w-full overflow-x-auto">
             <table className="w-full table-fixed">
               <colgroup>
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '4%' }} />
+                <col style={{ width: '25%', minWidth: '120px' }} />
+                <col style={{ width: '11%', minWidth: '90px' }} />
+                <col style={{ width: '11%', minWidth: '90px' }} />
+                <col style={{ width: '11%', minWidth: '90px' }} />
+                <col style={{ width: '11%', minWidth: '85px' }} />
+                <col style={{ width: '10%', minWidth: '70px' }} />
+                <col style={{ width: '10%', minWidth: '65px' }} />
+                <col style={{ width: '10%', minWidth: '75px' }} />
+                <col style={{ width: '5%', minWidth: '50px' }} />
               </colgroup>
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
@@ -207,13 +207,13 @@ export default function ClaimsTable() {
                           e.stopPropagation()
                           handleWatchClick(claim.label)
                         }}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        className={`px-1 py-0.5 rounded text-xs font-medium transition-all whitespace-nowrap ${
                           isWatched(claim.label)
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
                             : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
-                        {isWatched(claim.label) ? 'Watching' : 'Watch'}
+                        {isWatched(claim.label) ? 'Watch' : 'Add'}
                       </button>
                     </td>
                     <td className="py-2 px-2 text-center">
@@ -223,10 +223,10 @@ export default function ClaimsTable() {
                           e.stopPropagation()
                           setViewClaimsOpen(true)
                         }}
-                        className="p-1 hover:bg-slate-100 rounded transition-colors inline-flex items-center"
+                        className="p-0.5 hover:bg-slate-100 rounded transition-colors inline-flex items-center"
                         title="View Claim Details"
                       >
-                        <Eye className="w-4 h-4 text-primary" />
+                        <Eye className="w-3 h-3 text-primary" />
                       </button>
                     </td>
                   </tr>
