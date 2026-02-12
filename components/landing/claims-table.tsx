@@ -117,32 +117,46 @@ export default function ClaimsTable() {
               </colgroup>
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="label" label="Vault" />
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 !text-left">
+                    <div className="flex justify-start">
+                      <SortHeader field="label" label="Vault" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Market Cap">
-                    <SortHeader field="marketCap" label="MC" />
+                    <div className="flex justify-center">
+                      <SortHeader field="marketCap" label="MC" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Assets">
-                    <SortHeader field="totalAssets" label="TA" />
+                    <div className="flex justify-center">
+                      <SortHeader field="totalAssets" label="TA" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Shares">
-                    <SortHeader field="totalShares" label="TS" />
+                    <div className="flex justify-center">
+                      <SortHeader field="totalShares" label="TS" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Share Price">
-                    <SortHeader field="currentSharePrice" label="SP" />
+                    <div className="flex justify-center">
+                      <SortHeader field="currentSharePrice" label="SP" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
-                    <SortHeader field="sharePriceChange24h" label="24h %" />
+                    <div className="flex justify-center">
+                      <SortHeader field="sharePriceChange24h" label="24h %" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
-                    <SortHeader field="positionCount" label="Pos." />
+                    <div className="flex justify-center">
+                      <SortHeader field="positionCount" label="Pos." />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
-                    W
+                    <div className="flex justify-center">W</div>
                   </th>
                   <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
-                    V
+                    <div className="flex justify-center">V</div>
                   </th>
                 </tr>
               </thead>
@@ -152,7 +166,7 @@ export default function ClaimsTable() {
                     key={`vault-${idx}`}
                     className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
                   >
-                    <td className="py-2 px-2 min-w-0">
+                    <td className="py-2 px-2 text-left">
                       <Link href={`/vault/${claim.termId}`} className="flex items-center gap-1 hover:no-underline">
                         <button
                           onClick={(e) => {
