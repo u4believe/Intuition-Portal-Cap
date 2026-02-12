@@ -100,37 +100,37 @@ export default function AtomsTable() {
                       <SortHeader field="label" label="Atom" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="marketCap" label="Market Cap" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="totalAssets" label="Total Assets" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="totalShares" label="Total Shares" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="currentSharePrice" label="Share Price" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="sharePriceChange24h" label="24h %" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">
                       <SortHeader field="positionCount" label="Pos." />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-center">Watch</div>
                   </th>
                 </tr>
@@ -168,34 +168,34 @@ export default function AtomsTable() {
                         </div>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-200 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.marketCap ? atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-200 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-200 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-200 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline">
-                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                           {atom.sharePriceChange24h >= 0 ? '+' : ''}{(atom.sharePriceChange24h / 1e18).toFixed(2)}%
                         </span>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-200 text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.positionCount.toLocaleString('en-US')}
                       </Link>
@@ -225,15 +225,15 @@ export default function AtomsTable() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 border-t border-slate-200">
-              <div className="text-sm text-slate-600">
+            <div className="flex items-center justify-between py-4 px-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700">
+              <div className="text-sm text-slate-700 dark:text-slate-200">
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-400 dark:border-slate-600 text-sm font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Previous
@@ -241,7 +241,7 @@ export default function AtomsTable() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={pagination.page === pagination.totalPages}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-400 dark:border-slate-600 text-sm font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />

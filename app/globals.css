@@ -4,26 +4,17 @@
   color-scheme: light;
   --background: #ffffff;
   --foreground: #000000;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
 }
 
 html.dark {
   color-scheme: dark;
   --background: #0f1117;
   --foreground: #e6edf3;
-  --primary: #58a6ff;
-  --primary-foreground: #0f1117;
-  --muted: #21262d;
-  --muted-foreground: #8b949e;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .scrollbar-hide {
