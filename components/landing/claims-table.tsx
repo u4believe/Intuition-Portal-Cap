@@ -138,7 +138,7 @@ export default function ClaimsTable() {
                   <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
                     <SortHeader field="positionCount" label="Pos." />
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
                     W
                   </th>
                   <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
