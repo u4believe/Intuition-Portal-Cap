@@ -61,7 +61,16 @@ export default function ClaimsTable() {
     })
 
 
-  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
+  const formatNumber = (num: number | undefined, isMobile: boolean = false) => {
+    if (!num) return '0'
+    if (isMobile) {
+      if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B'
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M'
+      if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K'
+      return num.toFixed(0)
+    }
+    return num.toLocaleString('en-US', { maximumFractionDigits: 0 })
+  }
     <button
       onClick={() => handleSort(field)}
       className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
@@ -109,33 +118,29 @@ export default function ClaimsTable() {
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="label" label="Vault" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <span className="hidden md:inline"><SortHeader field="marketCap" label="Market Cap" /></span>
-                    <span className="md:hidden"><SortHeader field="marketCap" label="MC" /></span>
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Market Cap">
+                    <SortHeader field="marketCap" label="MC" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <span className="hidden md:inline"><SortHeader field="totalAssets" label="Total Assets" /></span>
-                    <span className="md:hidden"><SortHeader field="totalAssets" label="TA" /></span>
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Assets">
+                    <SortHeader field="totalAssets" label="TA" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <span className="hidden md:inline"><SortHeader field="totalShares" label="Total Shares" /></span>
-                    <span className="md:hidden"><SortHeader field="totalShares" label="TS" /></span>
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Shares">
+                    <SortHeader field="totalShares" label="TS" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <span className="hidden md:inline"><SortHeader field="currentSharePrice" label="Share Price" /></span>
-                    <span className="md:hidden"><SortHeader field="currentSharePrice" label="SP" /></span>
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Share Price">
+                    <SortHeader field="currentSharePrice" label="SP" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
                     <SortHeader field="sharePriceChange24h" label="24h %" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
                     <SortHeader field="positionCount" label="Pos." />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    Watch
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
+                    W
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    View
+                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
+                    V
                   </th>
                 </tr>
               </thead>
@@ -172,39 +177,39 @@ export default function ClaimsTable() {
                         </div>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-1.5 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.marketCap ? claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
+                        {formatNumber(claim.marketCap, true)}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-1.5 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.totalAssets ? claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
+                        {formatNumber(claim.totalAssets, true)}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-1.5 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.totalShares ? claim.totalShares.toLocaleString('en-US') : '0'}
+                        {formatNumber(claim.totalShares, true)}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-1.5 text-center text-slate-900 font-medium text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 }) : '0'}
+                        {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center font-medium text-xs truncate">
+                    <td className="py-2 px-1.5 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:no-underline">
                         <span className={claim.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {claim.sharePriceChange24h >= 0 ? '+' : ''}{((claim.sharePriceChange24h || 0) / 1e18).toFixed(2)}%
+                          {claim.sharePriceChange24h >= 0 ? '+' : ''}{((claim.sharePriceChange24h || 0) / 1e18).toFixed(1)}%
                         </span>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
+                    <td className="py-2 px-1.5 text-center text-slate-700 text-xs truncate">
                       <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                        {claim.positionCount ? claim.positionCount.toLocaleString('en-US') : '0'}
+                        {formatNumber(claim.positionCount, true)}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center">
+                    <td className="py-2 px-1 text-center">
                       <button
                         onClick={(e) => {
                           e.preventDefault()
@@ -216,11 +221,12 @@ export default function ClaimsTable() {
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
                             : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
+                        title={isWatched(claim.label) ? 'Remove from watch' : 'Add to watch'}
                       >
-                        {isWatched(claim.label) ? 'Watch' : 'Add'}
+                        {isWatched(claim.label) ? '★' : '✓'}
                       </button>
                     </td>
-                    <td className="py-2 px-2 text-center">
+                    <td className="py-2 px-1 text-center">
                       <button
                         onClick={(e) => {
                           e.preventDefault()
