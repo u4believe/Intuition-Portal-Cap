@@ -94,15 +94,15 @@ export default function ClaimsTable() {
             <div className="w-full overflow-x-auto">
             <table className="w-full table-fixed">
               <colgroup>
-                <col style={{ width: '25%', minWidth: '120px' }} />
-                <col style={{ width: '11%', minWidth: '90px' }} />
-                <col style={{ width: '11%', minWidth: '90px' }} />
-                <col style={{ width: '11%', minWidth: '90px' }} />
-                <col style={{ width: '11%', minWidth: '85px' }} />
-                <col style={{ width: '10%', minWidth: '70px' }} />
-                <col style={{ width: '10%', minWidth: '65px' }} />
-                <col style={{ width: '10%', minWidth: '75px' }} />
-                <col style={{ width: '5%', minWidth: '50px' }} />
+                <col style={{ width: '28%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '4%' }} />
               </colgroup>
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
