@@ -95,26 +95,36 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                 <thead className="sticky top-0 bg-slate-900 border-b border-slate-700">
                   <tr>
                     <th className="text-left py-4 px-4">
-                      <SortHeader field="label" label="Claim" />
+                      <div className="flex justify-start">
+                        <SortHeader field="label" label="Claim" />
+                      </div>
                     </th>
                     <th className="text-right py-4 px-4">
-                      <SortHeader field="positionCount" label="Positions" />
+                      <div className="flex justify-end">
+                        <SortHeader field="positionCount" label="Positions" />
+                      </div>
                     </th>
                     <th className="text-right py-4 px-4">
-                      <SortHeader field="lastSharePrice" label="Last Share Price" />
+                      <div className="flex justify-end">
+                        <SortHeader field="lastSharePrice" label="Last Share Price" />
+                      </div>
                     </th>
                     <th className="text-right py-4 px-4">
-                      <SortHeader field="marketCap" label="Market Cap" />
+                      <div className="flex justify-end">
+                        <SortHeader field="marketCap" label="Market Cap" />
+                      </div>
                     </th>
                     <th className="text-center py-4 px-4">
-                      <span className="text-slate-300">Watch</span>
+                      <div className="flex justify-center">
+                        <span className="text-slate-300">Watch</span>
+                      </div>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700">
                   {sortedClaims.map((claim, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/50 transition-colors group">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 text-left">
                         <button
                           onClick={() => setExpandedClaim(expandedClaim === claim.label ? null : claim.label)}
                           className="flex items-center gap-3 group-hover:text-cyan-400 transition-colors cursor-pointer"
@@ -141,21 +151,23 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                         })}
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleWatchClick(claim.label)}
-                          className={`p-2 rounded-lg transition-all ${
-                            isWatched(claim.label)
-                              ? "bg-primary/20 text-primary hover:bg-primary/30"
-                              : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300"
-                          }`}
-                          title={isWatched(claim.label) ? "Watching this claim" : "Watch this claim"}
-                        >
-                          {isWatched(claim.label) ? (
-                            <Eye className="w-5 h-5" />
-                          ) : (
-                            <EyeOff className="w-5 h-5" />
-                          )}
-                        </button>
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleWatchClick(claim.label)}
+                            className={`p-2 rounded-lg transition-all ${
+                              isWatched(claim.label)
+                                ? "bg-primary/20 text-primary hover:bg-primary/30"
+                                : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300"
+                            }`}
+                            title={isWatched(claim.label) ? "Watching this claim" : "Watch this claim"}
+                          >
+                            {isWatched(claim.label) ? (
+                              <Eye className="w-5 h-5" />
+                            ) : (
+                              <EyeOff className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
