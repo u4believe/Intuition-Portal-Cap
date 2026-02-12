@@ -6,7 +6,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  allowedDevOrigins: ['*'],
+  allowedDevOrigins: ['*.replit.dev', '*.replit.app', '*.picard.replit.dev'],
 }
 
 export default nextConfig
