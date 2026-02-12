@@ -79,17 +79,17 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl max-h-[90vh] bg-slate-900 border-slate-700">
+        <DialogContent className="max-w-7xl max-h-[90vh] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
           <DialogHeader>
-            <DialogTitle className="text-white">All Claims</DialogTitle>
+            <DialogTitle className="text-black dark:text-white">All Claims</DialogTitle>
           </DialogHeader>
 
           {/* Table Container */}
           <div className="max-h-[calc(90vh-120px)] overflow-auto">
             {loading ? (
-              <div className="text-center py-8 text-slate-400">Loading claims...</div>
+              <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading claims...</div>
             ) : sortedClaims.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">No claims found</div>
+              <div className="text-center py-8 text-slate-600 dark:text-slate-400">No claims found</div>
             ) : (
               <table className="w-full table-fixed">
                 <colgroup>
@@ -99,7 +99,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                   <col style={{ width: '15%' }} />
                   <col style={{ width: '10%' }} />
                 </colgroup>
-                <thead className="sticky top-0 bg-slate-900 border-b border-slate-700">
+                <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700">
                   <tr>
                     <th className="text-left py-4 px-4">
                       <div className="flex justify-start">

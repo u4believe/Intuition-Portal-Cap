@@ -24,17 +24,17 @@ export default function TopClaimsDisplay() {
         <div className="grid md:grid-cols-2 gap-4">
           {loading ? (
             [1, 2, 3, 4].map((i) => (
-              <Card key={i} className="bg-slate-900 border-slate-700 animate-pulse">
+              <Card key={i} className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 animate-pulse">
                 <CardContent className="pt-6 h-32"></CardContent>
               </Card>
             ))
           ) : claims.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-slate-400">No claims found</div>
+            <div className="col-span-full text-center py-8 text-slate-600 dark:text-slate-400">No claims found</div>
           ) : (
             claims.map((claim, idx) => (
               <Card
                 key={idx}
-                className="bg-slate-900 border-slate-700 hover:border-primary/50 transition-colors cursor-pointer group"
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary/50 transition-colors cursor-pointer group"
               >
                 <CardContent className="pt-6">
                   <div className="space-y-4">
