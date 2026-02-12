@@ -63,7 +63,7 @@ export default function TriplesTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900 dark:text-slate-100"
     >
       {label}
       {sortField === field &&
@@ -73,11 +73,11 @@ export default function TriplesTable() {
 
   return (
     <>
-      <div className="w-full bg-white border-t border-b border-slate-200 shadow-sm overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading triples...</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading triples...</div>
         ) : sortedTriples.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">No triples found</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No triples found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -93,42 +93,42 @@ export default function TriplesTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '4%' }} />
               </colgroup>
-              <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="label" label="Triple" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="marketCap" label="Market Cap" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="totalAssets" label="Total Assets" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="totalShares" label="Total Shares" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="currentSharePrice" label="Share Price" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="sharePriceChange24h" label="24h %" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <SortHeader field="positionCount" label="Pos." />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     Watch
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     View
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {sortedTriples.map((triple, idx) => (
                   <tr
                     key={`triple-${idx}`}
-                    className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group border-b border-slate-200 dark:border-slate-700 cursor-pointer"
                   >
                     <td className="py-2 px-2 min-w-0">
                       <Link href={`/vault/${triple.termId}`} className="flex items-center gap-1 hover:no-underline">

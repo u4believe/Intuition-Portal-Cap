@@ -75,7 +75,7 @@ export default function ClaimsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900 dark:text-slate-100"
     >
       {label}
       {sortField === field &&
@@ -95,11 +95,11 @@ export default function ClaimsTable() {
 
   return (
     <>
-      <div className="w-full bg-white border-t border-b border-slate-200 shadow-sm">
+      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-700 shadow-sm">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading claims...</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading claims...</div>
         ) : sortedClaims.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">No claims found</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No claims found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -115,56 +115,56 @@ export default function ClaimsTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '4%' }} />
               </colgroup>
-              <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 !text-left">
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100 !text-left">
                     <div className="flex justify-start">
                       <SortHeader field="label" label="Vault" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Market Cap">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100" title="Market Cap">
                     <div className="flex justify-center">
                       <SortHeader field="marketCap" label="MC" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Assets">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100" title="Total Assets">
                     <div className="flex justify-center">
                       <SortHeader field="totalAssets" label="TA" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Total Shares">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100" title="Total Shares">
                     <div className="flex justify-center">
                       <SortHeader field="totalShares" label="TS" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900" title="Share Price">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100" title="Share Price">
                     <div className="flex justify-center">
                       <SortHeader field="currentSharePrice" label="SP" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="sharePriceChange24h" label="24h %" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="positionCount" label="Pos." />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">W</div>
                   </th>
-                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-1 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">V</div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {sortedClaims.map((claim, idx) => (
                   <tr
                     key={`vault-${idx}`}
-                    className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group border-b border-slate-200 dark:border-slate-700 cursor-pointer"
                   >
                     <td className="py-2 px-2 text-left">
                       <Link href={`/vault/${claim.termId}`} className="flex items-center gap-1 hover:no-underline">
