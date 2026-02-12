@@ -75,7 +75,7 @@ export default function ClaimsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900 dark:text-slate-100"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-black dark:text-white font-semibold"
     >
       {label}
       {sortField === field &&
@@ -95,11 +95,11 @@ export default function ClaimsTable() {
 
   return (
     <>
-      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="w-full bg-white dark:bg-slate-950 border-t border-b border-slate-300 dark:border-slate-700 shadow-sm">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading claims...</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">Loading claims...</div>
         ) : sortedClaims.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No claims found</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">No claims found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -115,14 +115,14 @@ export default function ClaimsTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '4%' }} />
               </colgroup>
-              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+              <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 sticky top-0">
                 <tr>
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100 !text-left">
                     <div className="flex justify-start">
                       <SortHeader field="label" label="Vault" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100" title="Market Cap">
+                  <th className="text-center py-3 px-1.5 text-xs font-semibold text-black dark:text-white" title="Market Cap">
                     <div className="flex justify-center">
                       <SortHeader field="marketCap" label="MC" />
                     </div>

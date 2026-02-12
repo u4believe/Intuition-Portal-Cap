@@ -63,7 +63,7 @@ export default function TriplesTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900 dark:text-slate-100"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-black dark:text-white font-semibold"
     >
       {label}
       {sortField === field &&
@@ -73,11 +73,11 @@ export default function TriplesTable() {
 
   return (
     <>
-      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-950 border-t border-b border-slate-300 dark:border-slate-700 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading triples...</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">Loading triples...</div>
         ) : sortedTriples.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No triples found</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">No triples found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -93,42 +93,42 @@ export default function TriplesTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '4%' }} />
               </colgroup>
-              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+              <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="label" label="Triple" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="marketCap" label="Market Cap" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="totalAssets" label="Total Assets" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="totalShares" label="Total Shares" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="currentSharePrice" label="Share Price" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="sharePriceChange24h" label="24h %" />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <SortHeader field="positionCount" label="Pos." />
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     Watch
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     View
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-300 dark:divide-slate-700">
                 {sortedTriples.map((triple, idx) => (
                   <tr
                     key={`triple-${idx}`}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+                    className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group border-b border-slate-300 dark:border-slate-700 cursor-pointer"
                   >
                     <td className="py-2 px-2 min-w-0">
                       <Link href={`/vault/${triple.termId}`} className="flex items-center gap-1 hover:no-underline">
@@ -144,7 +144,7 @@ export default function TriplesTable() {
                             className={`w-4 h-4 ${
                               isWatched(triple.label)
                                 ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-slate-300 hover:text-yellow-400'
+                                : 'text-slate-400 dark:text-slate-500 hover:text-yellow-400'
                             }`}
                           />
                         </button>
@@ -152,39 +152,39 @@ export default function TriplesTable() {
                           <img src={triple.image || '/placeholder.svg'} alt={triple.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{triple.label}</p>
-                          <p className="text-xs text-slate-500 truncate">{triple.subjectLabel}</p>
+                          <p className="font-medium text-black dark:text-white text-xs truncate hover:text-primary transition-colors">{triple.label}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate">{triple.subjectLabel}</p>
                         </div>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-black dark:text-white font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.marketCap ? triple.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-black dark:text-white font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.totalAssets ? triple.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-black dark:text-white font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.totalShares ? triple.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-black dark:text-white font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:no-underline">
-                        <span className={triple.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={triple.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                           {triple.sharePriceChange24h >= 0 ? '+' : ''}{((triple.sharePriceChange24h || 0) / 1e18).toFixed(2)}%
                         </span>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
+                    <td className="py-2 px-2 text-center text-black dark:text-white text-xs truncate">
                       <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
                         {triple.positionCount ? triple.positionCount.toLocaleString('en-US') : '0'}
                       </Link>
@@ -199,7 +199,7 @@ export default function TriplesTable() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           isWatched(triple.label)
                             ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-primary hover:bg-primary/90 text-white'
+                            : 'bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white'
                         }`}
                       >
                         {isWatched(triple.label) ? 'Watching' : 'Watch'}
@@ -213,10 +213,10 @@ export default function TriplesTable() {
                           setSelectedTripleForView(triple.label)
                           setViewTriplesOpen(true)
                         }}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1"
+                        className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors inline-flex items-center gap-1"
                         title="View Triple Details"
                       >
-                        <Eye className="w-4 h-4 text-primary" />
+                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </button>
                     </td>
                   </tr>
@@ -226,15 +226,15 @@ export default function TriplesTable() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 border-t border-slate-200">
-              <div className="text-sm text-slate-600">
+            <div className="flex items-center justify-between py-4 px-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700">
+              <div className="text-sm text-slate-700 dark:text-slate-200">
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-400 dark:border-slate-600 text-sm font-medium text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Previous
@@ -242,7 +242,7 @@ export default function TriplesTable() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={pagination.page === pagination.totalPages}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-400 dark:border-slate-600 text-sm font-medium text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />

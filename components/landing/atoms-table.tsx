@@ -60,7 +60,7 @@ export default function AtomsTable() {
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors whitespace-nowrap text-slate-900 dark:text-slate-100"
+      className="flex items-center gap-1 hover:text-primary transition-colors whitespace-nowrap text-black dark:text-white font-semibold"
     >
       {label}
       {sortField === field && (
@@ -75,11 +75,11 @@ export default function AtomsTable() {
 
   return (
     <>
-      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-950 border-t border-b border-slate-300 dark:border-slate-700 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading atoms...</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">Loading atoms...</div>
         ) : sortedAtoms.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No atoms found</div>
+          <div className="text-center py-12 text-slate-600 dark:text-slate-200">No atoms found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -93,9 +93,9 @@ export default function AtomsTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
               </colgroup>
-              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+              <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-black dark:text-white">
                     <div className="flex justify-start">
                       <SortHeader field="label" label="Atom" />
                     </div>
@@ -135,11 +135,11 @@ export default function AtomsTable() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-300 dark:divide-slate-700">
                 {sortedAtoms.map((atom, idx) => (
                   <tr
                     key={`atom-${idx}`}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+                    className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group border-b border-slate-300 dark:border-slate-700 cursor-pointer"
                   >
                     <td className="py-2 px-2 text-left">
                       <Link href={`/vault/${atom.termId}`} className="flex items-center gap-1 hover:no-underline">
@@ -163,8 +163,8 @@ export default function AtomsTable() {
                           <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
-                          <p className="text-xs text-slate-500 truncate">{atom.creatorLabel}</p>
+                          <p className="font-medium text-black dark:text-white text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate">{atom.creatorLabel}</p>
                         </div>
                       </Link>
                     </td>
