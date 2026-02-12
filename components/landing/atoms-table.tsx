@@ -75,11 +75,11 @@ export default function AtomsTable() {
 
   return (
     <>
-      <div className="w-full bg-white border-t border-b border-slate-200 shadow-sm overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading atoms...</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading atoms...</div>
         ) : sortedAtoms.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">No atoms found</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No atoms found</div>
         ) : (
           <>
             <div className="w-full overflow-x-auto">
@@ -93,53 +93,53 @@ export default function AtomsTable() {
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
               </colgroup>
-              <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0">
                 <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-start">
                       <SortHeader field="label" label="Atom" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="marketCap" label="Market Cap" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="totalAssets" label="Total Assets" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="totalShares" label="Total Shares" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="currentSharePrice" label="Share Price" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="sharePriceChange24h" label="24h %" />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">
                       <SortHeader field="positionCount" label="Pos." />
                     </div>
                   </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
+                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex justify-center">Watch</div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedAtoms.map((atom, idx) => (
                   <tr
                     key={`atom-${idx}`}
-                    className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group border-b border-slate-200 dark:border-slate-800 cursor-pointer"
                   >
                     <td className="py-2 px-2 text-left">
                       <Link href={`/vault/${atom.termId}`} className="flex items-center gap-1 hover:no-underline">
@@ -155,7 +155,7 @@ export default function AtomsTable() {
                             className={`w-4 h-4 ${
                               isWatched(atom.label)
                                 ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-slate-300 hover:text-yellow-400'
+                                : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
                             }`}
                           />
                         </button>
@@ -163,39 +163,39 @@ export default function AtomsTable() {
                           <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
-                          <p className="text-xs text-slate-500 truncate">{atom.creatorLabel}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100 text-xs truncate hover:text-primary transition-colors">{atom.label}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{atom.creatorLabel}</p>
                         </div>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.marketCap ? atom.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-900 font-medium text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center font-medium text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:no-underline">
-                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={atom.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                           {atom.sharePriceChange24h >= 0 ? '+' : ''}{(atom.sharePriceChange24h / 1e18).toFixed(2)}%
                         </span>
                       </Link>
                     </td>
-                    <td className="py-2 px-2 text-center text-slate-700 text-xs truncate">
+                    <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 text-xs truncate">
                       <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                         {atom.positionCount.toLocaleString('en-US')}
                       </Link>
@@ -225,15 +225,15 @@ export default function AtomsTable() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 border-t border-slate-200">
-              <div className="text-sm text-slate-600">
+            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Previous
@@ -241,7 +241,7 @@ export default function AtomsTable() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={pagination.page === pagination.totalPages}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />
