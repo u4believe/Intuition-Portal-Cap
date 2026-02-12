@@ -110,16 +110,20 @@ export default function ClaimsTable() {
                     <SortHeader field="label" label="Vault" />
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="marketCap" label="Market Cap" />
+                    <span className="hidden md:inline"><SortHeader field="marketCap" label="Market Cap" /></span>
+                    <span className="md:hidden"><SortHeader field="marketCap" label="MC" /></span>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="totalAssets" label="Total Assets" />
+                    <span className="hidden md:inline"><SortHeader field="totalAssets" label="Total Assets" /></span>
+                    <span className="md:hidden"><SortHeader field="totalAssets" label="TA" /></span>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="totalShares" label="Total Shares" />
+                    <span className="hidden md:inline"><SortHeader field="totalShares" label="Total Shares" /></span>
+                    <span className="md:hidden"><SortHeader field="totalShares" label="TS" /></span>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="currentSharePrice" label="Share Price" />
+                    <span className="hidden md:inline"><SortHeader field="currentSharePrice" label="Share Price" /></span>
+                    <span className="md:hidden"><SortHeader field="currentSharePrice" label="SP" /></span>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
                     <SortHeader field="sharePriceChange24h" label="24h %" />
