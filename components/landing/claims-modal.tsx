@@ -91,7 +91,14 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
             ) : sortedClaims.length === 0 ? (
               <div className="text-center py-8 text-slate-400">No claims found</div>
             ) : (
-              <table className="w-full">
+              <table className="w-full table-fixed">
+                <colgroup>
+                  <col style={{ width: '35%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '10%' }} />
+                </colgroup>
                 <thead className="sticky top-0 bg-slate-900 border-b border-slate-700">
                   <tr>
                     <th className="text-left py-4 px-4">
@@ -125,30 +132,38 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                   {sortedClaims.map((claim, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/50 transition-colors group">
                       <td className="py-4 px-4 text-left">
-                        <button
-                          onClick={() => setExpandedClaim(expandedClaim === claim.label ? null : claim.label)}
-                          className="flex items-center gap-3 group-hover:text-cyan-400 transition-colors cursor-pointer"
-                        >
-                          {claim.image && (
-                            <img src={claim.image || "/placeholder.svg"} alt={claim.label} className="w-8 h-8 rounded-full" />
-                          )}
-                          <span className="font-medium text-white">{claim.label}</span>
-                        </button>
+                        <div className="flex justify-start">
+                          <button
+                            onClick={() => setExpandedClaim(expandedClaim === claim.label ? null : claim.label)}
+                            className="flex items-center gap-3 group-hover:text-cyan-400 transition-colors cursor-pointer"
+                          >
+                            {claim.image && (
+                              <img src={claim.image || "/placeholder.svg"} alt={claim.label} className="w-8 h-8 rounded-full" />
+                            )}
+                            <span className="font-medium text-white">{claim.label}</span>
+                          </button>
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-right text-slate-300">
-                        {claim.positionCount.toLocaleString("en-US")}
+                        <div className="flex justify-end">
+                          {claim.positionCount.toLocaleString("en-US")}
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-right text-primary font-medium">
-                        {claim.lastSharePrice.toLocaleString("en-US", {
-                          maximumFractionDigits: 8,
-                          minimumFractionDigits: 2,
-                        })}
+                        <div className="flex justify-end">
+                          {claim.lastSharePrice.toLocaleString("en-US", {
+                            maximumFractionDigits: 8,
+                            minimumFractionDigits: 2,
+                          })}
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-right text-white font-medium">
-                        {claim.marketCap.toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                          minimumFractionDigits: 2,
-                        })}
+                        <div className="flex justify-end">
+                          {claim.marketCap.toLocaleString("en-US", {
+                            maximumFractionDigits: 2,
+                            minimumFractionDigits: 2,
+                          })}
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <div className="flex justify-center">
