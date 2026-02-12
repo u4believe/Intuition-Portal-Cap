@@ -96,28 +96,42 @@ export default function AtomsTable() {
               <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                 <tr>
                   <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="label" label="Atom" />
+                    <div className="flex justify-start">
+                      <SortHeader field="label" label="Atom" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="marketCap" label="Market Cap" />
+                    <div className="flex justify-center">
+                      <SortHeader field="marketCap" label="Market Cap" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="totalAssets" label="Total Assets" />
+                    <div className="flex justify-center">
+                      <SortHeader field="totalAssets" label="Total Assets" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="totalShares" label="Total Shares" />
+                    <div className="flex justify-center">
+                      <SortHeader field="totalShares" label="Total Shares" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="currentSharePrice" label="Share Price" />
+                    <div className="flex justify-center">
+                      <SortHeader field="currentSharePrice" label="Share Price" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="sharePriceChange24h" label="24h %" />
+                    <div className="flex justify-center">
+                      <SortHeader field="sharePriceChange24h" label="24h %" />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    <SortHeader field="positionCount" label="Pos." />
+                    <div className="flex justify-center">
+                      <SortHeader field="positionCount" label="Pos." />
+                    </div>
                   </th>
                   <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900">
-                    Watch
+                    <div className="flex justify-center">Watch</div>
                   </th>
                 </tr>
               </thead>
@@ -127,7 +141,7 @@ export default function AtomsTable() {
                     key={`atom-${idx}`}
                     className="hover:bg-slate-50 transition-colors group border-b border-slate-200 cursor-pointer"
                   >
-                    <td className="py-2 px-2 min-w-0">
+                    <td className="py-2 px-2 text-left">
                       <Link href={`/vault/${atom.termId}`} className="flex items-center gap-1 hover:no-underline">
                         <button
                           onClick={(e) => {
@@ -187,20 +201,22 @@ export default function AtomsTable() {
                       </Link>
                     </td>
                     <td className="py-2 px-2 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleWatchClick(atom.label)
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          isWatched(atom.label)
-                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-primary hover:bg-primary/90 text-white'
-                        }`}
-                      >
-                        {isWatched(atom.label) ? 'Watching' : 'Watch'}
-                      </button>
+                      <div className="flex justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleWatchClick(atom.label)
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isWatched(atom.label)
+                              ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                              : 'bg-primary hover:bg-primary/90 text-white'
+                          }`}
+                        >
+                          {isWatched(atom.label) ? 'Watching' : 'Watch'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
