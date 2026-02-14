@@ -29,9 +29,9 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
             <img 
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vportal.JPG-wbX9tJrbZ7jeXBXu5ZKlA9sGfXpm61.jpeg" 
+              src="/logo.jpg" 
               alt="Portal Cap Logo" 
-              className="h-10 w-auto"
+              className="h-10 w-auto rounded-full"
             />
           </Link>
           <Button
