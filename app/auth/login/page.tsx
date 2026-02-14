@@ -17,10 +17,10 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Redirect to dashboard if already authenticated
+  // Redirect to home if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push('/dashboard')
+      router.push('/')
     }
   }, [isAuthenticated, authLoading, router])
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
         timestamp: Date.now(),
       }))
 
-      router.push('/dashboard')
+      router.push('/')
     } catch (err: any) {
       setError(err.message || 'Failed to sign message')
     } finally {
