@@ -1,15 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, ChevronUp, ChevronDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
-import { ViewTriplesModal } from '@/components/landing/view-triples-modal'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice' | 'sharePriceChange24h'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
 type SortOrder = 'asc' | 'desc'
 
 export default function TriplesTable() {
@@ -24,8 +23,6 @@ export default function TriplesTable() {
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
-  const [viewTriplesOpen, setViewTriplesOpen] = useState(false)
-  const [selectedTripleForView, setSelectedTripleForView] = useState<string>('')
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -60,14 +57,22 @@ export default function TriplesTable() {
       return 0
     })
 
+  const formatNumber = (num: number | undefined) => {
+    if (!num) return '0'
+    if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B'
+    if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M'
+    if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K'
+    return num.toLocaleString('en-US', { maximumFractionDigits: 0 })
+  }
+
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900"
+      className="flex items-center gap-1 hover:text-primary transition-colors text-slate-900 dark:text-slate-100 whitespace-nowrap"
     >
       {label}
       {sortField === field &&
-        (sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+        (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4" /> : <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />)}
     </button>
   )
 
@@ -80,171 +85,224 @@ export default function TriplesTable() {
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">No triples found</div>
         ) : (
           <>
-            <div className="w-full overflow-x-auto">
-            <table className="w-full table-fixed">
-              <colgroup>
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '4%' }} />
-              </colgroup>
-              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0">
-                <tr>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="label" label="Triple" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="marketCap" label="Market Cap" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="totalAssets" label="Total Assets" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="totalShares" label="Total Shares" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="currentSharePrice" label="Share Price" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="sharePriceChange24h" label="24h %" />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    <SortHeader field="positionCount" label="Pos." />
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    Watch
-                  </th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    View
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {sortedTriples.map((triple, idx) => (
-                  <tr
-                    key={`triple-${idx}`}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group border-b border-slate-200 dark:border-slate-800 cursor-pointer"
-                  >
-                    <td className="py-2 px-2 min-w-0">
-                      <Link href={`/vault/${triple.termId}`} className="flex items-center gap-1 hover:no-underline">
+            {/* Desktop Table */}
+            <div className="hidden md:block w-full overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0">
+                  <tr>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <SortHeader field="label" label="Triple" />
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="marketCap" label="Market Cap" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="totalAssets" label="Total Assets" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="totalShares" label="Total Shares" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="currentSharePrice" label="Share Price" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="positionCount" label="Positions" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">Watch</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {sortedTriples.map((triple, idx) => (
+                    <tr
+                      key={`triple-${idx}`}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                    >
+                      <td className="py-2.5 px-3 min-w-0">
+                        <Link href={`/vault/${triple.termId}`} className="flex items-center gap-2 hover:no-underline">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleWatchClick(triple.label)
+                            }}
+                            className="p-1 hover:scale-125 transition-transform flex-shrink-0"
+                          >
+                            <Star
+                              className={`w-4 h-4 ${
+                                isWatched(triple.label)
+                                  ? 'text-yellow-500 fill-yellow-500'
+                                  : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
+                              }`}
+                            />
+                          </button>
+                          {triple.image && (
+                            <img src={triple.image || '/placeholder.svg'} alt={triple.label} className="w-5 h-5 rounded-full flex-shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate hover:text-primary transition-colors">{triple.label}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{triple.subjectLabel}</p>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
+                          {formatNumber(triple.marketCap)}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
+                          {formatNumber(triple.totalAssets)}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
+                          {formatNumber(triple.totalShares)}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
+                          {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-700 dark:text-slate-300 text-sm">
+                        <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
+                          {formatNumber(triple.positionCount)}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center">
                         <button
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             handleWatchClick(triple.label)
                           }}
-                          className="p-1 hover:scale-125 transition-transform flex-shrink-0"
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isWatched(triple.label)
+                              ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
+                              : 'bg-primary hover:bg-primary/90 text-white'
+                          }`}
+                        >
+                          {isWatched(triple.label) ? 'Watching' : 'Watch'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card Layout */}
+            <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
+              {sortedTriples.map((triple, idx) => (
+                <Link
+                  key={`triple-mobile-${idx}`}
+                  href={`/vault/${triple.termId}`}
+                  className="block hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleWatchClick(triple.label)
+                          }}
+                          className="p-0.5 hover:scale-125 transition-transform flex-shrink-0"
                         >
                           <Star
                             className={`w-4 h-4 ${
                               isWatched(triple.label)
                                 ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
+                                : 'text-slate-300 dark:text-slate-600'
                             }`}
                           />
                         </button>
                         {triple.image && (
-                          <img src={triple.image || '/placeholder.svg'} alt={triple.label} className="w-5 h-5 rounded-full flex-shrink-0" />
+                          <img src={triple.image || '/placeholder.svg'} alt={triple.label} className="w-6 h-6 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-slate-100 text-xs truncate hover:text-primary transition-colors">{triple.label}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">{triple.label}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{triple.subjectLabel}</p>
                         </div>
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.marketCap ? triple.marketCap.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.totalAssets ? triple.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.totalShares ? triple.totalShares.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center font-medium text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:no-underline">
-                        <span className={triple.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                          {triple.sharePriceChange24h >= 0 ? '+' : ''}{((triple.sharePriceChange24h || 0) / 1e18).toFixed(2)}%
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 text-xs truncate">
-                      <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                        {triple.positionCount ? triple.positionCount.toLocaleString('en-US') : '0'}
-                      </Link>
-                    </td>
-                    <td className="py-2 px-2 text-center">
+                      </div>
                       <button
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
                           handleWatchClick(triple.label)
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0 ml-2 ${
                           isWatched(triple.label)
-                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
-                            : 'bg-primary hover:bg-primary/90 text-white'
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'
+                            : 'bg-primary text-white'
                         }`}
                       >
                         {isWatched(triple.label) ? 'Watching' : 'Watch'}
                       </button>
-                    </td>
-                    <td className="py-2 px-2 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setSelectedTripleForView(triple.label)
-                          setViewTriplesOpen(true)
-                        }}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center gap-1"
-                        title="View Triple Details"
-                      >
-                        <Eye className="w-4 h-4 text-primary" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Market Cap</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.marketCap)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Total Assets</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.totalAssets)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                          {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Total Shares</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.totalShares)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Positions</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.positionCount)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-4 px-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)
+            <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                <span className="hidden sm:inline">Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)</span>
+                <span className="sm:hidden">{pagination.page}/{pagination.totalPages}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded border border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={pagination.page === pagination.totalPages}
-                  className="flex items-center gap-1 px-3 py-2 rounded border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded border border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -253,7 +311,6 @@ export default function TriplesTable() {
         )}
       </div>
 
-      {/* Watch Preferences Dialog */}
       <WatchPreferencesDialog
         open={watchDialogOpen}
         onOpenChange={setWatchDialogOpen}
@@ -263,11 +320,6 @@ export default function TriplesTable() {
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
         }}
-      />
-      <ViewTriplesModal
-        open={viewTriplesOpen}
-        onOpenChange={setViewTriplesOpen}
-        tripleLabel={selectedTripleForView}
       />
     </>
   )

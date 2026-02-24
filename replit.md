@@ -41,4 +41,5 @@ lib/              - Utility functions and service clients
 - Start: `npm run start`
 
 ## Recent Changes
+- 2026-02-24: Removed "24h %" and "V" (View) columns from all data tables (Vaults, Triples, Atoms). 24h% data is available in the vault detail page. Expanded all column headings to full names (Market Cap, Total Assets, Total Shares, Share Price, Positions). Added mobile-responsive card layout for all tables on small screens with full-width pagination controls.
 - 2026-02-12: Initial Replit setup - configured port 5000, allowedDevOrigins, deployment
