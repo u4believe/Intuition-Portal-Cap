@@ -17,7 +17,7 @@ export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('vaults')
+  const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
   const { getWatchedClaims } = useUserPreferences()
   const watchedClaims = getWatchedClaims()
 
