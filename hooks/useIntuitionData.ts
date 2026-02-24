@@ -59,6 +59,17 @@ export function useRecentEvents() {
   })
 }
 
+function isUnknownEntry(item: any): boolean {
+  const label = (item.label || '').toLowerCase().trim()
+  if (label === 'unknown') return true
+  if (/^(unknown\s*[-–—]\s*)+unknown$/i.test(label)) return true
+  const subjectLabel = (item.subjectLabel || item.subject_label || '').toLowerCase().trim()
+  const predicateLabel = (item.predicateLabel || item.predicate_label || '').toLowerCase().trim()
+  const objectLabel = (item.objectLabel || item.object_label || '').toLowerCase().trim()
+  if (subjectLabel === 'unknown' && predicateLabel === 'unknown' && objectLabel === 'unknown') return true
+  return false
+}
+
 export function useAllClaims(page: number = 1) {
   return useQuery({
     queryKey: ['allClaims', page],
@@ -66,8 +77,9 @@ export function useAllClaims(page: number = 1) {
       const response = await fetch(`/api/all-claims-holders?page=${page}`)
       if (!response.ok) throw new Error('Failed to fetch claims')
       const data = await response.json()
+      const filteredClaims = (data.claims || []).filter((claim: any) => !isUnknownEntry(claim))
       return {
-        claims: data.claims || [],
+        claims: filteredClaims,
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
@@ -82,8 +94,9 @@ export function useTriples(page: number = 1) {
       const response = await fetch(`/api/top-triples?page=${page}`)
       if (!response.ok) throw new Error('Failed to fetch triples')
       const data = await response.json()
+      const filteredTriples = (data.triples || []).filter((triple: any) => !isUnknownEntry(triple))
       return {
-        triples: data.triples || [],
+        triples: filteredTriples,
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
@@ -98,7 +111,7 @@ export function useTopClaims() {
       const response = await fetch('/api/top-claims')
       if (!response.ok) throw new Error('Failed to fetch top claims')
       const data = await response.json()
-      return data.claims || []
+      return (data.claims || []).filter((claim: any) => !isUnknownEntry(claim))
     },
     staleTime: 86400000, // 24 hours
   })
@@ -112,7 +125,7 @@ export function useAtoms(page: number = 1) {
       if (!response.ok) throw new Error('Failed to fetch atoms')
       const data = await response.json()
       return {
-        atoms: (data.atoms || []).map((atom: any) => ({
+        atoms: (data.atoms || []).filter((atom: any) => !isUnknownEntry(atom)).map((atom: any) => ({
           termId: '', // Atoms don't have a direct termId, they're aggregated
           label: atom.label || 'Unknown',
           type: 'Atom',
