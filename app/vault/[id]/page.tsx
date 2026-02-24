@@ -174,15 +174,17 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Vault Header */}
-        <div className="flex items-center gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-          {claim.image && (
-            <img src={claim.image || "/placeholder.svg"} alt={claim.label} className="w-16 h-16 rounded-full" />
-          )}
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">{claim.label}</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">Term ID: {claim.termId}</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3 sm:gap-6 flex-1 min-w-0">
+            {claim.image && (
+              <img src={claim.image || "/placeholder.svg"} alt={claim.label} className="w-10 h-10 sm:w-16 sm:h-16 rounded-full flex-shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white truncate">{claim.label}</h1>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1 truncate">Term ID: {claim.termId}</p>
+            </div>
           </div>
-          <div className="text-right">
+          <div>
             <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
               {claim.type}
             </span>
@@ -191,67 +193,67 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Triple Information */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Triple Information</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Subject</p>
-              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.subjectLabel}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.subjectType}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Triple Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Subject</p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">{claim.subjectLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 sm:mt-2">Type: {claim.subjectType}</p>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Predicate</p>
-              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.predicateLabel}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.predicateType}</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Predicate</p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">{claim.predicateLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 sm:mt-2">Type: {claim.predicateType}</p>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Object</p>
-              <p className="text-lg font-semibold text-slate-900 dark:text-white">{claim.objectLabel}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Type: {claim.objectType}</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Object</p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white break-words">{claim.objectLabel}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 sm:mt-2">Type: {claim.objectType}</p>
             </div>
           </div>
         </div>
 
         {/* Market Statistics */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Market Statistics</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Market Cap (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Market Statistics</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Market Cap (TRUST)</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white break-all">
                 {claim.marketCap.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Total Assets (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Total Assets (TRUST)</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white break-all">
                 {claim.totalAssets.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Total Shares</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Total Shares</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white break-all">
                 {claim.totalShares.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Current Share Price (TRUST)</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Current Share Price (TRUST)</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white break-all">
                 {claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Positions</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-800 p-4 sm:p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">Positions</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                 {claim.positionCount.toLocaleString('en-US')}
               </p>
             </div>
-            <div className={`bg-gradient-to-br p-6 rounded-lg border ${
+            <div className={`bg-gradient-to-br p-4 sm:p-6 rounded-lg border ${
               claim.sharePriceChange24h >= 0
                 ? 'from-green-50 dark:from-green-900/20 to-green-100 dark:to-green-800/20 border-green-200 dark:border-green-800'
                 : 'from-red-50 dark:from-red-900/20 to-red-100 dark:to-red-800/20 border-red-200 dark:border-red-800'
             }`}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Share Price Change (24h)</p>
-              <p className={`text-3xl font-bold ${claim.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">24h Change</p>
+              <p className={`text-xl sm:text-3xl font-bold ${claim.sharePriceChange24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {claim.sharePriceChange24h >= 0 ? '+' : ''}{(claim.sharePriceChange24h / 1e18).toFixed(3)}%
               </p>
             </div>
