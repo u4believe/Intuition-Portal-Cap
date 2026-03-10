@@ -2,11 +2,13 @@
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
+import { useAccount } from "wagmi"
 import { Search, Star } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { UserAccountInfo } from "@/components/user-account-info"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -19,6 +21,7 @@ export default function LandingPage() {
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
   const { getWatchedClaims } = useUserPreferences()
+  const { isConnected } = useAccount()
   const watchedClaims = getWatchedClaims()
 
   return (
@@ -101,23 +104,31 @@ export default function LandingPage() {
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Link href="/auth/login">
-                <Button
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-white"
-                >
-                  Sign In
-                </Button>
-              </Link>
+              {isConnected ? (
+                <UserAccountInfo />
+              ) : (
+                <Link href="/auth/login">
+                  <Button
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-white"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
           <div className="md:hidden flex gap-2 items-center">
             <ThemeToggle />
-            <Link href="/auth/login">
-              <Button variant="ghost" size="sm" className="text-black dark:text-white hover:text-primary">
-                Sign In
-              </Button>
-            </Link>
+            {isConnected ? (
+              <UserAccountInfo />
+            ) : (
+              <Link href="/auth/login">
+                <Button variant="ghost" size="sm" className="text-black dark:text-white hover:text-primary">
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
