@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { Bell, CheckCircle2 } from 'lucide-react'
 
 interface WatchPreferencesDialogProps {
   open: boolean
@@ -20,6 +22,17 @@ export default function WatchPreferencesDialog({
   claimLabel,
   onConfirm,
 }: WatchPreferencesDialogProps) {
+  const { isSupported, isSubscribed, subscribe: enablePushNotifications, isLoading: pushLoading } = usePushNotifications()
+  const [pushPermissionRequested, setPushPermissionRequested] = useState(false)
+
+  const handleEnablePushNotifications = async () => {
+    const success = await enablePushNotifications()
+    setPushPermissionRequested(true)
+    if (!success) {
+      console.log('[v0] Push notifications not enabled')
+    }
+  }
+
   // Market Cap Threshold
   const [marketCapThresholdType, setMarketCapThresholdType] = useState<'percentage' | 'number'>('percentage')
   const [marketCapThresholdValue, setMarketCapThresholdValue] = useState<number>(5)
@@ -291,9 +304,40 @@ export default function WatchPreferencesDialog({
             </div>
           </div>
 
+          {/* Push Notifications Section */}
+          {isSupported && (
+            <div className="bg-cyan-900/30 rounded-lg p-4 border border-cyan-700/50">
+              <div className="flex items-start gap-3">
+                <Bell className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-cyan-300 mb-2">Get Push Notifications</p>
+                  <p className="text-sm text-cyan-200/90 mb-3">
+                    Enable push notifications to receive instant alerts on your device when thresholds are exceeded for {claimLabel}.
+                  </p>
+                  {!isSubscribed && !pushPermissionRequested && (
+                    <Button
+                      onClick={handleEnablePushNotifications}
+                      disabled={pushLoading}
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 text-sm"
+                    >
+                      <Bell className="w-4 h-4" />
+                      {pushLoading ? 'Enabling...' : 'Enable Push Notifications'}
+                    </Button>
+                  )}
+                  {(isSubscribed || pushPermissionRequested) && (
+                    <div className="flex items-center gap-2 text-cyan-300">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-sm">Push notifications enabled</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
             <p className="text-sm text-slate-300">
-              <span className="font-semibold">Note:</span> You'll receive signal alerts about {claimLabel} when these thresholds are exceeded. Make sure to set your email preferences in settings to receive email notifications.
+              <span className="font-semibold">Note:</span> You'll receive signal alerts about {claimLabel} when these thresholds are exceeded.
             </p>
           </div>
         </div>
