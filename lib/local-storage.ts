@@ -9,6 +9,7 @@ export interface UserPreferences {
     email: string
     enabled: boolean
     frequency: 'instant' | 'daily' | 'weekly'
+    pushNotificationsEnabled: boolean
   }
   theme: 'dark' | 'light'
   lastUpdated: number
@@ -40,6 +41,7 @@ export function getDefaultPreferences(): UserPreferences {
       email: '',
       enabled: false,
       frequency: 'daily',
+      pushNotificationsEnabled: false,
     },
     theme: 'dark',
     lastUpdated: Date.now(),
