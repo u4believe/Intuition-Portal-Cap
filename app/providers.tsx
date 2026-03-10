@@ -5,6 +5,7 @@ import { WagmiProvider } from 'wagmi'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { config } from '@/lib/wagmi'
 import { ThemeProvider } from '@/components/theme-provider'
+import { registerServiceWorker } from '@/lib/push-notifications'
 
 const queryClient = new QueryClient()
 
@@ -18,6 +19,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    
+    // Register service worker for push notifications
+    registerServiceWorker().catch(err => console.log('[v0] Service worker registration skipped:', err))
+
     return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection)
   }, [])
 
