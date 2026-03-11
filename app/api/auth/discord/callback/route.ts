@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+function getBaseUrl(request: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto') || 'https'
+  if (host) return `${proto}://${host}`
+  const replitDomains = process.env.REPLIT_DOMAINS
+  if (replitDomains) {
+    return `https://${replitDomains.split(',')[0].trim()}`
+  }
+  return new URL(request.url).origin
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const code = searchParams.get('code')
@@ -16,11 +30,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login?error=discord_not_configured', request.url))
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+  const baseUrl = getBaseUrl(request)
   const redirectUri = `${baseUrl}/api/auth/discord/callback`
+  console.log('[Discord OAuth] Callback using redirect URI:', redirectUri)
 
   try {
-    // Exchange code for access token
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -41,7 +55,6 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await tokenRes.json()
 
-    // Get Discord user profile
     const userRes = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     })
@@ -53,21 +66,17 @@ export async function GET(request: NextRequest) {
 
     const user = await userRes.json()
 
-    // Build a minimal profile — no access token stored in the redirect
     const profile = {
       id: user.id,
       username: user.username,
       globalName: user.global_name || null,
       avatar: user.avatar || null,
       authenticatedAt: Date.now(),
-      // 7-day session
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     }
 
-    // Pass profile to client via query param (base64 encoded)
-    // We omit the access token — we only need identity data
     const encodedProfile = Buffer.from(JSON.stringify(profile)).toString('base64url')
-    const dest = new URL('/', request.url)
+    const dest = new URL('/', baseUrl)
     dest.searchParams.set('discord_auth', encodedProfile)
 
     return NextResponse.redirect(dest)
