@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAccountInfo } from "@/components/user-account-info"
 import { PushNotificationBanner } from "@/components/push-notification-banner"
 import WatchPreferencesDialog from "@/components/watch-preferences-dialog"
+import AlertsDialog from "@/components/alerts-dialog"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -26,6 +27,7 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingClaim, setEditingClaim] = useState<string | null>(null)
+  const [alertsDialogOpen, setAlertsDialogOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
   const watchlistRef = useRef<HTMLDivElement>(null)
 
@@ -297,14 +299,14 @@ export default function LandingPage() {
           </div>
 
           <div className="flex gap-4 flex-wrap">
-            <Link href="#claims">
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-white gap-2"
-              >
-                Start Watching <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              onClick={() => setAlertsDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-white gap-2"
+            >
+              <Bell className="w-4 h-4" />
+              Alerts
+            </Button>
             <Link href="#claims">
               <Button
                 size="lg"
@@ -456,6 +458,9 @@ export default function LandingPage() {
           <p>Intuition Portal Cap © 2025. Built to monitor the Intuition Portal.</p>
         </div>
       </footer>
+
+      {/* Alerts dialog */}
+      <AlertsDialog open={alertsDialogOpen} onOpenChange={setAlertsDialogOpen} />
 
       {/* Edit preferences dialog (from watchlist) */}
       {editingClaim && (

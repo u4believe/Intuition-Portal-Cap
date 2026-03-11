@@ -16,6 +16,12 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 )
 
+export interface AlertRangeConfig {
+  enabled: boolean
+  min: number
+  max: number
+}
+
 export interface PushSubscriptionRow {
   id: number
   address: string
@@ -23,6 +29,10 @@ export interface PushSubscriptionRow {
   p256dh: string
   auth: string
   watched_claims: string[]
+  alert_ranges: {
+    deposits?: AlertRangeConfig
+    redemptions?: AlertRangeConfig
+  }
   created_at: Date
   updated_at: Date
 }
@@ -84,6 +94,22 @@ export async function updateWatchedClaims(
     return true
   } catch (error) {
     console.error('[Push Server] Failed to update watched claims:', error)
+    return false
+  }
+}
+
+export async function updateAlertRanges(
+  address: string,
+  alertRanges: PushSubscriptionRow['alert_ranges']
+): Promise<boolean> {
+  try {
+    await pool.query(
+      `UPDATE push_subscriptions SET alert_ranges = $2, updated_at = NOW() WHERE address = $1`,
+      [address, JSON.stringify(alertRanges)]
+    )
+    return true
+  } catch (error) {
+    console.error('[Push Server] Failed to update alert ranges:', error)
     return false
   }
 }

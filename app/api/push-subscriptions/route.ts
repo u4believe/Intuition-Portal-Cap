@@ -4,6 +4,7 @@ import {
   deleteSubscription,
   getSubscriptionsByAddress,
   updateWatchedClaims,
+  updateAlertRanges,
 } from '@/lib/web-push-server'
 
 // POST: Save a push subscription
@@ -73,19 +74,26 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PATCH: Update watched claims for an address
+// PATCH: Update watched claims and/or alert ranges for an address
 export async function PATCH(req: NextRequest) {
   try {
-    const { address, watchedClaims } = await req.json()
+    const { address, watchedClaims, alertRanges } = await req.json()
 
-    if (!address || !Array.isArray(watchedClaims)) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!address) {
+      return NextResponse.json({ error: 'Missing address' }, { status: 400 })
     }
 
-    const success = await updateWatchedClaims(address, watchedClaims)
+    if (watchedClaims !== undefined) {
+      if (!Array.isArray(watchedClaims)) {
+        return NextResponse.json({ error: 'watchedClaims must be an array' }, { status: 400 })
+      }
+      const ok = await updateWatchedClaims(address, watchedClaims)
+      if (!ok) return NextResponse.json({ error: 'Failed to update watched claims' }, { status: 500 })
+    }
 
-    if (!success) {
-      return NextResponse.json({ error: 'Failed to update watched claims' }, { status: 500 })
+    if (alertRanges !== undefined) {
+      const ok = await updateAlertRanges(address, alertRanges)
+      if (!ok) return NextResponse.json({ error: 'Failed to update alert ranges' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
