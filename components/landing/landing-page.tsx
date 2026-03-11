@@ -31,10 +31,15 @@ export default function LandingPage() {
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer } = usePushNotifications()
   const { isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setWatchedClaims(getWatchedClaims())
-  }, [isConnected, getWatchedClaims])
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted) setWatchedClaims(getWatchedClaims())
+  }, [mounted, isConnected, getWatchedClaims])
 
   // Close watchlist when clicking outside
   useEffect(() => {
@@ -181,7 +186,7 @@ export default function LandingPage() {
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              {isConnected ? (
+              {mounted && isConnected ? (
                 <UserAccountInfo />
               ) : (
                 <Link href="/auth/login">
@@ -196,7 +201,7 @@ export default function LandingPage() {
             </div>
           </nav>
           <div className="md:hidden flex gap-2 items-center">
-            {isConnected && (
+            {mounted && isConnected && (
               <button
                 onClick={() => setWatchlistOpen(!watchlistOpen)}
                 className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
@@ -211,7 +216,7 @@ export default function LandingPage() {
               </button>
             )}
             <ThemeToggle />
-            {isConnected ? (
+            {mounted && isConnected ? (
               <UserAccountInfo />
             ) : (
               <Link href="/auth/login">
