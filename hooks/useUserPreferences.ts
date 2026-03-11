@@ -1,7 +1,7 @@
 'use client'
 
-import { useAccount } from 'wagmi'
 import { useCallback } from 'react'
+import { useCurrentUserId } from './useCurrentUserId'
 import {
   getUserPreferences,
   saveUserPreferences,
@@ -13,49 +13,49 @@ import {
 } from '@/lib/local-storage'
 
 export function useUserPreferences() {
-  const { address } = useAccount()
+  const userId = useCurrentUserId()
 
   const getUserPrefs = useCallback(() => {
-    if (!address) return null
-    return getUserPreferences(address)
-  }, [address])
+    if (!userId) return null
+    return getUserPreferences(userId)
+  }, [userId])
 
   const saveUserPrefs = useCallback(
     (preferences: UserPreferences) => {
-      if (!address) return false
-      return saveUserPreferences(address, preferences)
+      if (!userId) return false
+      return saveUserPreferences(userId, preferences)
     },
-    [address]
+    [userId]
   )
 
   const addWatchedClaim = useCallback(
     (claimLabel: string) => {
-      if (!address) return false
-      return addWatched(address, claimLabel)
+      if (!userId) return false
+      return addWatched(userId, claimLabel)
     },
-    [address]
+    [userId]
   )
 
   const removeWatchedClaim = useCallback(
     (claimLabel: string) => {
-      if (!address) return false
-      return removeWatched(address, claimLabel)
+      if (!userId) return false
+      return removeWatched(userId, claimLabel)
     },
-    [address]
+    [userId]
   )
 
   const updateNotificationSettings = useCallback(
     (settings: Partial<UserPreferences['notificationSettings']>) => {
-      if (!address) return false
-      return updateNotifs(address, settings)
+      if (!userId) return false
+      return updateNotifs(userId, settings)
     },
-    [address]
+    [userId]
   )
 
   const getWatchedClaims = useCallback(() => {
-    if (!address) return []
-    return getWatched(address)
-  }, [address])
+    if (!userId) return []
+    return getWatched(userId)
+  }, [userId])
 
   return {
     getUserPrefs,
@@ -64,6 +64,6 @@ export function useUserPreferences() {
     removeWatchedClaim,
     updateNotificationSettings,
     getWatchedClaims,
-    isConnected: !!address,
+    isConnected: !!userId,
   }
 }

@@ -35,6 +35,12 @@ function loadPreferences(claimLabel: string): WatchPreferences | null {
   }
 }
 
+// Parse a string input to a positive number, returns undefined if empty/invalid
+function parseNum(val: string, isFloat = false): number {
+  const n = isFloat ? parseFloat(val) : parseInt(val, 10)
+  return isNaN(n) || n < 0 ? 0 : n
+}
+
 export default function WatchPreferencesDialog({
   open,
   onOpenChange,
@@ -45,55 +51,58 @@ export default function WatchPreferencesDialog({
   const { isSupported, isSubscribed, subscribe: enablePushNotifications, isLoading: pushLoading } = usePushNotifications()
   const [pushPermissionRequested, setPushPermissionRequested] = useState(false)
 
+  // Use string state so users can type freely (no forced "0" when clearing the field)
   const [marketCapThresholdType, setMarketCapThresholdType] = useState<'percentage' | 'number'>('percentage')
-  const [marketCapThresholdValue, setMarketCapThresholdValue] = useState<number>(5)
-  const [positionThresholdType, setPositionThresholdType] = useState<'percentage' | 'number'>('number')
-  const [positionThresholdValue, setPositionThresholdValue] = useState<number>(10)
-  const [sharesThresholdType, setSharesThresholdType] = useState<'percentage' | 'number'>('percentage')
-  const [sharesThresholdValue, setSharesThresholdValue] = useState<number>(5)
-  const [depositsMinRange, setDepositsMinRange] = useState<number>(0)
-  const [depositsMaxRange, setDepositsMaxRange] = useState<number>(10000)
-  const [redemptionsMinRange, setRedemptionsMinRange] = useState<number>(0)
-  const [redemptionsMaxRange, setRedemptionsMaxRange] = useState<number>(10000)
+  const [marketCapValue, setMarketCapValue] = useState('5')
 
-  // Load existing preferences when editing or dialog opens
+  const [positionThresholdType, setPositionThresholdType] = useState<'percentage' | 'number'>('number')
+  const [positionValue, setPositionValue] = useState('10')
+
+  const [sharesThresholdType, setSharesThresholdType] = useState<'percentage' | 'number'>('percentage')
+  const [sharesValue, setSharesValue] = useState('5')
+
+  const [depositsMin, setDepositsMin] = useState('0')
+  const [depositsMax, setDepositsMax] = useState('10000')
+
+  const [redemptionsMin, setRedemptionsMin] = useState('0')
+  const [redemptionsMax, setRedemptionsMax] = useState('10000')
+
+  // Load existing preferences when dialog opens
   useEffect(() => {
     if (!open || !claimLabel) return
     const existing = loadPreferences(claimLabel)
     if (existing) {
       setMarketCapThresholdType(existing.marketCapThreshold?.type || 'percentage')
-      setMarketCapThresholdValue(existing.marketCapThreshold?.value ?? 5)
+      setMarketCapValue(String(existing.marketCapThreshold?.value ?? 5))
       setPositionThresholdType(existing.positionThreshold?.type || 'number')
-      setPositionThresholdValue(existing.positionThreshold?.value ?? 10)
+      setPositionValue(String(existing.positionThreshold?.value ?? 10))
       setSharesThresholdType(existing.sharesThreshold?.type || 'percentage')
-      setSharesThresholdValue(existing.sharesThreshold?.value ?? 5)
-      setDepositsMinRange(existing.depositsAlertRange?.min ?? 0)
-      setDepositsMaxRange(existing.depositsAlertRange?.max ?? 10000)
-      setRedemptionsMinRange(existing.redemptionsAlertRange?.min ?? 0)
-      setRedemptionsMaxRange(existing.redemptionsAlertRange?.max ?? 10000)
+      setSharesValue(String(existing.sharesThreshold?.value ?? 5))
+      setDepositsMin(String(existing.depositsAlertRange?.min ?? 0))
+      setDepositsMax(String(existing.depositsAlertRange?.max ?? 10000))
+      setRedemptionsMin(String(existing.redemptionsAlertRange?.min ?? 0))
+      setRedemptionsMax(String(existing.redemptionsAlertRange?.max ?? 10000))
     }
   }, [open, claimLabel])
 
   const handleEnablePushNotifications = async () => {
     const success = await enablePushNotifications()
     setPushPermissionRequested(true)
-    if (!success) {
-      console.log('[v0] Push notifications not enabled')
-    }
+    if (!success) console.log('[v0] Push notifications not enabled')
   }
 
   const handleConfirm = () => {
-    const preferences = JSON.parse(localStorage.getItem(`portal_cap_watch_${claimLabel}`) || '{}')
+    const existing = JSON.parse(localStorage.getItem(`portal_cap_watch_${claimLabel}`) || '{}')
     localStorage.setItem(
       `portal_cap_watch_${claimLabel}`,
       JSON.stringify({
-        ...preferences,
-        marketCapThreshold: { type: marketCapThresholdType, value: marketCapThresholdValue },
-        positionThreshold: { type: positionThresholdType, value: positionThresholdValue },
-        sharesThreshold: { type: sharesThresholdType, value: sharesThresholdValue },
-        depositsAlertRange: { min: depositsMinRange, max: depositsMaxRange },
-        redemptionsAlertRange: { min: redemptionsMinRange, max: redemptionsMaxRange },
-        watchedAt: preferences.watchedAt || new Date().toISOString(),
+        ...existing,
+        marketCapThreshold: { type: marketCapThresholdType, value: parseNum(marketCapValue, true) },
+        positionThreshold: { type: positionThresholdType, value: parseNum(positionValue) },
+        sharesThreshold: { type: sharesThresholdType, value: parseNum(sharesValue, true) },
+        depositsAlertRange: { min: parseNum(depositsMin), max: parseNum(depositsMax) },
+        redemptionsAlertRange: { min: parseNum(redemptionsMin), max: parseNum(redemptionsMax) },
+        watchedAt: existing.watchedAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
     )
@@ -153,16 +162,17 @@ export default function WatchPreferencesDialog({
                 type="number"
                 min="0"
                 step={marketCapThresholdType === 'percentage' ? '0.5' : '1'}
-                value={marketCapThresholdValue}
-                onChange={(e) => setMarketCapThresholdValue(parseFloat(e.target.value) || 0)}
+                value={marketCapValue}
+                onChange={(e) => setMarketCapValue(e.target.value)}
                 className="bg-slate-800 border-slate-700 text-white"
+                placeholder="0"
               />
               <span className="text-slate-400 text-sm whitespace-nowrap">
                 {marketCapThresholdType === 'percentage' ? '% change' : 'TRUST change'}
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Alert when market cap changes by more than {marketCapThresholdValue}
+              Alert when market cap changes by more than {marketCapValue || '0'}
               {marketCapThresholdType === 'percentage' ? '%' : ' TRUST'}
             </p>
           </div>
@@ -178,16 +188,17 @@ export default function WatchPreferencesDialog({
                 type="number"
                 min="0"
                 step="1"
-                value={positionThresholdValue}
-                onChange={(e) => setPositionThresholdValue(parseInt(e.target.value) || 0)}
+                value={positionValue}
+                onChange={(e) => setPositionValue(e.target.value)}
                 className="bg-slate-800 border-slate-700 text-white"
+                placeholder="0"
               />
               <span className="text-slate-400 text-sm whitespace-nowrap">
                 {positionThresholdType === 'percentage' ? '% change' : 'new positions'}
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Alert when position count changes by more than {positionThresholdValue}
+              Alert when position count changes by more than {positionValue || '0'}
               {positionThresholdType === 'percentage' ? '%' : ' positions'}
             </p>
           </div>
@@ -203,16 +214,17 @@ export default function WatchPreferencesDialog({
                 type="number"
                 min="0"
                 step={sharesThresholdType === 'percentage' ? '0.5' : '1'}
-                value={sharesThresholdValue}
-                onChange={(e) => setSharesThresholdValue(parseFloat(e.target.value) || 0)}
+                value={sharesValue}
+                onChange={(e) => setSharesValue(e.target.value)}
                 className="bg-slate-800 border-slate-700 text-white"
+                placeholder="0"
               />
               <span className="text-slate-400 text-sm whitespace-nowrap">
                 {sharesThresholdType === 'percentage' ? '% change' : 'shares change'}
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Alert when shares change by more than {sharesThresholdValue}
+              Alert when shares change by more than {sharesValue || '0'}
               {sharesThresholdType === 'percentage' ? '%' : ' shares'}
             </p>
           </div>
@@ -227,20 +239,22 @@ export default function WatchPreferencesDialog({
                   type="number"
                   min="0"
                   step="100"
-                  value={depositsMinRange}
-                  onChange={(e) => setDepositsMinRange(Math.min(parseInt(e.target.value) || 0, depositsMaxRange))}
+                  value={depositsMin}
+                  onChange={(e) => setDepositsMin(e.target.value)}
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="0"
                 />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 w-8 flex-shrink-0">Max</span>
                 <Input
                   type="number"
-                  min={depositsMinRange}
+                  min="0"
                   step="100"
-                  value={depositsMaxRange}
-                  onChange={(e) => setDepositsMaxRange(Math.max(parseInt(e.target.value) || 0, depositsMinRange))}
+                  value={depositsMax}
+                  onChange={(e) => setDepositsMax(e.target.value)}
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="10000"
                 />
               </div>
             </div>
@@ -256,20 +270,22 @@ export default function WatchPreferencesDialog({
                   type="number"
                   min="0"
                   step="100"
-                  value={redemptionsMinRange}
-                  onChange={(e) => setRedemptionsMinRange(Math.min(parseInt(e.target.value) || 0, redemptionsMaxRange))}
+                  value={redemptionsMin}
+                  onChange={(e) => setRedemptionsMin(e.target.value)}
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="0"
                 />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 w-8 flex-shrink-0">Max</span>
                 <Input
                   type="number"
-                  min={redemptionsMinRange}
+                  min="0"
                   step="100"
-                  value={redemptionsMaxRange}
-                  onChange={(e) => setRedemptionsMaxRange(Math.max(parseInt(e.target.value) || 0, redemptionsMinRange))}
+                  value={redemptionsMax}
+                  onChange={(e) => setRedemptionsMax(e.target.value)}
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="10000"
                 />
               </div>
             </div>
