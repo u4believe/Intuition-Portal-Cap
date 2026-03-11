@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 [agent]
 expertMode = true
 
@@ -11,6 +11,11 @@ channel = "stable-25_05"
 NEXT_PUBLIC_SUPABASE_URL = "https://placeholder.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "placeholder"
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID = "placeholder"
+VAPID_PUBLIC_KEY = "BBzvhhej2AYuBRaiDZp0jnJIiG9aR0YGKNsAZldqSHsuS8wnAX35v8NIdjwBID8AtNFuC_lUHiDZNWLNTi189U8"
+VAPID_PRIVATE_KEY = "Mm4jn-B54YbepVnGU0k78-n2h48g979F7_UvPPC688c"
+VAPID_SUBJECT = "https://portal-cap.replit.app"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY = "BBzvhhej2AYuBRaiDZp0jnJIiG9aR0YGKNsAZldqSHsuS8wnAX35v8NIdjwBID8AtNFuC_lUHiDZNWLNTi189U8"
+CRON_SECRET = "portal-cap-notification-secret-zsna53phaad"
 
 [workflows]
 runButton = "Project"
@@ -24,6 +29,10 @@ author = "agent"
 task = "workflow.run"
 args = "Next.js Dev Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Notification Poller"
+
 [[workflows.workflow]]
 name = "Next.js Dev Server"
 author = "agent"
@@ -35,6 +44,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Notification Poller"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/poll-notifications.js"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000

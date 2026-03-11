@@ -11,12 +11,13 @@ import {
   unsubscribeFromPushNotifications,
   getPushSubscription,
   sendTestNotification,
+  updateWatchedClaimsOnServer,
 } from '@/lib/push-notifications'
 import { useUserPreferences } from './useUserPreferences'
 
 export function usePushNotifications() {
   const { address } = useAccount()
-  const { updateNotificationSettings, getUserPrefs } = useUserPreferences()
+  const { updateNotificationSettings, getWatchedClaims } = useUserPreferences()
   const [isSupported, setIsSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('denied')
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -64,18 +65,21 @@ export function usePushNotifications() {
         if (!granted) return false
       }
 
-      // Subscribe to push notifications
-      const success = await subscribeToPushNotifications()
+      // Get current watched claims to sync with server
+      const watchedClaims = getWatchedClaims()
+
+      // Subscribe to push notifications and save to server
+      const success = await subscribeToPushNotifications(address, watchedClaims)
       if (success) {
         setIsSubscribed(true)
         // Update user preferences to reflect push notifications are enabled
         updateNotificationSettings({ pushNotificationsEnabled: true })
-        console.log('[v0] Push notifications enabled for', address)
-        
-        // Show success message
+        console.log('[v0] Push notifications enabled for', address, 'watching:', watchedClaims)
+
+        // Dispatch event
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('push-notifications-enabled', { 
-            detail: { address } 
+          window.dispatchEvent(new CustomEvent('push-notifications-enabled', {
+            detail: { address }
           }))
         }
       }
@@ -83,7 +87,7 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false)
     }
-  }, [isSupported, permission, address, requestPermission, updateNotificationSettings])
+  }, [isSupported, permission, address, requestPermission, updateNotificationSettings, getWatchedClaims])
 
   const unsubscribe = useCallback(async () => {
     if (!isSupported) return false
@@ -103,12 +107,19 @@ export function usePushNotifications() {
     }
   }, [isSupported, updateNotificationSettings])
 
+  // Sync watched claims to server whenever they change
+  const syncWatchedClaimsToServer = useCallback(async () => {
+    if (!address || !isSubscribed) return
+    const watchedClaims = getWatchedClaims()
+    await updateWatchedClaimsOnServer(address, watchedClaims)
+  }, [address, isSubscribed, getWatchedClaims])
+
   const sendTest = useCallback(async () => {
     if (!isSupported || permission !== 'granted') return false
 
     try {
       await sendTestNotification('Portal Cap', {
-        body: 'This is a test notification',
+        body: 'Push notifications are working! You will receive alerts for your watched claims.',
         icon: '/icon-light-32x32.png',
         badge: '/icon-light-32x32.png',
       })
@@ -127,6 +138,7 @@ export function usePushNotifications() {
     requestPermission,
     subscribe,
     unsubscribe,
+    syncWatchedClaimsToServer,
     sendTest,
   }
 }

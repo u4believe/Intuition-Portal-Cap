@@ -5,6 +5,9 @@
  * Uses the browser's native Push API and Service Workers
  */
 
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  'BBzvhhej2AYuBRaiDZp0jnJIiG9aR0YGKNsAZldqSHsuS8wnAX35v8NIdjwBID8AtNFuC_lUHiDZNWLNTi189U8'
+
 /**
  * Check if the browser supports push notifications
  */
@@ -81,10 +84,12 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
 }
 
 /**
- * Subscribe to push notifications
- * Returns the subscription endpoint to be stored (client-side only)
+ * Subscribe to push notifications and save to server
  */
-export async function subscribeToPushNotifications(): Promise<boolean> {
+export async function subscribeToPushNotifications(
+  address: string,
+  watchedClaims: string[] = []
+): Promise<boolean> {
   if (!isPushNotificationSupported()) {
     console.warn('[Push Notifications] Browser does not support push notifications')
     return false
@@ -94,29 +99,79 @@ export async function subscribeToPushNotifications(): Promise<boolean> {
     // Check if already subscribed
     const existing = await getPushSubscription()
     if (existing) {
-      console.log('[Push Notifications] Already subscribed')
+      // Update watched claims on server even if already subscribed
+      await saveSubscriptionToServer(address, existing, watchedClaims)
+      console.log('[Push Notifications] Already subscribed, updated watched claims')
       return true
     }
 
-    // Register service worker first if not already registered
     const registration = await navigator.serviceWorker.ready
 
-    // Subscribe to push notifications
-    // Note: In a production app, you'd generate a VAPID key pair on your server
-    // For now, we'll create a subscription that can be sent to your notification service
+    // Subscribe to push notifications with VAPID key
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      // In production, replace this with your server's public VAPID key
-      applicationServerKey: urlBase64ToUint8Array(
-        'BAI-EwAvvF8sR-CIo2hQqfBQW3gZbRh5bltBvP0P-nkh2qLYd-jSWVQy4STJ7Dne_YEK3B5gPQGh-ETGCS0Tn5Q'
-      ),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     })
+
+    // Save subscription to server
+    await saveSubscriptionToServer(address, subscription, watchedClaims)
 
     console.log('[Push Notifications] Subscription successful')
     return true
   } catch (error) {
     console.error('[Push Notifications] Subscription failed:', error)
     return false
+  }
+}
+
+/**
+ * Save the push subscription to the server
+ */
+async function saveSubscriptionToServer(
+  address: string,
+  subscription: PushSubscription,
+  watchedClaims: string[]
+): Promise<void> {
+  try {
+    const subJson = subscription.toJSON()
+    const response = await fetch('/api/push-subscriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address,
+        subscription: {
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+        },
+        watchedClaims,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`)
+    }
+
+    console.log('[Push Notifications] Subscription saved to server')
+  } catch (error) {
+    console.error('[Push Notifications] Failed to save subscription to server:', error)
+  }
+}
+
+/**
+ * Update watched claims on server (when user watches/unwatches a claim)
+ */
+export async function updateWatchedClaimsOnServer(
+  address: string,
+  watchedClaims: string[]
+): Promise<void> {
+  try {
+    await fetch('/api/push-subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, watchedClaims }),
+    })
+  } catch (error) {
+    console.error('[Push Notifications] Failed to update watched claims on server:', error)
   }
 }
 
@@ -131,6 +186,13 @@ export async function unsubscribeFromPushNotifications(): Promise<boolean> {
   try {
     const subscription = await getPushSubscription()
     if (subscription) {
+      // Remove from server first
+      await fetch('/api/push-subscriptions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      })
+
       await subscription.unsubscribe()
       console.log('[Push Notifications] Unsubscribed successfully')
       return true
