@@ -23,6 +23,8 @@ import AtomsTable from "./atoms-table"
 export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
+  const [searchResults, setSearchResults] = useState<{ id: string; label: string; type: string }[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -30,6 +32,7 @@ export default function LandingPage() {
   const [alertsDialogOpen, setAlertsDialogOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
   const watchlistRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLDivElement>(null)
 
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer } = usePushNotifications()
@@ -56,6 +59,38 @@ export default function LandingPage() {
     if (watchlistOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [watchlistOpen])
+
+  // Close search when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false)
+      }
+    }
+    if (searchOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [searchOpen])
+
+  // Debounced search
+  useEffect(() => {
+    if (!searchValue.trim()) {
+      setSearchResults([])
+      return
+    }
+    setSearchLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-triples?q=${encodeURIComponent(searchValue.trim())}`)
+        const data = await res.json()
+        setSearchResults(data.triples || [])
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchValue])
 
   const handleUnwatch = (claimLabel: string) => {
     removeWatchedClaim(claimLabel)
@@ -85,24 +120,67 @@ export default function LandingPage() {
             </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <div className="relative">
+            <div className="relative" ref={searchRef}>
               <button
-                onClick={() => setSearchOpen(!searchOpen)}
+                onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setSearchValue('') }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
               >
                 <Search className="w-4 h-4" />
                 <span>Search Claims</span>
               </button>
               {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
-                  <input
-                    type="text"
-                    placeholder="Search claims..."
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                    autoFocus
-                  />
+                <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                    <input
+                      type="text"
+                      placeholder="Search claims, vaults or atoms…"
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {searchLoading && (
+                      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
+                        Searching…
+                      </div>
+                    )}
+                    {!searchLoading && searchValue.trim() && searchResults.length === 0 && (
+                      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
+                        No results for "{searchValue}"
+                      </div>
+                    )}
+                    {!searchLoading && !searchValue.trim() && (
+                      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
+                        Type to search across claims, vaults, and atoms
+                      </div>
+                    )}
+                    {searchResults.map((result) => (
+                      <button
+                        key={result.id}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
+                        onClick={() => {
+                          setActiveTab(result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults')
+                          setSearchOpen(false)
+                          setSearchValue('')
+                          setSearchResults([])
+                          setTimeout(() => {
+                            document.getElementById('claims')?.scrollIntoView({ behavior: 'smooth' })
+                          }, 100)
+                        }}
+                      >
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
+                          result.type === 'atom'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                            : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
+                        }`}>
+                          {result.type}
+                        </span>
+                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
