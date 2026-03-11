@@ -9,6 +9,7 @@ import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAccountInfo } from "@/components/user-account-info"
+import { PushNotificationBanner } from "@/components/push-notification-banner"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -26,6 +27,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 overflow-x-hidden transition-colors">
+      <PushNotificationBanner />
       {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 dark:backdrop-blur-md backdrop-blur-lg sticky top-0 z-50">
         <div className="w-full px-4 py-2 flex items-center justify-between">
