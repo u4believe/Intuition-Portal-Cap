@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { useAccount } from "wagmi"
+import { useDiscordAuth } from "@/hooks/useDiscordAuth"
 import { Search, Star, Pencil, X, Bell } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -31,7 +32,9 @@ export default function LandingPage() {
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer } = usePushNotifications()
   const { isConnected } = useAccount()
+  const { discordUser } = useDiscordAuth()
   const [mounted, setMounted] = useState(false)
+  const isSignedIn = isConnected || !!discordUser
 
   useEffect(() => {
     setMounted(true)
@@ -39,7 +42,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (mounted) setWatchedClaims(getWatchedClaims())
-  }, [mounted, isConnected, getWatchedClaims])
+  }, [mounted, isSignedIn, getWatchedClaims])
 
   // Close watchlist when clicking outside
   useEffect(() => {
@@ -186,7 +189,7 @@ export default function LandingPage() {
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              {mounted && isConnected ? (
+              {mounted && isSignedIn ? (
                 <UserAccountInfo />
               ) : (
                 <Link href="/auth/login">
@@ -201,7 +204,7 @@ export default function LandingPage() {
             </div>
           </nav>
           <div className="md:hidden flex gap-2 items-center">
-            {mounted && isConnected && (
+            {mounted && isSignedIn && (
               <button
                 onClick={() => setWatchlistOpen(!watchlistOpen)}
                 className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
@@ -216,7 +219,7 @@ export default function LandingPage() {
               </button>
             )}
             <ThemeToggle />
-            {mounted && isConnected ? (
+            {mounted && isSignedIn ? (
               <UserAccountInfo />
             ) : (
               <Link href="/auth/login">
@@ -441,7 +444,7 @@ export default function LandingPage() {
               size="lg"
               className="bg-primary hover:bg-primary/90 text-white"
             >
-              Sign In with Wallet
+              Get Started
             </Button>
           </Link>
         </div>
