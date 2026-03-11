@@ -71,6 +71,13 @@ export function usePushNotifications() {
         // Update user preferences to reflect push notifications are enabled
         updateNotificationSettings({ pushNotificationsEnabled: true })
         console.log('[v0] Push notifications enabled for', address)
+        
+        // Show success message
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('push-notifications-enabled', { 
+            detail: { address } 
+          }))
+        }
       }
       return success
     } finally {
