@@ -44,13 +44,6 @@ function LoginPageContent() {
     }
   }, [isAuthenticated, authLoading, router])
 
-  // Auto-sign when wallet connects
-  useEffect(() => {
-    if (isConnected && address && !isAuthenticated && !loading) {
-      handleWalletLogin()
-    }
-  }, [isConnected, address])
-
   async function handleWalletLogin() {
     if (!address) return
     setError('')
