@@ -132,29 +132,26 @@ async function saveSubscriptionToServer(
   subscription: PushSubscription,
   watchedClaims: string[]
 ): Promise<void> {
-  try {
-    const subJson = subscription.toJSON()
-    const response = await fetch('/api/push-subscriptions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        address,
-        subscription: {
-          endpoint: subJson.endpoint,
-          keys: subJson.keys,
-        },
-        watchedClaims,
-      }),
-    })
+  const subJson = subscription.toJSON()
+  const response = await fetch('/api/push-subscriptions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      address,
+      subscription: {
+        endpoint: subJson.endpoint,
+        keys: subJson.keys,
+      },
+      watchedClaims,
+    }),
+  })
 
-    if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}`)
-    }
-
-    console.log('[Push Notifications] Subscription saved to server')
-  } catch (error) {
-    console.error('[Push Notifications] Failed to save subscription to server:', error)
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to save subscription to server (${response.status}): ${text}`)
   }
+
+  console.log('[Push Notifications] Subscription saved to server')
 }
 
 /**
