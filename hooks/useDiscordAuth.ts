@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 
 export interface DiscordUser {
   id: string
@@ -26,21 +25,21 @@ export function getDiscordAvatarUrl(id: string, avatarHash: string | null, size 
 export function useDiscordAuth() {
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Check for fresh OAuth callback data in the URL
-    const encoded = searchParams.get('discord_auth')
+    // Read query param directly from window — avoids useSearchParams Suspense requirement
+    const params = new URLSearchParams(window.location.search)
+    const encoded = params.get('discord_auth')
+
     if (encoded) {
       try {
         const profile: DiscordUser = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')))
         localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
         setDiscordUser(profile)
-        // Clean the discord_auth param from the URL without navigation
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete('discord_auth')
-        window.history.replaceState(null, '', newUrl.toString())
+        // Clean the param from the URL without triggering navigation
+        const clean = new URL(window.location.href)
+        clean.searchParams.delete('discord_auth')
+        window.history.replaceState(null, '', clean.toString())
         setIsLoading(false)
         return
       } catch (e) {
@@ -48,7 +47,7 @@ export function useDiscordAuth() {
       }
     }
 
-    // Check stored session
+    // Fall back to stored session
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
@@ -64,7 +63,7 @@ export function useDiscordAuth() {
       localStorage.removeItem(STORAGE_KEY)
     }
     setIsLoading(false)
-  }, [searchParams])
+  }, [])
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
