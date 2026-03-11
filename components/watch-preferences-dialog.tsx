@@ -1,19 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Bell, CheckCircle2 } from 'lucide-react'
+
+interface WatchPreferences {
+  marketCapThreshold: { type: 'percentage' | 'number'; value: number }
+  positionThreshold: { type: 'percentage' | 'number'; value: number }
+  sharesThreshold: { type: 'percentage' | 'number'; value: number }
+  depositsAlertRange: { min: number; max: number }
+  redemptionsAlertRange: { min: number; max: number }
+  watchedAt?: string
+}
 
 interface WatchPreferencesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   claimLabel: string
   onConfirm: (claimLabel: string) => void
+  mode?: 'add' | 'edit'
+}
+
+function loadPreferences(claimLabel: string): WatchPreferences | null {
+  try {
+    const raw = localStorage.getItem(`portal_cap_watch_${claimLabel}`)
+    if (!raw) return null
+    return JSON.parse(raw) as WatchPreferences
+  } catch {
+    return null
+  }
 }
 
 export default function WatchPreferencesDialog({
@@ -21,9 +40,39 @@ export default function WatchPreferencesDialog({
   onOpenChange,
   claimLabel,
   onConfirm,
+  mode = 'add',
 }: WatchPreferencesDialogProps) {
   const { isSupported, isSubscribed, subscribe: enablePushNotifications, isLoading: pushLoading } = usePushNotifications()
   const [pushPermissionRequested, setPushPermissionRequested] = useState(false)
+
+  const [marketCapThresholdType, setMarketCapThresholdType] = useState<'percentage' | 'number'>('percentage')
+  const [marketCapThresholdValue, setMarketCapThresholdValue] = useState<number>(5)
+  const [positionThresholdType, setPositionThresholdType] = useState<'percentage' | 'number'>('number')
+  const [positionThresholdValue, setPositionThresholdValue] = useState<number>(10)
+  const [sharesThresholdType, setSharesThresholdType] = useState<'percentage' | 'number'>('percentage')
+  const [sharesThresholdValue, setSharesThresholdValue] = useState<number>(5)
+  const [depositsMinRange, setDepositsMinRange] = useState<number>(0)
+  const [depositsMaxRange, setDepositsMaxRange] = useState<number>(10000)
+  const [redemptionsMinRange, setRedemptionsMinRange] = useState<number>(0)
+  const [redemptionsMaxRange, setRedemptionsMaxRange] = useState<number>(10000)
+
+  // Load existing preferences when editing or dialog opens
+  useEffect(() => {
+    if (!open || !claimLabel) return
+    const existing = loadPreferences(claimLabel)
+    if (existing) {
+      setMarketCapThresholdType(existing.marketCapThreshold?.type || 'percentage')
+      setMarketCapThresholdValue(existing.marketCapThreshold?.value ?? 5)
+      setPositionThresholdType(existing.positionThreshold?.type || 'number')
+      setPositionThresholdValue(existing.positionThreshold?.value ?? 10)
+      setSharesThresholdType(existing.sharesThreshold?.type || 'percentage')
+      setSharesThresholdValue(existing.sharesThreshold?.value ?? 5)
+      setDepositsMinRange(existing.depositsAlertRange?.min ?? 0)
+      setDepositsMaxRange(existing.depositsAlertRange?.max ?? 10000)
+      setRedemptionsMinRange(existing.redemptionsAlertRange?.min ?? 0)
+      setRedemptionsMaxRange(existing.redemptionsAlertRange?.max ?? 10000)
+    }
+  }, [open, claimLabel])
 
   const handleEnablePushNotifications = async () => {
     const success = await enablePushNotifications()
@@ -33,93 +82,71 @@ export default function WatchPreferencesDialog({
     }
   }
 
-  // Market Cap Threshold
-  const [marketCapThresholdType, setMarketCapThresholdType] = useState<'percentage' | 'number'>('percentage')
-  const [marketCapThresholdValue, setMarketCapThresholdValue] = useState<number>(5)
-
-  // Position Count Threshold
-  const [positionThresholdType, setPositionThresholdType] = useState<'percentage' | 'number'>('number')
-  const [positionThresholdValue, setPositionThresholdValue] = useState<number>(10)
-
-  // Total Shares Change Threshold
-  const [sharesThresholdType, setSharesThresholdType] = useState<'percentage' | 'number'>('percentage')
-  const [sharesThresholdValue, setSharesThresholdValue] = useState<number>(5)
-
-  // Deposits Alert Range
-  const [depositsMinRange, setDepositsMinRange] = useState<number>(0)
-  const [depositsMaxRange, setDepositsMaxRange] = useState<number>(10000)
-
-  // Redemptions Alert Range
-  const [redemptionsMinRange, setRedemptionsMinRange] = useState<number>(0)
-  const [redemptionsMaxRange, setRedemptionsMaxRange] = useState<number>(10000)
-
   const handleConfirm = () => {
-    // Store thresholds in localStorage for this claim
     const preferences = JSON.parse(localStorage.getItem(`portal_cap_watch_${claimLabel}`) || '{}')
     localStorage.setItem(
       `portal_cap_watch_${claimLabel}`,
       JSON.stringify({
         ...preferences,
-        marketCapThreshold: {
-          type: marketCapThresholdType,
-          value: marketCapThresholdValue,
-        },
-        positionThreshold: {
-          type: positionThresholdType,
-          value: positionThresholdValue,
-        },
-        sharesThreshold: {
-          type: sharesThresholdType,
-          value: sharesThresholdValue,
-        },
-        depositsAlertRange: {
-          min: depositsMinRange,
-          max: depositsMaxRange,
-        },
-        redemptionsAlertRange: {
-          min: redemptionsMinRange,
-          max: redemptionsMaxRange,
-        },
-        watchedAt: new Date().toISOString(),
+        marketCapThreshold: { type: marketCapThresholdType, value: marketCapThresholdValue },
+        positionThreshold: { type: positionThresholdType, value: positionThresholdValue },
+        sharesThreshold: { type: sharesThresholdType, value: sharesThresholdValue },
+        depositsAlertRange: { min: depositsMinRange, max: depositsMaxRange },
+        redemptionsAlertRange: { min: redemptionsMinRange, max: redemptionsMaxRange },
+        watchedAt: preferences.watchedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     )
     onConfirm(claimLabel)
   }
 
+  const ThresholdToggle = ({
+    type,
+    onChange,
+  }: {
+    type: 'percentage' | 'number'
+    onChange: (t: 'percentage' | 'number') => void
+  }) => (
+    <div className="flex gap-1">
+      <button
+        onClick={() => onChange('percentage')}
+        className={`px-3 py-1 text-xs rounded transition-colors ${
+          type === 'percentage'
+            ? 'bg-cyan-600 text-white'
+            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+        }`}
+      >
+        %
+      </button>
+      <button
+        onClick={() => onChange('number')}
+        className={`px-3 py-1 text-xs rounded transition-colors ${
+          type === 'number'
+            ? 'bg-cyan-600 text-white'
+            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+        }`}
+      >
+        #
+      </button>
+    </div>
+  )
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Watch Preferences - {claimLabel}</DialogTitle>
+          <DialogTitle className="text-white">
+            {mode === 'edit' ? 'Edit Preferences — ' : 'Watch — '}
+            <span className="text-cyan-400">{claimLabel}</span>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Market Cap Change Alert Threshold */}
-          <div className="space-y-3">
+        <div className="space-y-6 py-2">
+          {/* Market Cap Threshold */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">Market Cap Change Alert Threshold</Label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setMarketCapThresholdType('percentage')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    marketCapThresholdType === 'percentage'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  %
-                </button>
-                <button
-                  onClick={() => setMarketCapThresholdType('number')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    marketCapThresholdType === 'number'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  #
-                </button>
-              </div>
+              <Label className="text-slate-200">Market Cap Change</Label>
+              <ThresholdToggle type={marketCapThresholdType} onChange={setMarketCapThresholdType} />
             </div>
             <div className="flex items-center gap-3">
               <Input
@@ -134,38 +161,17 @@ export default function WatchPreferencesDialog({
                 {marketCapThresholdType === 'percentage' ? '% change' : 'TRUST change'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Get alerts when market cap changes by more than {marketCapThresholdValue}
+            <p className="text-xs text-slate-500">
+              Alert when market cap changes by more than {marketCapThresholdValue}
               {marketCapThresholdType === 'percentage' ? '%' : ' TRUST'}
             </p>
           </div>
 
-          {/* Position Count Change Alert Threshold */}
-          <div className="space-y-3">
+          {/* Position Count Threshold */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">Position Count Change Alert Threshold</Label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPositionThresholdType('percentage')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    positionThresholdType === 'percentage'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  %
-                </button>
-                <button
-                  onClick={() => setPositionThresholdType('number')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    positionThresholdType === 'number'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  #
-                </button>
-              </div>
+              <Label className="text-slate-200">Position Count Change</Label>
+              <ThresholdToggle type={positionThresholdType} onChange={setPositionThresholdType} />
             </div>
             <div className="flex items-center gap-3">
               <Input
@@ -180,38 +186,17 @@ export default function WatchPreferencesDialog({
                 {positionThresholdType === 'percentage' ? '% change' : 'new positions'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Get alerts when position count changes by more than {positionThresholdValue}
+            <p className="text-xs text-slate-500">
+              Alert when position count changes by more than {positionThresholdValue}
               {positionThresholdType === 'percentage' ? '%' : ' positions'}
             </p>
           </div>
 
-          {/* Total Shares Change Alert Threshold */}
-          <div className="space-y-3">
+          {/* Total Shares Threshold */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">Total Shares Change Alert Threshold</Label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSharesThresholdType('percentage')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    sharesThresholdType === 'percentage'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  %
-                </button>
-                <button
-                  onClick={() => setSharesThresholdType('number')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    sharesThresholdType === 'number'
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  #
-                </button>
-              </div>
+              <Label className="text-slate-200">Total Shares Change</Label>
+              <ThresholdToggle type={sharesThresholdType} onChange={setSharesThresholdType} />
             </div>
             <div className="flex items-center gap-3">
               <Input
@@ -226,105 +211,91 @@ export default function WatchPreferencesDialog({
                 {sharesThresholdType === 'percentage' ? '% change' : 'shares change'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Get alerts when total shares change by more than {sharesThresholdValue}
+            <p className="text-xs text-slate-500">
+              Alert when shares change by more than {sharesThresholdValue}
               {sharesThresholdType === 'percentage' ? '%' : ' shares'}
             </p>
           </div>
 
-          {/* Deposits Initiated Alert */}
-          <div className="space-y-3 border-t border-slate-700 pt-4">
-            <Label className="text-slate-200">Deposits Initiated Alert Range</Label>
-            <p className="text-xs text-slate-400">
-              Get alerted for deposits between {depositsMinRange.toLocaleString()} and {depositsMaxRange.toLocaleString()} TRUST
-            </p>
-            <div className="space-y-2">
+          {/* Deposits Range */}
+          <div className="space-y-2 border-t border-slate-700 pt-4">
+            <Label className="text-slate-200">Deposits Alert Range (TRUST)</Label>
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 w-12">Min:</span>
+                <span className="text-xs text-slate-400 w-8 flex-shrink-0">Min</span>
                 <Input
                   type="number"
                   min="0"
                   step="100"
                   value={depositsMinRange}
                   onChange={(e) => setDepositsMinRange(Math.min(parseInt(e.target.value) || 0, depositsMaxRange))}
-                  className="bg-slate-800 border-slate-700 text-white flex-1"
-                  placeholder="0"
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
-                <span className="text-xs text-slate-400">TRUST</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 w-12">Max:</span>
+                <span className="text-xs text-slate-400 w-8 flex-shrink-0">Max</span>
                 <Input
                   type="number"
                   min={depositsMinRange}
                   step="100"
                   value={depositsMaxRange}
                   onChange={(e) => setDepositsMaxRange(Math.max(parseInt(e.target.value) || 0, depositsMinRange))}
-                  className="bg-slate-800 border-slate-700 text-white flex-1"
-                  placeholder="10000"
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
-                <span className="text-xs text-slate-400">TRUST</span>
               </div>
             </div>
           </div>
 
-          {/* Redemptions Initiated Alert */}
-          <div className="space-y-3 border-t border-slate-700 pt-4">
-            <Label className="text-slate-200">Redemptions Initiated Alert Range</Label>
-            <p className="text-xs text-slate-400">
-              Get alerted for redemptions between {redemptionsMinRange.toLocaleString()} and {redemptionsMaxRange.toLocaleString()} TRUST
-            </p>
-            <div className="space-y-2">
+          {/* Redemptions Range */}
+          <div className="space-y-2">
+            <Label className="text-slate-200">Redemptions Alert Range (TRUST)</Label>
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 w-12">Min:</span>
+                <span className="text-xs text-slate-400 w-8 flex-shrink-0">Min</span>
                 <Input
                   type="number"
                   min="0"
                   step="100"
                   value={redemptionsMinRange}
                   onChange={(e) => setRedemptionsMinRange(Math.min(parseInt(e.target.value) || 0, redemptionsMaxRange))}
-                  className="bg-slate-800 border-slate-700 text-white flex-1"
-                  placeholder="0"
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
-                <span className="text-xs text-slate-400">TRUST</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 w-12">Max:</span>
+                <span className="text-xs text-slate-400 w-8 flex-shrink-0">Max</span>
                 <Input
                   type="number"
                   min={redemptionsMinRange}
                   step="100"
                   value={redemptionsMaxRange}
                   onChange={(e) => setRedemptionsMaxRange(Math.max(parseInt(e.target.value) || 0, redemptionsMinRange))}
-                  className="bg-slate-800 border-slate-700 text-white flex-1"
-                  placeholder="10000"
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
-                <span className="text-xs text-slate-400">TRUST</span>
               </div>
             </div>
           </div>
 
-          {/* Push Notifications Section */}
+          {/* Push Notifications */}
           {isSupported && (
             <div className="bg-cyan-900/30 rounded-lg p-4 border border-cyan-700/50">
               <div className="flex items-start gap-3">
                 <Bell className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-semibold text-cyan-300 mb-2">Get Push Notifications</p>
-                  <p className="text-sm text-cyan-200/90 mb-3">
-                    Enable push notifications to receive instant alerts on your device when thresholds are exceeded for {claimLabel}.
+                  <p className="font-semibold text-cyan-300 mb-1">Push Notifications</p>
+                  <p className="text-sm text-cyan-200/80 mb-3">
+                    Receive instant device alerts when thresholds are exceeded for this claim.
                   </p>
-                  {!isSubscribed && !pushPermissionRequested && (
+                  {!isSubscribed && !pushPermissionRequested ? (
                     <Button
                       onClick={handleEnablePushNotifications}
                       disabled={pushLoading}
-                      className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 text-sm"
+                      size="sm"
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
                     >
                       <Bell className="w-4 h-4" />
-                      {pushLoading ? 'Enabling...' : 'Enable Push Notifications'}
+                      {pushLoading ? 'Enabling…' : 'Enable Push Notifications'}
                     </Button>
-                  )}
-                  {(isSubscribed || pushPermissionRequested) && (
+                  ) : (
                     <div className="flex items-center gap-2 text-cyan-300">
                       <CheckCircle2 className="w-4 h-4" />
                       <span className="text-sm">Push notifications enabled</span>
@@ -334,15 +305,9 @@ export default function WatchPreferencesDialog({
               </div>
             </div>
           )}
-
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-            <p className="text-sm text-slate-300">
-              <span className="font-semibold">Note:</span> You'll receive signal alerts about {claimLabel} when these thresholds are exceeded.
-            </p>
-          </div>
         </div>
 
-        <DialogFooter className="flex gap-3">
+        <DialogFooter className="flex gap-3 pt-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -354,7 +319,7 @@ export default function WatchPreferencesDialog({
             onClick={handleConfirm}
             className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700"
           >
-            Save Preferences
+            {mode === 'edit' ? 'Save Changes' : 'Save & Watch'}
           </Button>
         </DialogFooter>
       </DialogContent>

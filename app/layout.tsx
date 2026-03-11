@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   title: 'Portal Cap - Claims Intelligence Platform',
   description: 'Real-time monitoring and analytics for Intuition Portal claims and market data',
   generator: 'v0.app',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Portal Cap',
+  },
   icons: {
     icon: [
       {
@@ -27,7 +33,7 @@ export const metadata: Metadata = {
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/logo.jpg',
   },
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Star } from 'lucide-react'
 import Link from 'next/link'
 import { useAllClaims } from '@/hooks/useIntuitionData'
@@ -22,8 +22,12 @@ export default function ClaimsTable() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
+  const [watchedClaims, setWatchedClaims] = useState<string[]>([])
 
-  const watchedClaims = getWatchedClaims()
+  useEffect(() => {
+    setWatchedClaims(getWatchedClaims())
+  }, [getWatchedClaims])
+
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
 
   const handleSort = (field: SortField) => {
@@ -38,7 +42,7 @@ export default function ClaimsTable() {
   const handleWatchClick = (claimLabel: string) => {
     if (isWatched(claimLabel)) {
       removeWatchedClaim(claimLabel)
-      // Sync updated list to server (for push notifications)
+      setWatchedClaims(prev => prev.filter(c => c !== claimLabel))
       syncWatchedClaimsToServer()
     } else {
       setSelectedClaimForWatch(claimLabel)
@@ -324,9 +328,9 @@ export default function ClaimsTable() {
         claimLabel={selectedClaimForWatch || ''}
         onConfirm={(claimLabel) => {
           addWatchedClaim(claimLabel)
+          setWatchedClaims(prev => prev.includes(claimLabel) ? prev : [...prev, claimLabel])
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
-          // Sync updated watched claims list to server for push notifications
           setTimeout(() => syncWatchedClaimsToServer(), 200)
         }}
       />
