@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Star } from 'lucide-
 import Link from 'next/link'
 import { useAllClaims } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
@@ -16,6 +17,7 @@ export default function ClaimsTable() {
   const { data: result = { claims: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAllClaims(currentPage)
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
+  const { syncWatchedClaimsToServer } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
@@ -36,6 +38,8 @@ export default function ClaimsTable() {
   const handleWatchClick = (claimLabel: string) => {
     if (isWatched(claimLabel)) {
       removeWatchedClaim(claimLabel)
+      // Sync updated list to server (for push notifications)
+      syncWatchedClaimsToServer()
     } else {
       setSelectedClaimForWatch(claimLabel)
       setWatchDialogOpen(true)
@@ -322,6 +326,8 @@ export default function ClaimsTable() {
           addWatchedClaim(claimLabel)
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
+          // Sync updated watched claims list to server for push notifications
+          setTimeout(() => syncWatchedClaimsToServer(), 200)
         }}
       />
     </>
