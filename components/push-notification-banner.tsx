@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { useAccount } from 'wagmi'
+import { useCurrentUserId } from '@/hooks/useCurrentUserId'
 import { X, Bell, Share, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -24,14 +24,14 @@ function useIOSDetection() {
 
 export function PushNotificationBanner() {
   const { isSupported, permission, subscribe, isLoading } = usePushNotifications()
-  const { isConnected } = useAccount()
+  const userId = useCurrentUserId()
   const { isIOS, isStandalone } = useIOSDetection()
   const [dismissed, setDismissed] = useState(false)
   const [step, setStep] = useState<'prompt' | 'ios-instructions'>('prompt')
 
   const shouldShow =
     !dismissed &&
-    isConnected &&
+    !!userId &&
     permission !== 'granted' &&
     // On iOS: show if not yet in standalone (PWA) mode
     // On other platforms: show if push is supported

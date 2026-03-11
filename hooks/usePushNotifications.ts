@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useCurrentUserId } from './useCurrentUserId'
 import {
   isPushNotificationSupported,
   getNotificationPermission,
@@ -16,14 +16,13 @@ import {
 import { useUserPreferences } from './useUserPreferences'
 
 export function usePushNotifications() {
-  const { address } = useAccount()
+  const userId = useCurrentUserId()
   const { updateNotificationSettings, getWatchedClaims } = useUserPreferences()
   const [isSupported, setIsSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('denied')
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Check support on mount
   useEffect(() => {
     setIsSupported(isPushNotificationSupported())
     if (isPushNotificationSupported()) {
@@ -32,7 +31,6 @@ export function usePushNotifications() {
     }
   }, [])
 
-  // Check subscription status
   useEffect(() => {
     if (isSupported && permission === 'granted') {
       getPushSubscription().then(sub => {
@@ -43,7 +41,6 @@ export function usePushNotifications() {
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false
-
     setIsLoading(true)
     try {
       const granted = await requestNotificationPermission()
@@ -55,31 +52,25 @@ export function usePushNotifications() {
   }, [isSupported])
 
   const subscribe = useCallback(async () => {
-    if (!isSupported || !address) return false
+    if (!isSupported || !userId) return false
 
     setIsLoading(true)
     try {
-      // Request permission if needed
       if (permission !== 'granted') {
         const granted = await requestPermission()
         if (!granted) return false
       }
 
-      // Get current watched claims to sync with server
       const watchedClaims = getWatchedClaims()
-
-      // Subscribe to push notifications and save to server
-      const success = await subscribeToPushNotifications(address, watchedClaims)
+      const success = await subscribeToPushNotifications(userId, watchedClaims)
       if (success) {
         setIsSubscribed(true)
-        // Update user preferences to reflect push notifications are enabled
         updateNotificationSettings({ pushNotificationsEnabled: true })
-        console.log('[v0] Push notifications enabled for', address, 'watching:', watchedClaims)
+        console.log('[Push] Notifications enabled for', userId, 'watching:', watchedClaims)
 
-        // Dispatch event
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('push-notifications-enabled', {
-            detail: { address }
+            detail: { userId }
           }))
         }
       }
@@ -87,19 +78,17 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false)
     }
-  }, [isSupported, permission, address, requestPermission, updateNotificationSettings, getWatchedClaims])
+  }, [isSupported, permission, userId, requestPermission, updateNotificationSettings, getWatchedClaims])
 
   const unsubscribe = useCallback(async () => {
     if (!isSupported) return false
-
     setIsLoading(true)
     try {
       const success = await unsubscribeFromPushNotifications()
       if (success) {
         setIsSubscribed(false)
-        // Update user preferences
         updateNotificationSettings({ pushNotificationsEnabled: false })
-        console.log('[v0] Push notifications disabled')
+        console.log('[Push] Notifications disabled')
       }
       return success
     } finally {
@@ -107,16 +96,14 @@ export function usePushNotifications() {
     }
   }, [isSupported, updateNotificationSettings])
 
-  // Sync watched claims to server whenever they change
   const syncWatchedClaimsToServer = useCallback(async () => {
-    if (!address || !isSubscribed) return
+    if (!userId || !isSubscribed) return
     const watchedClaims = getWatchedClaims()
-    await updateWatchedClaimsOnServer(address, watchedClaims)
-  }, [address, isSubscribed, getWatchedClaims])
+    await updateWatchedClaimsOnServer(userId, watchedClaims)
+  }, [userId, isSubscribed, getWatchedClaims])
 
   const sendTest = useCallback(async () => {
     if (!isSupported || permission !== 'granted') return false
-
     try {
       await sendTestNotification('Portal Cap', {
         body: 'Push notifications are working! You will receive alerts for your watched claims.',
@@ -125,7 +112,7 @@ export function usePushNotifications() {
       })
       return true
     } catch (error) {
-      console.error('[v0] Failed to send test notification:', error)
+      console.error('[Push] Failed to send test notification:', error)
       return false
     }
   }, [isSupported, permission])
