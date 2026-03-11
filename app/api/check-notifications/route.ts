@@ -8,6 +8,7 @@ import {
 } from '@/lib/web-push-server'
 import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
 
+// ─── Claim snapshot query (for market-cap / position alerts) ───────────────
 const CLAIM_DATA_QUERY = `
   query GetClaimsForNotification($labels: [String!]) {
     vaults(
@@ -32,6 +33,39 @@ const CLAIM_DATA_QUERY = `
   }
 `
 
+// ─── Live Events queries (for deposit / redemption range alerts) ────────────
+const RECENT_DEPOSITS_QUERY = `
+  query GetRecentDeposits($since: timestamptz) {
+    deposits(
+      where: { created_at: { _gte: $since } }
+      order_by: { created_at: desc }
+    ) {
+      id
+      created_at
+      assets_after_fees
+      vault {
+        term { atom { label } }
+      }
+    }
+  }
+`
+
+const RECENT_REDEMPTIONS_QUERY = `
+  query GetRecentRedemptions($since: timestamptz) {
+    redemptions(
+      where: { created_at: { _gte: $since } }
+      order_by: { created_at: desc }
+    ) {
+      id
+      created_at
+      assets
+      vault {
+        term { atom { label } }
+      }
+    }
+  }
+`
+
 interface ClaimData {
   market_cap: string
   position_count: number
@@ -43,53 +77,81 @@ interface ClaimData {
   }
 }
 
-function convertToNumber(val: string | number | null | undefined): number {
-  if (!val) return 0
-  try {
-    const num = typeof val === 'string' ? parseFloat(val) : val
-    // Handle wei values (very large numbers) by dividing
-    if (num > 1e15) return num / 1e18
-    return num
-  } catch {
-    return 0
-  }
+interface LiveEvent {
+  id: string
+  type: 'deposit' | 'redemption'
+  atomLabel: string
+  assets: number
 }
 
-function calculatePercentChange(oldVal: number, newVal: number): number {
+function toNumber(val: string | number | null | undefined): number {
+  if (!val) return 0
+  const n = typeof val === 'string' ? parseFloat(val) : val
+  if (n > 1e15) return n / 1e18
+  return n
+}
+
+function pctChange(oldVal: number, newVal: number): number {
   if (oldVal === 0) return newVal > 0 ? 100 : 0
   return Math.abs((newVal - oldVal) / oldVal) * 100
 }
 
-function getUserPreferencesForClaim(claim_label: string, address: string): {
-  marketCapThreshold: number
-  positionThreshold: number
-  sharesThreshold: number
-} {
-  // Default thresholds (since preferences are client-side, server uses sensible defaults)
-  // In production, store preferences in DB too
-  return {
-    marketCapThreshold: 5,   // 5% market cap change
-    positionThreshold: 10,   // 10 new positions
-    sharesThreshold: 5,      // 5% shares change
+function inRange(value: number, min: number, max: number): boolean {
+  return value >= min && value <= max
+}
+
+// ─── Fetch recent Live Events ───────────────────────────────────────────────
+async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
+  const events: LiveEvent[] = []
+  const sinceISO = since.toISOString()
+
+  try {
+    const depositsData = await queryIntuitionGraphQL(RECENT_DEPOSITS_QUERY, { since: sinceISO })
+    ;(depositsData?.deposits || []).forEach((d: any) => {
+      const assets = d.assets_after_fees ? parseFloat(d.assets_after_fees) / 1e18 : 0
+      events.push({
+        id: d.id,
+        type: 'deposit',
+        atomLabel: d.vault?.term?.atom?.label || 'Unknown',
+        assets,
+      })
+    })
+  } catch (e) {
+    console.warn('[Check Notifications] Deposit fetch failed:', e)
   }
+
+  try {
+    const redemptionsData = await queryIntuitionGraphQL(RECENT_REDEMPTIONS_QUERY, { since: sinceISO })
+    ;(redemptionsData?.redemptions || []).forEach((r: any) => {
+      const assets = r.assets ? parseFloat(r.assets) / 1e18 : 0
+      events.push({
+        id: r.id,
+        type: 'redemption',
+        atomLabel: r.vault?.term?.atom?.label || 'Unknown',
+        assets,
+      })
+    })
+  } catch (e) {
+    console.warn('[Check Notifications] Redemption fetch failed:', e)
+  }
+
+  return events
 }
 
 export async function GET(req: NextRequest) {
   try {
-    // Simple security: only allow calls with a secret or from server
     const authHeader = req.headers.get('x-cron-secret')
     const cronSecret = process.env.CRON_SECRET
     if (cronSecret && authHeader !== cronSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all push subscriptions
     const subscriptions = await getAllSubscriptions()
     if (subscriptions.length === 0) {
       return NextResponse.json({ message: 'No subscriptions to process', notified: 0 })
     }
 
-    // Collect all unique claim labels being watched
+    // ── 1. Claim snapshot alerting ──────────────────────────────────────────
     const allWatchedLabels = new Set<string>()
     for (const sub of subscriptions) {
       for (const label of sub.watched_claims || []) {
@@ -97,91 +159,90 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (allWatchedLabels.size === 0) {
-      return NextResponse.json({ message: 'No claims being watched', notified: 0 })
+    let currentClaimsMap = new Map<string, ClaimSnapshot>()
+    if (allWatchedLabels.size > 0) {
+      try {
+        const result = await queryIntuitionGraphQL(CLAIM_DATA_QUERY, {
+          labels: Array.from(allWatchedLabels),
+        })
+        for (const vault of (result?.vaults || []) as ClaimData[]) {
+          const label = vault.term?.atom?.label
+          if (!label) continue
+          currentClaimsMap.set(label, {
+            claim_label: label,
+            market_cap: toNumber(vault.market_cap),
+            position_count: vault.position_count || 0,
+            total_shares: toNumber(vault.total_shares),
+            total_assets: toNumber(vault.total_assets),
+            current_share_price: toNumber(vault.current_share_price),
+          })
+        }
+      } catch (e) {
+        console.error('[Check Notifications] Claim GraphQL failed:', e)
+      }
     }
 
-    // Fetch current claim data from Intuition GraphQL
-    const labelsArray = Array.from(allWatchedLabels)
-    let currentClaimsData: ClaimData[] = []
-    try {
-      const graphqlResult = await queryIntuitionGraphQL(CLAIM_DATA_QUERY, {
-        labels: labelsArray,
-      })
-      currentClaimsData = graphqlResult?.vaults || []
-    } catch (error) {
-      console.error('[Check Notifications] GraphQL query failed:', error)
-      return NextResponse.json({ error: 'Failed to fetch claim data' }, { status: 500 })
-    }
-
-    // Build a map of current claim data
-    const currentClaimsMap = new Map<string, ClaimSnapshot>()
-    for (const vault of currentClaimsData) {
-      const label = vault.term?.atom?.label
-      if (!label) continue
-      currentClaimsMap.set(label, {
-        claim_label: label,
-        market_cap: convertToNumber(vault.market_cap),
-        position_count: vault.position_count || 0,
-        total_shares: convertToNumber(vault.total_shares),
-        total_assets: convertToNumber(vault.total_assets),
-        current_share_price: convertToNumber(vault.current_share_price),
-      })
-    }
-
-    // Get stored snapshots for comparison
     const snapshots = await getClaimSnapshots()
     const snapshotsMap = new Map<string, ClaimSnapshot>()
-    for (const snap of snapshots) {
-      snapshotsMap.set(snap.claim_label, snap)
-    }
+    for (const snap of snapshots) snapshotsMap.set(snap.claim_label, snap)
 
-    // Check each subscription for threshold violations
-    let totalNotified = 0
+    // ── 2. Live Events alerting (deposits / redemptions in range) ───────────
+    // Fetch events from the last 5 minutes (poll runs every 2 min, 5 min = overlap buffer)
+    const since = new Date(Date.now() - 5 * 60 * 1000)
+    const liveEvents = await fetchRecentLiveEvents(since)
+
+    // ── 3. Build notification payloads for each subscription ────────────────
     const notificationsToSend: Array<{
       subscription: typeof subscriptions[0]
       payload: { title: string; body: string; tag: string; url: string }
     }> = []
 
     for (const subscription of subscriptions) {
-      const watchedClaims = subscription.watched_claims || []
       const alerts: string[] = []
 
-      for (const claimLabel of watchedClaims) {
+      // Claim snapshot alerts
+      for (const claimLabel of subscription.watched_claims || []) {
         const current = currentClaimsMap.get(claimLabel)
         const previous = snapshotsMap.get(claimLabel)
+        if (!current || !previous) continue
 
-        if (!current) continue
-
-        // If no previous snapshot, we'll create one without alerting
-        if (!previous) continue
-
-        const prefs = getUserPreferencesForClaim(claimLabel, subscription.address)
-
-        // Check market cap threshold
-        const marketCapChange = calculatePercentChange(previous.market_cap, current.market_cap)
-        if (marketCapChange >= prefs.marketCapThreshold) {
-          const direction = current.market_cap > previous.market_cap ? 'up' : 'down'
-          alerts.push(
-            `${claimLabel}: Market cap ${direction} ${marketCapChange.toFixed(1)}%`
-          )
+        const marketCapChange = pctChange(previous.market_cap, current.market_cap)
+        if (marketCapChange >= 5) {
+          const dir = current.market_cap > previous.market_cap ? '↑' : '↓'
+          alerts.push(`${claimLabel}: market cap ${dir}${marketCapChange.toFixed(1)}%`)
         }
 
-        // Check position count threshold
         const positionChange = Math.abs(current.position_count - previous.position_count)
-        if (positionChange >= prefs.positionThreshold) {
-          alerts.push(
-            `${claimLabel}: ${positionChange} new position${positionChange > 1 ? 's' : ''}`
-          )
+        if (positionChange >= 10) {
+          alerts.push(`${claimLabel}: ${positionChange} new position${positionChange > 1 ? 's' : ''}`)
         }
 
-        // Check total shares threshold
-        const sharesChange = calculatePercentChange(previous.total_shares, current.total_shares)
-        if (sharesChange >= prefs.sharesThreshold) {
-          const direction = current.total_shares > previous.total_shares ? 'up' : 'down'
-          alerts.push(
-            `${claimLabel}: Shares ${direction} ${sharesChange.toFixed(1)}%`
-          )
+        const sharesChange = pctChange(previous.total_shares, current.total_shares)
+        if (sharesChange >= 5) {
+          const dir = current.total_shares > previous.total_shares ? '↑' : '↓'
+          alerts.push(`${claimLabel}: shares ${dir}${sharesChange.toFixed(1)}%`)
+        }
+      }
+
+      // Live Events range alerts
+      const ranges = subscription.alert_ranges || {}
+      const depositCfg = ranges.deposits
+      const redemptionCfg = ranges.redemptions
+
+      for (const event of liveEvents) {
+        if (event.type === 'deposit' && depositCfg?.enabled) {
+          if (inRange(event.assets, depositCfg.min, depositCfg.max)) {
+            alerts.push(
+              `Deposit: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`
+            )
+          }
+        }
+        if (event.type === 'redemption' && redemptionCfg?.enabled) {
+          if (inRange(event.assets, redemptionCfg.min, redemptionCfg.max)) {
+            alerts.push(
+              `Redemption: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`
+            )
+          }
         }
       }
 
@@ -191,14 +252,14 @@ export async function GET(req: NextRequest) {
           payload: {
             title: `Portal Cap Alert${alerts.length > 1 ? 's' : ''}`,
             body: alerts.slice(0, 3).join(' | '),
-            tag: 'claim-update',
+            tag: 'portal-cap-alert',
             url: '/',
           },
         })
       }
     }
 
-    // Send all notifications
+    let totalNotified = 0
     await Promise.allSettled(
       notificationsToSend.map(async ({ subscription, payload }) => {
         const sent = await sendPushNotification(subscription, payload)
@@ -206,19 +267,22 @@ export async function GET(req: NextRequest) {
       })
     )
 
-    // Update snapshots with current data
-    await Promise.allSettled(
-      Array.from(currentClaimsMap.values()).map(snapshot => upsertClaimSnapshot(snapshot))
-    )
+    // Update claim snapshots
+    if (currentClaimsMap.size > 0) {
+      await Promise.allSettled(
+        Array.from(currentClaimsMap.values()).map(snap => upsertClaimSnapshot(snap))
+      )
+    }
 
     console.log(
-      `[Check Notifications] Processed ${subscriptions.length} subscriptions, sent ${totalNotified} notifications`
+      `[Check Notifications] ${subscriptions.length} subs, ${liveEvents.length} live events, ${totalNotified} sent`
     )
 
     return NextResponse.json({
       success: true,
       subscriptions: subscriptions.length,
       claimsWatched: allWatchedLabels.size,
+      liveEventsChecked: liveEvents.length,
       notificationsSent: totalNotified,
     })
   } catch (error) {
@@ -227,5 +291,4 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Also support POST for webhook-style calls
 export const POST = GET
