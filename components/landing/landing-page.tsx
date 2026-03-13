@@ -111,8 +111,8 @@ export default function LandingPage() {
       <PushNotificationBanner />
       {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 dark:backdrop-blur-md backdrop-blur-lg sticky top-0 z-50">
-        <div className="w-full px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-[5.625rem]">
+        <div className="w-full px-4 py-2 flex items-center justify-between relative">
+          <div className="flex items-center flex-shrink-0">
             <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
               <img 
                 src="/logo.jpg" 

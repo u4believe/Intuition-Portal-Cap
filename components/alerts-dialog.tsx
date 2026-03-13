@@ -200,14 +200,17 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
   const renderPushStatus = () => {
     if (isFullyActive) {
       return (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="flex items-center gap-1 text-green-400">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Browser
-          </span>
-          <span className="flex items-center gap-1 text-green-400">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Server
-          </span>
-          <span className="text-slate-400">— Alerts active</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="flex items-center gap-1 text-green-400">
+              <CheckCircle2 className="w-3.5 h-3.5" /> This device
+            </span>
+            <span className="flex items-center gap-1 text-green-400">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Server
+            </span>
+            <span className="text-slate-400">— Active</span>
+          </div>
+          <p className="text-xs text-slate-500">Alerts go to this browser only. Enable on each device separately.</p>
         </div>
       )
     }
