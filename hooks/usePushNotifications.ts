@@ -117,10 +117,10 @@ export function usePushNotifications() {
   }, [isSupported, updateNotificationSettings])
 
   const syncWatchedClaimsToServer = useCallback(async () => {
-    if (!userId || !isServerSubscribed) return
+    if (!userId) return
     const watchedClaims = getWatchedClaims()
     await updateWatchedClaimsOnServer(userId, watchedClaims)
-  }, [userId, isServerSubscribed, getWatchedClaims])
+  }, [userId, getWatchedClaims])
 
   // Send a test push notification via the server pipeline
   const sendServerTest = useCallback(async (): Promise<{ ok: boolean; message: string }> => {

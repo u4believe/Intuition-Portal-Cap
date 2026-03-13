@@ -160,7 +160,29 @@ export async function subscribeToPushNotifications(
 }
 
 /**
- * Save the push subscription to the server
+ * Read alert ranges from localStorage (safe to call on client only)
+ */
+function readAlertRangesFromStorage(): object | null {
+  try {
+    const raw = localStorage.getItem('portal_cap_alert_ranges')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Normalize to server format: { deposits: {enabled, min, max}, redemptions: {...} }
+    return {
+      deposits: parsed.deposits
+        ? { enabled: !!parsed.deposits.enabled, min: parseFloat(parsed.deposits.min) || 0, max: parseFloat(parsed.deposits.max) || 10000 }
+        : { enabled: false, min: 0, max: 0 },
+      redemptions: parsed.redemptions
+        ? { enabled: !!parsed.redemptions.enabled, min: parseFloat(parsed.redemptions.min) || 0, max: parseFloat(parsed.redemptions.max) || 10000 }
+        : { enabled: false, min: 0, max: 0 },
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Save the push subscription to the server (includes any locally-stored alert ranges)
  */
 async function saveSubscriptionToServer(
   address: string,
@@ -168,6 +190,8 @@ async function saveSubscriptionToServer(
   watchedClaims: string[]
 ): Promise<void> {
   const subJson = subscription.toJSON()
+  const alertRanges = readAlertRangesFromStorage()
+
   const response = await fetch('/api/push-subscriptions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -178,6 +202,7 @@ async function saveSubscriptionToServer(
         keys: subJson.keys,
       },
       watchedClaims,
+      alertRanges,
     }),
   })
 

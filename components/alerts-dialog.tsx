@@ -158,7 +158,8 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
       redemptions: { enabled: redemptionsEnabled, min: redemptionsMin, max: redemptionsMax },
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ranges))
-    if (userId && isServerSubscribed) {
+    // Always try to sync — if no subscription exists the UPDATE affects 0 rows harmlessly
+    if (userId) {
       await syncAlertRangesToServer(userId, ranges)
     }
     setSaved(true)
