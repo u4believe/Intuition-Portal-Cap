@@ -196,8 +196,9 @@ export async function sendPushNotification(
   subscription: PushSubscriptionRow,
   payload: { title: string; body: string; tag?: string; url?: string }
 ): Promise<boolean> {
+  const shortEndpoint = subscription.endpoint.slice(-30)
   try {
-    await webpush.sendNotification(
+    const result = await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
@@ -212,14 +213,17 @@ export async function sendPushNotification(
         url: payload.url || '/',
       })
     )
+    console.log(`[Push Server] ✓ Sent to ...${shortEndpoint} — FCM status: ${result.statusCode}`)
     return true
   } catch (error: any) {
+    const status = error?.statusCode
+    const body = error?.body || ''
     // If the subscription is expired/invalid (410), delete it
-    if (error?.statusCode === 410) {
-      console.log('[Push Server] Subscription expired, removing:', subscription.endpoint)
+    if (status === 410) {
+      console.log(`[Push Server] Subscription expired (410), removing: ...${shortEndpoint}`)
       await deleteSubscription(subscription.endpoint)
     } else {
-      console.error('[Push Server] Failed to send push notification:', error)
+      console.error(`[Push Server] ✗ Send failed — status=${status} body=${body} endpoint=...${shortEndpoint}`)
     }
     return false
   }
