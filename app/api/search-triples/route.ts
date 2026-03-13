@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         return {
           id: triple.id,
           label: subject?.label || "Unknown",
-          image: subject?.image || "",
+          image: subject?.image && subject.image !== 'null' ? subject.image : "",
           type: "claim",
           market_cap: vault?.market_cap || 0,
           position_count: vault?.position_count || 0,
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     const triples = (data.data?.atoms || []).map((atom: any) => ({
       id: atom.id,
       label: atom.label || "Unknown",
-      image: atom.image || "",
+      image: atom.image && atom.image !== 'null' ? atom.image : "",
       type: "atom",
       market_cap: 0, // Atoms don't have direct market cap, it's in triples
       position_count: 0,

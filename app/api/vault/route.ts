@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       claim.predicateType = ""
       claim.objectLabel = triple.object?.label || "Unknown"
       claim.objectType = ""
-      claim.image = triple.subject?.image || null
+      claim.image = triple.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : null
     } else if (isAtom) {
       claim.label = atom.label || "Unknown"
       claim.subjectLabel = ""
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
       claim.predicateType = ""
       claim.objectLabel = ""
       claim.objectType = ""
-      claim.image = atom.image || null
+      claim.image = atom.image && atom.image !== 'null' ? atom.image : null
     }
 
     if (vault) {

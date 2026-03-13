@@ -11,6 +11,7 @@ import {
   unsubscribeFromPushNotifications,
   getPushSubscription,
   checkServerSubscription,
+  resyncSubscriptionToServer,
   sendTestNotification,
   updateWatchedClaimsOnServer,
 } from '@/lib/push-notifications'
@@ -23,6 +24,7 @@ export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('denied')
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [isServerSubscribed, setIsServerSubscribed] = useState(false)
+  const [serverCheckComplete, setServerCheckComplete] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [subscribeError, setSubscribeError] = useState<string | null>(null)
 
@@ -45,10 +47,31 @@ export function usePushNotifications() {
 
   // Check server subscription state when userId is known
   useEffect(() => {
-    if (userId) {
-      checkServerSubscription(userId).then(setIsServerSubscribed)
-    }
+    if (!userId) return
+    setServerCheckComplete(false)
+    checkServerSubscription(userId).then(serverHas => {
+      setIsServerSubscribed(serverHas)
+      setServerCheckComplete(true)
+    })
   }, [userId])
+
+  // AUTO-HEAL: once we've confirmed the server doesn't have the subscription
+  // but the browser does, automatically re-save it so alerts can be delivered.
+  useEffect(() => {
+    if (!userId || !isSubscribed || !serverCheckComplete || isServerSubscribed) return
+    const heal = async () => {
+      console.log('[Push] Auto-healing: browser has subscription but server missing — re-syncing...')
+      const watchedClaims = getWatchedClaims()
+      const ok = await resyncSubscriptionToServer(userId, watchedClaims)
+      if (ok) {
+        setIsServerSubscribed(true)
+        console.log('[Push] Auto-heal complete — subscription re-saved to server')
+      } else {
+        console.warn('[Push] Auto-heal failed — user may need to re-enable push notifications')
+      }
+    }
+    heal()
+  }, [userId, isSubscribed, isServerSubscribed, serverCheckComplete, getWatchedClaims])
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false
@@ -164,6 +187,15 @@ export function usePushNotifications() {
     setIsServerSubscribed(serverHas)
   }, [userId])
 
+  // Manually re-save the browser subscription to the server (useful from UI "Fix" buttons)
+  const resyncToServer = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false
+    const watchedClaims = getWatchedClaims()
+    const ok = await resyncSubscriptionToServer(userId, watchedClaims)
+    if (ok) setIsServerSubscribed(true)
+    return ok
+  }, [userId, getWatchedClaims])
+
   return {
     isSupported,
     permission,
@@ -178,5 +210,6 @@ export function usePushNotifications() {
     sendTest,
     sendServerTest,
     refreshServerStatus,
+    resyncToServer,
   }
 }
