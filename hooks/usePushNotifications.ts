@@ -114,9 +114,12 @@ export function usePushNotifications() {
       }
       return true
     } catch (error: any) {
-      const msg = error?.message || String(error)
+      const raw = error?.message || String(error)
+      const msg = raw.startsWith('IFRAME_BLOCKED')
+        ? 'Notifications cannot be enabled in an embedded preview. Open the app in a new browser tab to enable push notifications.'
+        : raw
       setSubscribeError(msg)
-      console.error('[Push] Subscribe error:', msg)
+      console.error('[Push] Subscribe error:', raw)
       return false
     } finally {
       setIsLoading(false)

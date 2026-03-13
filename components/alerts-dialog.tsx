@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Bell, TrendingDown, TrendingUp, CheckCircle2, AlertCircle,
-  Info, Loader2, Send, RefreshCw, Share, Smartphone,
+  Info, Loader2, Send, RefreshCw, Share, Smartphone, ExternalLink,
 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useCurrentUserId } from '@/hooks/useCurrentUserId'
@@ -61,6 +61,14 @@ function useIOSDetection() {
     setIsStandalone(standalone)
   }, [])
   return { isIOS, isStandalone }
+}
+
+function useIsInIframe() {
+  const [inIframe, setInIframe] = useState(false)
+  useEffect(() => {
+    try { setInIframe(window.self !== window.top) } catch { setInIframe(true) }
+  }, [])
+  return inIframe
 }
 
 function RangeSection({
@@ -122,6 +130,7 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
     subscribe, sendServerTest, refreshServerStatus, resyncToServer,
   } = usePushNotifications()
   const { isIOS, isStandalone } = useIOSDetection()
+  const inIframe = useIsInIframe()
 
   const [saved, setSaved] = useState(false)
   const [testState, setTestState] = useState<'idle' | 'sending' | 'ok' | 'fail'>('idle')
@@ -343,6 +352,30 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
               {subscribeError && (
                 <p className="text-xs text-red-300 mt-2">{subscribeError}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Iframe context — browser blocks Notification.requestPermission() in iframes
+    if (inIframe) {
+      return (
+        <div className="bg-slate-800/60 border border-slate-600 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <ExternalLink className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-cyan-300 font-medium mb-1">Open directly to enable notifications</p>
+              <p className="text-xs text-slate-400 mb-2">
+                Your browser blocks notification permissions in embedded previews. Open the app in its own tab to enable push alerts.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" /> Open in New Tab
+              </Button>
             </div>
           </div>
         </div>
