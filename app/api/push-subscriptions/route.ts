@@ -10,7 +10,7 @@ import {
 // POST: Save a push subscription
 export async function POST(req: NextRequest) {
   try {
-    const { address, subscription, watchedClaims } = await req.json()
+    const { address, subscription, watchedClaims, alertRanges } = await req.json()
 
     if (!address || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       subscription.endpoint,
       subscription.keys.p256dh,
       subscription.keys.auth,
-      watchedClaims || []
+      watchedClaims || [],
+      alertRanges || null
     )
 
     if (!success) {
