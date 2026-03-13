@@ -278,15 +278,21 @@ export async function GET(req: NextRequest) {
       }
 
       // Live Events range alerts
-      const ranges = subscription.alert_ranges || {}
-      const depositCfg = ranges.deposits
-      const redemptionCfg = ranges.redemptions
+      // If alert_ranges is null (user subscribed without configuring), default to all enabled
+      const DEFAULT_RANGE = { enabled: true, min: 0, max: 10_000 }
+      const ranges = subscription.alert_ranges
+      const depositCfg = ranges?.deposits ?? DEFAULT_RANGE
+      const redemptionCfg = ranges?.redemptions ?? DEFAULT_RANGE
 
-      console.log(
-        `  [Range check] address=${subscription.address} ` +
-        `depositCfg=${JSON.stringify(depositCfg)} ` +
-        `redemptionCfg=${JSON.stringify(redemptionCfg)}`
-      )
+      if (!ranges) {
+        console.log(`  [Range check] address=${subscription.address} — no alert_ranges set, defaulting to all enabled`)
+      } else {
+        console.log(
+          `  [Range check] address=${subscription.address} ` +
+          `depositCfg=${JSON.stringify(depositCfg)} ` +
+          `redemptionCfg=${JSON.stringify(redemptionCfg)}`
+        )
+      }
 
       for (const event of liveEvents) {
         if (event.type === 'deposit' && depositCfg?.enabled) {

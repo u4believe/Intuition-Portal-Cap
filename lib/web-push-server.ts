@@ -60,8 +60,7 @@ export async function saveSubscription(
       await pool.query(
         `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, alert_ranges, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, NOW())
-         ON CONFLICT (endpoint) DO UPDATE SET
-           address = $1,
+         ON CONFLICT (address, endpoint) DO UPDATE SET
            p256dh = $3,
            auth = $4,
            watched_claims = $5,
@@ -74,8 +73,7 @@ export async function saveSubscription(
       await pool.query(
         `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, updated_at)
          VALUES ($1, $2, $3, $4, $5, NOW())
-         ON CONFLICT (endpoint) DO UPDATE SET
-           address = $1,
+         ON CONFLICT (address, endpoint) DO UPDATE SET
            p256dh = $3,
            auth = $4,
            watched_claims = $5,

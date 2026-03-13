@@ -341,7 +341,14 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
               </p>
               <Button
                 size="sm"
-                onClick={() => subscribe()}
+                onClick={() => {
+                  const currentRanges: AlertRanges = {
+                    deposits: { enabled: depositsEnabled, min: depositsMin, max: depositsMax },
+                    redemptions: { enabled: redemptionsEnabled, min: redemptionsMin, max: redemptionsMax },
+                  }
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(currentRanges))
+                  subscribe()
+                }}
                 disabled={pushLoading}
                 className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs h-7"
               >
@@ -393,7 +400,14 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
             </p>
             <Button
               size="sm"
-              onClick={() => subscribe()}
+              onClick={() => {
+                const currentRanges: AlertRanges = {
+                  deposits: { enabled: depositsEnabled, min: depositsMin, max: depositsMax },
+                  redemptions: { enabled: redemptionsEnabled, min: redemptionsMin, max: redemptionsMax },
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(currentRanges))
+                subscribe()
+              }}
               disabled={pushLoading}
               className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7"
             >
