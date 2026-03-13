@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useCurrentUserId } from '@/hooks/useCurrentUserId'
-import { X, Bell, Share, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { X, Bell, Share, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 function useIOSDetection() {
@@ -22,10 +22,19 @@ function useIOSDetection() {
   return { isIOS, isStandalone }
 }
 
+function useIsInIframe() {
+  const [inIframe, setInIframe] = useState(false)
+  useEffect(() => {
+    try { setInIframe(window.self !== window.top) } catch { setInIframe(true) }
+  }, [])
+  return inIframe
+}
+
 export function PushNotificationBanner() {
   const { isSupported, isSubscribed, permission, subscribe, isLoading } = usePushNotifications()
   const userId = useCurrentUserId()
   const { isIOS, isStandalone } = useIOSDetection()
+  const inIframe = useIsInIframe()
   const [dismissed, setDismissed] = useState(false)
   const [step, setStep] = useState<'prompt' | 'ios-instructions' | 'error' | 'success'>('prompt')
 
@@ -98,7 +107,15 @@ export function PushNotificationBanner() {
     )
   }
 
+  const openInNewTab = () => {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer')
+  }
+
   const handleSubscribe = async () => {
+    if (inIframe) {
+      openInNewTab()
+      return
+    }
     const ok = await subscribe()
     if (ok) {
       setStep('success')
@@ -155,17 +172,34 @@ export function PushNotificationBanner() {
         <Bell className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="font-semibold text-sm mb-1">Enable Push Notifications</p>
-          <p className="text-xs text-cyan-100 mb-3">
-            Get instant alerts on your device when your watched claims change
-          </p>
-          <Button
-            onClick={handleSubscribe}
-            disabled={isLoading}
-            size="sm"
-            className="bg-white text-cyan-700 hover:bg-cyan-50 text-xs font-semibold"
-          >
-            {isLoading ? 'Enabling…' : 'Enable Now'}
-          </Button>
+          {inIframe ? (
+            <>
+              <p className="text-xs text-cyan-100 mb-3">
+                Notifications must be enabled from the app opened directly in your browser — not from an embedded preview.
+              </p>
+              <Button
+                onClick={openInNewTab}
+                size="sm"
+                className="bg-white text-cyan-700 hover:bg-cyan-50 text-xs font-semibold flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" /> Open in New Tab
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-cyan-100 mb-3">
+                Get instant alerts on your device when your watched claims change
+              </p>
+              <Button
+                onClick={handleSubscribe}
+                disabled={isLoading}
+                size="sm"
+                className="bg-white text-cyan-700 hover:bg-cyan-50 text-xs font-semibold"
+              >
+                {isLoading ? 'Enabling…' : 'Enable Now'}
+              </Button>
+            </>
+          )}
         </div>
         <button
           onClick={() => setDismissed(true)}

@@ -9,6 +9,19 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
   'BBzvhhej2AYuBRaiDZp0jnJIiG9aR0YGKNsAZldqSHsuS8wnAX35v8NIdjwBID8AtNFuC_lUHiDZNWLNTi189U8'
 
 /**
+ * Detect if the page is running inside an iframe.
+ * Browsers block Notification.requestPermission() in iframes,
+ * so we use this to redirect the user to the top-level app URL.
+ */
+export function isInIframe(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.self !== window.top
+  } catch {
+    return true
+  }
+}
+
+/**
  * Check if the browser supports push notifications
  */
 export function isPushNotificationSupported(): boolean {
@@ -39,12 +52,17 @@ export async function requestNotificationPermission(): Promise<boolean> {
     return false
   }
 
+  if (isInIframe()) {
+    throw new Error('IFRAME_BLOCKED: Notification permission cannot be requested inside an iframe. Open the app directly in a new browser tab.')
+  }
+
   try {
     const permission = await Notification.requestPermission()
     return permission === 'granted'
-  } catch (error) {
-    console.error('[Push Notifications] Failed to request permission:', error)
-    return false
+  } catch (error: any) {
+    const msg = error?.message || String(error)
+    console.error('[Push Notifications] Failed to request permission:', msg)
+    throw error
   }
 }
 
