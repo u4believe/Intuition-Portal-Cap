@@ -90,7 +90,7 @@ export async function GET(request: Request) {
         termId: vault.term?.id || "",
         label: `${subject} - ${predicate} - ${object}`,
         type: "Triple",
-        image: triple?.subject?.image || null,
+        image: triple?.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : null,
         subjectLabel: subject,
         subjectType: "",
         predicateLabel: predicate,

@@ -182,6 +182,29 @@ function readAlertRangesFromStorage(): object | null {
 }
 
 /**
+ * Re-sync the current browser push subscription to the server.
+ * Safe to call at any time — re-saves with current watched claims and alert ranges.
+ * Returns true if a subscription was found in the browser and saved.
+ */
+export async function resyncSubscriptionToServer(
+  address: string,
+  watchedClaims: string[]
+): Promise<boolean> {
+  if (!isPushNotificationSupported()) return false
+  try {
+    const registration = await getServiceWorkerReady(8000)
+    const sub = await registration.pushManager.getSubscription()
+    if (!sub) return false
+    await saveSubscriptionToServer(address, sub, watchedClaims)
+    console.log('[Push Notifications] Auto re-synced subscription to server for', address)
+    return true
+  } catch (e) {
+    console.warn('[Push Notifications] Auto re-sync failed:', e)
+    return false
+  }
+}
+
+/**
  * Save the push subscription to the server (includes any locally-stored alert ranges)
  */
 async function saveSubscriptionToServer(

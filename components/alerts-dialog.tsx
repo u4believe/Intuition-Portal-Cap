@@ -119,7 +119,7 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
   const {
     isSupported, isSubscribed, isServerSubscribed, permission,
     isLoading: pushLoading, subscribeError,
-    subscribe, sendServerTest, refreshServerStatus,
+    subscribe, sendServerTest, refreshServerStatus, resyncToServer,
   } = usePushNotifications()
   const { isIOS, isStandalone } = useIOSDetection()
 
@@ -158,8 +158,13 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
       redemptions: { enabled: redemptionsEnabled, min: redemptionsMin, max: redemptionsMax },
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ranges))
-    // Always try to sync — if no subscription exists the UPDATE affects 0 rows harmlessly
+
     if (userId) {
+      // If browser has push sub but server lost it, re-save the subscription row first
+      // so the subsequent alert_ranges UPDATE actually has a row to modify.
+      if (isSubscribed && !isServerSubscribed) {
+        await resyncToServer()
+      }
       await syncAlertRangesToServer(userId, ranges)
     }
     setSaved(true)
@@ -314,6 +319,36 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
       )
     }
 
+    // Browser subscribed but server lost the record — show a Fix button
+    if (browserHasSubButServerDoesnt) {
+      return (
+        <div className="bg-yellow-900/30 border border-yellow-600/40 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-yellow-300 font-medium mb-1">Server connection lost</p>
+              <p className="text-xs text-yellow-200 mb-2">
+                Your browser has push notifications enabled but the server lost track of your subscription. Click below to reconnect — no permission prompt will appear.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => subscribe()}
+                disabled={pushLoading}
+                className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs h-7"
+              >
+                {pushLoading
+                  ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Reconnecting…</>
+                  : <><RefreshCw className="w-3 h-3 mr-1" />Reconnect to Server</>}
+              </Button>
+              {subscribeError && (
+                <p className="text-xs text-red-300 mt-2">{subscribeError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     // Standard enable button (Android / desktop / iOS PWA)
     return (
       <div className="bg-cyan-900/30 border border-cyan-700/40 rounded-lg p-3">
@@ -323,24 +358,16 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
             <p className="text-xs text-cyan-300 mb-2">
               Enable push notifications to receive alerts on your device even when the app is closed.
             </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                onClick={() => subscribe()}
-                disabled={pushLoading}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7"
-              >
-                {pushLoading
-                  ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Enabling…</>
-                  : <><Bell className="w-3 h-3 mr-1" />Enable Push Notifications</>}
-              </Button>
-              {isServerSubscribed && !isSubscribed && (
-                <Button size="sm" variant="outline" onClick={() => refreshServerStatus()}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700 text-xs h-7 gap-1">
-                  <RefreshCw className="w-3 h-3" /> Refresh Status
-                </Button>
-              )}
-            </div>
+            <Button
+              size="sm"
+              onClick={() => subscribe()}
+              disabled={pushLoading}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7"
+            >
+              {pushLoading
+                ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Enabling…</>
+                : <><Bell className="w-3 h-3 mr-1" />Enable Push Notifications</>}
+            </Button>
             {subscribeError && (
               <p className="text-xs text-red-300 mt-2">{subscribeError}</p>
             )}

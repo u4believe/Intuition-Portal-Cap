@@ -57,9 +57,9 @@ export async function GET() {
       .map((item: any, index: number) => ({
         id: item.subject?.value?.thing_id || `claim-${index}`,
         label: item.subject?.label || `Claim ${index + 1}`,
-        image: item.subject?.image || "",
+        image: item.subject?.image && item.subject.image !== 'null' ? item.subject.image : "",
         atom_label: item.subject?.term?.atom?.label || "",
-        atom_image: item.subject?.term?.atom?.image || "",
+        atom_image: item.subject?.term?.atom?.image && item.subject.term.atom.image !== 'null' ? item.subject.term.atom.image : "",
         market_cap: item.subject?.term?.total_market_cap || 0,
         total_assets: item.subject?.term?.total_assets || 0,
         position_count: item.subject?.positions?.length || 0,

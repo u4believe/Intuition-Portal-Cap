@@ -82,7 +82,7 @@ export async function GET(request: Request) {
           subjectLabel: subject,
           predicateLabel: predicate,
           objectLabel: object,
-          image: triple?.subject?.image || "",
+          image: triple?.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : "",
           marketCap: 0,
           totalAssets: 0,
           totalShares: 0,

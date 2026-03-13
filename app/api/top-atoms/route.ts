@@ -68,7 +68,7 @@ export async function GET(request: Request) {
         atomsMap.set(atomLabel, {
           termId: vault.term?.id || "", // Use term.id since vault.id doesn't exist
           label: atomLabel,
-          image: atom?.image || "",
+          image: atom?.image && atom.image !== 'null' ? atom.image : "",
           marketCap: 0,
           totalAssets: 0,
           totalShares: 0,
