@@ -14,6 +14,7 @@ import { UserAccountInfo } from "@/components/user-account-info"
 import { PushNotificationBanner } from "@/components/push-notification-banner"
 import WatchPreferencesDialog from "@/components/watch-preferences-dialog"
 import AlertsDialog from "@/components/alerts-dialog"
+import NotificationPreferencesPanel from "@/components/push-notifications/notification-preferences-panel"
 import RecentEvents from "./recent-events"
 import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
@@ -30,6 +31,7 @@ export default function LandingPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingClaim, setEditingClaim] = useState<string | null>(null)
   const [alertsDialogOpen, setAlertsDialogOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
   const watchlistRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -285,18 +287,27 @@ export default function LandingPage() {
           </nav>
           <div className="md:hidden flex gap-2 items-center">
             {mounted && isSignedIn && (
-              <button
-                onClick={() => setWatchlistOpen(!watchlistOpen)}
-                className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
-                title="Watchlist"
-              >
-                <Star className="w-5 h-5" />
-                {watchedClaims.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {watchedClaims.length}
-                  </span>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false) }}
+                  className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
+                  title="Watchlist"
+                >
+                  <Star className="w-5 h-5" />
+                  {watchedClaims.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {watchedClaims.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false) }}
+                  className={`relative p-2 rounded-lg transition-colors ${notifOpen ? 'bg-cyan-500/20 text-cyan-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
+                  title="Notification Preferences"
+                >
+                  <Bell className="w-5 h-5" />
+                </button>
+              </>
             )}
             <ThemeToggle />
             {mounted && isSignedIn ? (
@@ -309,6 +320,24 @@ export default function LandingPage() {
               </Link>
             )}
           </div>
+
+          {/* Mobile notification preferences panel */}
+          {notifOpen && (
+            <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xl z-50 max-h-[80vh] overflow-y-auto">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-cyan-400" />
+                  Notification Preferences
+                </h3>
+                <button onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4">
+                <NotificationPreferencesPanel onOpenSettings={() => { setNotifOpen(false); setAlertsDialogOpen(true) }} />
+              </div>
+            </div>
+          )}
 
           {/* Mobile watchlist panel */}
           {watchlistOpen && (
