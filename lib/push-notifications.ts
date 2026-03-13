@@ -67,6 +67,21 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 /**
+ * Wait for service worker to be ready, with a timeout to avoid hanging forever
+ */
+async function getServiceWorkerReady(timeoutMs = 15000): Promise<ServiceWorkerRegistration> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Service worker did not become ready within ${timeoutMs / 1000}s. Try refreshing the page.`)),
+        timeoutMs
+      )
+    ),
+  ])
+}
+
+/**
  * Get the push subscription for the user
  */
 export async function getPushSubscription(): Promise<PushSubscription | null> {
@@ -75,11 +90,25 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready
+    const registration = await getServiceWorkerReady()
     return await registration.pushManager.getSubscription()
   } catch (error) {
     console.error('[Push Notifications] Failed to get push subscription:', error)
     return null
+  }
+}
+
+/**
+ * Check whether the server has a subscription for this user
+ */
+export async function checkServerSubscription(address: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/push-subscriptions?address=${encodeURIComponent(address)}`)
+    if (!res.ok) return false
+    const data = await res.json()
+    return (data.count || 0) > 0
+  } catch {
+    return false
   }
 }
 
@@ -96,31 +125,37 @@ export async function subscribeToPushNotifications(
   }
 
   try {
-    // Check if already subscribed
-    const existing = await getPushSubscription()
+    console.log('[Push Notifications] Starting subscription for:', address)
+
+    // Wait for service worker (with timeout)
+    const registration = await getServiceWorkerReady()
+    console.log('[Push Notifications] Service worker ready:', registration.scope)
+
+    // Check if already subscribed in browser
+    const existing = await registration.pushManager.getSubscription()
     if (existing) {
-      // Update watched claims on server even if already subscribed
+      console.log('[Push Notifications] Existing browser subscription found, saving to server')
       await saveSubscriptionToServer(address, existing, watchedClaims)
-      console.log('[Push Notifications] Already subscribed, updated watched claims')
       return true
     }
 
-    const registration = await navigator.serviceWorker.ready
-
-    // Subscribe to push notifications with VAPID key
+    // Create new push subscription
+    console.log('[Push Notifications] Creating new push subscription...')
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     })
+    console.log('[Push Notifications] Push subscription created:', subscription.endpoint.slice(0, 60) + '...')
 
-    // Save subscription to server
+    // Save to server
     await saveSubscriptionToServer(address, subscription, watchedClaims)
-
-    console.log('[Push Notifications] Subscription successful')
+    console.log('[Push Notifications] Subscription saved to server successfully')
     return true
-  } catch (error) {
-    console.error('[Push Notifications] Subscription failed:', error)
-    return false
+  } catch (error: any) {
+    const msg = error?.message || String(error)
+    console.error('[Push Notifications] Subscription failed:', msg)
+    // Re-throw so the caller can surface a meaningful error
+    throw error
   }
 }
 
