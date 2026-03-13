@@ -338,9 +338,9 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-xs text-yellow-300 font-medium mb-1">Server connection lost</p>
+              <p className="text-xs text-yellow-300 font-medium mb-1">Register this account for alerts</p>
               <p className="text-xs text-yellow-200 mb-2">
-                Your browser has push notifications enabled but the server lost track of your subscription. Click below to reconnect — no permission prompt will appear.
+                Push is enabled in this browser but not yet registered for your current account. Tap the button below to enable alerts for this account on this device.
               </p>
               <Button
                 size="sm"
@@ -350,14 +350,15 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
                     redemptions: { enabled: redemptionsEnabled, min: redemptionsMin, max: redemptionsMax },
                   }
                   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentRanges))
+                  console.log('[Alerts] Registering push for userId:', userId)
                   subscribe()
                 }}
                 disabled={pushLoading}
                 className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs h-7"
               >
                 {pushLoading
-                  ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Reconnecting…</>
-                  : <><RefreshCw className="w-3 h-3 mr-1" />Reconnect to Server</>}
+                  ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Registering…</>
+                  : <><Bell className="w-3 h-3 mr-1" />Enable Alerts for This Account</>}
               </Button>
               {subscribeError && (
                 <p className="text-xs text-red-300 mt-2">{subscribeError}</p>
@@ -438,6 +439,13 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
           <p className="text-sm text-slate-400 mt-1">
             Get push notifications when a deposit or redemption matches your TRUST range.
           </p>
+          {userId && (
+            <p className="text-xs text-slate-600 mt-0.5">
+              Account: <span className="text-slate-500 font-mono">
+                {userId.startsWith('discord:') ? `Discord ${userId.slice(8, 14)}…` : `${userId.slice(0, 6)}…${userId.slice(-4)}`}
+              </span>
+            </p>
+          )}
         </DialogHeader>
 
         <div className="space-y-3 py-2">
