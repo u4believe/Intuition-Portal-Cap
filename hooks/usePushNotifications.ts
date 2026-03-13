@@ -10,6 +10,7 @@ import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
   getPushSubscription,
+  checkServerSubscription,
   sendTestNotification,
   updateWatchedClaimsOnServer,
 } from '@/lib/push-notifications'
@@ -21,7 +22,9 @@ export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('denied')
   const [isSubscribed, setIsSubscribed] = useState(false)
+  const [isServerSubscribed, setIsServerSubscribed] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [subscribeError, setSubscribeError] = useState<string | null>(null)
 
   useEffect(() => {
     setIsSupported(isPushNotificationSupported())
@@ -31,6 +34,7 @@ export function usePushNotifications() {
     }
   }, [])
 
+  // Check browser subscription state when supported + permission granted
   useEffect(() => {
     if (isSupported && permission === 'granted') {
       getPushSubscription().then(sub => {
@@ -38,6 +42,13 @@ export function usePushNotifications() {
       })
     }
   }, [isSupported, permission])
+
+  // Check server subscription state when userId is known
+  useEffect(() => {
+    if (userId) {
+      checkServerSubscription(userId).then(setIsServerSubscribed)
+    }
+  }, [userId])
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false
@@ -51,30 +62,39 @@ export function usePushNotifications() {
     }
   }, [isSupported])
 
-  const subscribe = useCallback(async () => {
-    if (!isSupported || !userId) return false
+  const subscribe = useCallback(async (): Promise<boolean> => {
+    if (!isSupported || !userId) {
+      setSubscribeError(!isSupported ? 'Push notifications are not supported in this browser.' : 'Not signed in.')
+      return false
+    }
 
     setIsLoading(true)
+    setSubscribeError(null)
     try {
       if (permission !== 'granted') {
         const granted = await requestPermission()
-        if (!granted) return false
+        if (!granted) {
+          setSubscribeError('Permission denied. Please allow notifications in your browser/OS settings.')
+          return false
+        }
       }
 
       const watchedClaims = getWatchedClaims()
-      const success = await subscribeToPushNotifications(userId, watchedClaims)
-      if (success) {
-        setIsSubscribed(true)
-        updateNotificationSettings({ pushNotificationsEnabled: true })
-        console.log('[Push] Notifications enabled for', userId, 'watching:', watchedClaims)
+      await subscribeToPushNotifications(userId, watchedClaims)
+      setIsSubscribed(true)
+      setIsServerSubscribed(true)
+      updateNotificationSettings({ pushNotificationsEnabled: true })
+      console.log('[Push] Notifications enabled for', userId)
 
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('push-notifications-enabled', {
-            detail: { userId }
-          }))
-        }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('push-notifications-enabled', { detail: { userId } }))
       }
-      return success
+      return true
+    } catch (error: any) {
+      const msg = error?.message || String(error)
+      setSubscribeError(msg)
+      console.error('[Push] Subscribe error:', msg)
+      return false
     } finally {
       setIsLoading(false)
     }
@@ -87,8 +107,8 @@ export function usePushNotifications() {
       const success = await unsubscribeFromPushNotifications()
       if (success) {
         setIsSubscribed(false)
+        setIsServerSubscribed(false)
         updateNotificationSettings({ pushNotificationsEnabled: false })
-        console.log('[Push] Notifications disabled')
       }
       return success
     } finally {
@@ -97,35 +117,66 @@ export function usePushNotifications() {
   }, [isSupported, updateNotificationSettings])
 
   const syncWatchedClaimsToServer = useCallback(async () => {
-    if (!userId || !isSubscribed) return
+    if (!userId || !isServerSubscribed) return
     const watchedClaims = getWatchedClaims()
     await updateWatchedClaimsOnServer(userId, watchedClaims)
-  }, [userId, isSubscribed, getWatchedClaims])
+  }, [userId, isServerSubscribed, getWatchedClaims])
+
+  // Send a test push notification via the server pipeline
+  const sendServerTest = useCallback(async (): Promise<{ ok: boolean; message: string }> => {
+    if (!userId) return { ok: false, message: 'Not signed in.' }
+    try {
+      const res = await fetch('/api/test-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: userId }),
+      })
+      const data = await res.json()
+      if (data.error === 'NO_SUBSCRIPTION') {
+        return { ok: false, message: 'No subscription found on the server. Please enable push notifications first.' }
+      }
+      if (!res.ok || !data.success) {
+        return { ok: false, message: data.message || data.error || 'Failed to send test notification.' }
+      }
+      return { ok: true, message: 'Test notification sent! Check your device.' }
+    } catch (e: any) {
+      return { ok: false, message: e?.message || 'Network error sending test.' }
+    }
+  }, [userId])
 
   const sendTest = useCallback(async () => {
     if (!isSupported || permission !== 'granted') return false
     try {
       await sendTestNotification('Portal Cap', {
-        body: 'Push notifications are working! You will receive alerts for your watched claims.',
+        body: 'Push notifications are working!',
         icon: '/icon-light-32x32.png',
         badge: '/icon-light-32x32.png',
       })
       return true
-    } catch (error) {
-      console.error('[Push] Failed to send test notification:', error)
+    } catch {
       return false
     }
   }, [isSupported, permission])
+
+  const refreshServerStatus = useCallback(async () => {
+    if (!userId) return
+    const serverHas = await checkServerSubscription(userId)
+    setIsServerSubscribed(serverHas)
+  }, [userId])
 
   return {
     isSupported,
     permission,
     isSubscribed,
+    isServerSubscribed,
     isLoading,
+    subscribeError,
     requestPermission,
     subscribe,
     unsubscribe,
     syncWatchedClaimsToServer,
     sendTest,
+    sendServerTest,
+    refreshServerStatus,
   }
 }
