@@ -295,21 +295,25 @@ export async function GET(req: NextRequest) {
       }
 
       for (const event of liveEvents) {
+        const isOnWatchedClaim = (subscription.watched_claims || []).includes(event.atomLabel)
+
         if (event.type === 'deposit' && depositCfg?.enabled) {
-          const matches = inRange(event.assets, depositCfg.min, depositCfg.max)
+          const inRangeMatch = inRange(event.assets, depositCfg.min, depositCfg.max)
+          const matches = inRangeMatch || isOnWatchedClaim
           console.log(
             `    [Deposit] id=${event.id} assets=${event.assets.toFixed(4)} ` +
-            `range=${depositCfg.min}-${depositCfg.max} match=${matches}`
+            `range=${depositCfg.min}-${depositCfg.max} inRange=${inRangeMatch} watched=${isOnWatchedClaim} match=${matches}`
           )
           if (matches) {
             alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
           }
         }
         if (event.type === 'redemption' && redemptionCfg?.enabled) {
-          const matches = inRange(event.assets, redemptionCfg.min, redemptionCfg.max)
+          const inRangeMatch = inRange(event.assets, redemptionCfg.min, redemptionCfg.max)
+          const matches = inRangeMatch || isOnWatchedClaim
           console.log(
             `    [Redemption] id=${event.id} assets=${event.assets.toFixed(4)} ` +
-            `range=${redemptionCfg.min}-${redemptionCfg.max} match=${matches}`
+            `range=${redemptionCfg.min}-${redemptionCfg.max} inRange=${inRangeMatch} watched=${isOnWatchedClaim} match=${matches}`
           )
           if (matches) {
             alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)

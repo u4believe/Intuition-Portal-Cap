@@ -6,7 +6,7 @@
  * missed or duplicate events.
  */
 
-const POLL_INTERVAL_MS = 2 * 60 * 1000 // 2 minutes
+const POLL_INTERVAL_MS = 1 * 60 * 1000 // 1 minute
 const CRON_SECRET = process.env.CRON_SECRET || ''
 
 // Build the list of URLs to poll.

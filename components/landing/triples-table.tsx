@@ -5,6 +5,7 @@ import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
@@ -16,6 +17,7 @@ export default function TriplesTable() {
   const { data: result = { triples: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useTriples(currentPage)
   const { triples = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
+  const { syncWatchedClaimsToServer } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
@@ -317,6 +319,7 @@ export default function TriplesTable() {
         claimLabel={selectedClaimForWatch || ''}
         onConfirm={(claimLabel) => {
           addWatchedClaim(claimLabel)
+          setTimeout(() => syncWatchedClaimsToServer(), 200)
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
         }}

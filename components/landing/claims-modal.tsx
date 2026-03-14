@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react"
 import { useAllClaims } from "@/hooks/useIntuitionData"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
+import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { Button } from "@/components/ui/button"
 import WatchPreferencesDialog from "@/components/watch-preferences-dialog"
 
@@ -19,6 +20,7 @@ type SortOrder = "asc" | "desc"
 export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
   const { data: claims = [], isLoading: loading } = useAllClaims()
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
+  const { syncWatchedClaimsToServer } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>("marketCap")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null)
@@ -221,6 +223,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
         claimLabel={selectedClaimForWatch || ""}
         onConfirm={(claimLabel) => {
           addWatchedClaim(claimLabel)
+          setTimeout(() => syncWatchedClaimsToServer(), 200)
           setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
         }}
