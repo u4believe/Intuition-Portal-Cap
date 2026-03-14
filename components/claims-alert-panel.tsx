@@ -5,12 +5,44 @@ import { X, Star, RefreshCw } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { ClaimAlertPref } from '@/lib/push-notifications'
 
-const BADGE_CONFIG: { key: keyof Omit<ClaimAlertPref, 'label'>; label: string; activeClass: string }[] = [
-  { key: 'deposits', label: 'Deposits', activeClass: 'bg-green-900/60 text-green-300 border-green-700/50' },
-  { key: 'redemptions', label: 'Redemptions', activeClass: 'bg-red-900/60 text-red-300 border-red-700/50' },
-  { key: 'marketCap', label: 'Mkt Cap', activeClass: 'bg-blue-900/60 text-blue-300 border-blue-700/50' },
-  { key: 'positionCount', label: 'Positions', activeClass: 'bg-amber-900/60 text-amber-300 border-amber-700/50' },
-  { key: 'sharesChange', label: 'Shares', activeClass: 'bg-purple-900/60 text-purple-300 border-purple-700/50' },
+type BooleanPrefKey = 'deposits' | 'redemptions' | 'marketCap' | 'positionCount' | 'sharesChange'
+
+const BADGE_CONFIG: { key: BooleanPrefKey; label: (p: ClaimAlertPref) => string; activeClass: string }[] = [
+  {
+    key: 'deposits',
+    label: p => {
+      const min = p.depositsMin ?? 0
+      const max = p.depositsMax ?? 10000
+      const maxStr = max >= 10000 ? '∞' : max >= 1000 ? `${(max / 1000).toFixed(0)}k` : String(max)
+      return `Dep ${min}-${maxStr}`
+    },
+    activeClass: 'bg-green-900/60 text-green-300 border-green-700/50',
+  },
+  {
+    key: 'redemptions',
+    label: p => {
+      const min = p.redemptionsMin ?? 0
+      const max = p.redemptionsMax ?? 10000
+      const maxStr = max >= 10000 ? '∞' : max >= 1000 ? `${(max / 1000).toFixed(0)}k` : String(max)
+      return `Rdm ${min}-${maxStr}`
+    },
+    activeClass: 'bg-red-900/60 text-red-300 border-red-700/50',
+  },
+  {
+    key: 'marketCap',
+    label: p => `Mkt ≥${p.marketCapMin ?? 2}%`,
+    activeClass: 'bg-blue-900/60 text-blue-300 border-blue-700/50',
+  },
+  {
+    key: 'positionCount',
+    label: () => 'Positions',
+    activeClass: 'bg-amber-900/60 text-amber-300 border-amber-700/50',
+  },
+  {
+    key: 'sharesChange',
+    label: p => `Shares ≥${p.sharesChangeMin ?? 2}%`,
+    activeClass: 'bg-purple-900/60 text-purple-300 border-purple-700/50',
+  },
 ]
 
 interface ClaimAlertsPanelProps {
@@ -45,7 +77,7 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
     })
   }
 
-  const handleToggleType = async (termId: string, typeKey: keyof Omit<ClaimAlertPref, 'label'>) => {
+  const handleToggleType = async (termId: string, typeKey: BooleanPrefKey) => {
     const pref = prefs[termId]
     if (!pref) return
     const updated: ClaimAlertPref = { ...pref, [typeKey]: !pref[typeKey] }
@@ -112,9 +144,9 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
                           ? activeClass
                           : 'bg-slate-800 text-slate-600 border-slate-700 hover:text-slate-400'
                       }`}
-                      title={active ? `Disable ${label} alerts` : `Enable ${label} alerts`}
+                      title={active ? `Disable ${key} alerts` : `Enable ${key} alerts`}
                     >
-                      {label}
+                      {active ? label(pref) : key}
                       {active && <X className="w-2.5 h-2.5 opacity-70" />}
                     </button>
                   )

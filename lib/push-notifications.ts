@@ -276,10 +276,16 @@ export async function updateWatchedClaimsOnServer(
 export interface ClaimAlertPref {
   label: string
   deposits: boolean
+  depositsMin: number
+  depositsMax: number
   redemptions: boolean
+  redemptionsMin: number
+  redemptionsMax: number
   marketCap: boolean
+  marketCapMin: number
   positionCount: boolean
   sharesChange: boolean
+  sharesChangeMin: number
 }
 
 /**
