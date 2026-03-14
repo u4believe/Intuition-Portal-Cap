@@ -14,6 +14,10 @@ import {
   resyncSubscriptionToServer,
   sendTestNotification,
   updateWatchedClaimsOnServer,
+  upsertClaimAlertPrefOnServer,
+  removeClaimAlertPrefOnServer,
+  fetchClaimAlertPrefs,
+  ClaimAlertPref,
 } from '@/lib/push-notifications'
 import { useUserPreferences } from './useUserPreferences'
 
@@ -148,6 +152,21 @@ export function usePushNotifications() {
     await updateWatchedClaimsOnServer(userId, watchedClaims)
   }, [userId, getWatchedClaims])
 
+  const upsertClaimAlertPref = useCallback(async (termId: string, pref: ClaimAlertPref): Promise<boolean> => {
+    if (!userId || !termId) return false
+    return upsertClaimAlertPrefOnServer(userId, termId, pref)
+  }, [userId])
+
+  const removeClaimAlertPref = useCallback(async (termId: string): Promise<boolean> => {
+    if (!userId || !termId) return false
+    return removeClaimAlertPrefOnServer(userId, termId)
+  }, [userId])
+
+  const getClaimAlertPrefs = useCallback(async (): Promise<Record<string, ClaimAlertPref>> => {
+    if (!userId) return {}
+    return fetchClaimAlertPrefs(userId)
+  }, [userId])
+
   // Send a test push notification via the server pipeline
   const sendServerTest = useCallback(async (): Promise<{ ok: boolean; message: string }> => {
     if (!userId) return { ok: false, message: 'Not signed in.' }
@@ -210,6 +229,9 @@ export function usePushNotifications() {
     subscribe,
     unsubscribe,
     syncWatchedClaimsToServer,
+    upsertClaimAlertPref,
+    removeClaimAlertPref,
+    getClaimAlertPrefs,
     sendTest,
     sendServerTest,
     refreshServerStatus,

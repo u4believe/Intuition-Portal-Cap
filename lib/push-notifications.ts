@@ -273,6 +273,74 @@ export async function updateWatchedClaimsOnServer(
   }
 }
 
+export interface ClaimAlertPref {
+  label: string
+  deposits: boolean
+  redemptions: boolean
+  marketCap: boolean
+  positionCount: boolean
+  sharesChange: boolean
+}
+
+/**
+ * Save per-claim alert preferences for a specific vault (by termId) to the server
+ */
+export async function upsertClaimAlertPrefOnServer(
+  address: string,
+  termId: string,
+  pref: ClaimAlertPref
+): Promise<boolean> {
+  try {
+    const res = await fetch('/api/push-subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, claimAlertPref: { termId, pref } }),
+    })
+    return res.ok
+  } catch (error) {
+    console.error('[Push Notifications] Failed to upsert claim alert pref:', error)
+    return false
+  }
+}
+
+/**
+ * Remove per-claim alert preferences for a specific vault (by termId) from the server
+ */
+export async function removeClaimAlertPrefOnServer(
+  address: string,
+  termId: string
+): Promise<boolean> {
+  try {
+    const res = await fetch('/api/push-subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, removeClaimTermId: termId }),
+    })
+    return res.ok
+  } catch (error) {
+    console.error('[Push Notifications] Failed to remove claim alert pref:', error)
+    return false
+  }
+}
+
+/**
+ * Fetch all claim alert preferences for a user from the server.
+ * Returns a map of termId → ClaimAlertPref.
+ */
+export async function fetchClaimAlertPrefs(
+  address: string
+): Promise<Record<string, ClaimAlertPref>> {
+  try {
+    const res = await fetch(`/api/push-subscriptions?address=${encodeURIComponent(address)}`)
+    if (!res.ok) return {}
+    const data = await res.json()
+    const sub = (data.subscriptions || [])[0]
+    return sub?.claim_alert_prefs || {}
+  } catch {
+    return {}
+  }
+}
+
 /**
  * Unsubscribe from push notifications
  */
