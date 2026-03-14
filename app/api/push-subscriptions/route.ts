@@ -12,7 +12,10 @@ export async function POST(req: NextRequest) {
   try {
     const { address, subscription, watchedClaims, alertRanges } = await req.json()
 
+    console.log(`[Push Subscriptions API] POST received — address=${address}, endpoint=${subscription?.endpoint?.slice(-20) ?? 'none'}`)
+
     if (!address || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+      console.warn('[Push Subscriptions API] POST rejected — missing fields:', { address: !!address, endpoint: !!subscription?.endpoint, p256dh: !!subscription?.keys?.p256dh, auth: !!subscription?.keys?.auth })
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
