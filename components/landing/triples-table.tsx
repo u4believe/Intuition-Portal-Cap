@@ -17,11 +17,12 @@ export default function TriplesTable() {
   const { data: result = { triples: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useTriples(currentPage)
   const { triples = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
-  const { syncWatchedClaimsToServer } = usePushNotifications()
+  const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
+  const [selectedClaimTermId, setSelectedClaimTermId] = useState<string>('')
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
@@ -35,11 +36,14 @@ export default function TriplesTable() {
     }
   }
 
-  const handleWatchClick = (claimLabel: string) => {
+  const handleWatchClick = (claimLabel: string, termId: string = '') => {
     if (isWatched(claimLabel)) {
       removeWatchedClaim(claimLabel)
+      syncWatchedClaimsToServer()
+      if (termId) removeClaimAlertPref(termId)
     } else {
       setSelectedClaimForWatch(claimLabel)
+      setSelectedClaimTermId(termId)
       setWatchDialogOpen(true)
     }
   }
@@ -137,7 +141,7 @@ export default function TriplesTable() {
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
-                              handleWatchClick(triple.label)
+                              handleWatchClick(triple.label, triple.termId)
                             }}
                             className="p-1 hover:scale-125 transition-transform flex-shrink-0"
                           >
@@ -188,7 +192,7 @@ export default function TriplesTable() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            handleWatchClick(triple.label)
+                            handleWatchClick(triple.label, triple.termId)
                           }}
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                             isWatched(triple.label)
@@ -220,7 +224,7 @@ export default function TriplesTable() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            handleWatchClick(triple.label)
+                            handleWatchClick(triple.label, triple.termId)
                           }}
                           className="p-0.5 hover:scale-125 transition-transform flex-shrink-0"
                         >
@@ -244,7 +248,7 @@ export default function TriplesTable() {
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          handleWatchClick(triple.label)
+                          handleWatchClick(triple.label, triple.termId)
                         }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0 ml-2 ${
                           isWatched(triple.label)
@@ -317,11 +321,12 @@ export default function TriplesTable() {
         open={watchDialogOpen}
         onOpenChange={setWatchDialogOpen}
         claimLabel={selectedClaimForWatch || ''}
+        termId={selectedClaimTermId}
         onConfirm={(claimLabel) => {
           addWatchedClaim(claimLabel)
-          setTimeout(() => syncWatchedClaimsToServer(), 200)
-          setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
+          setSelectedClaimTermId('')
+          setTimeout(() => syncWatchedClaimsToServer(), 200)
         }}
       />
     </>

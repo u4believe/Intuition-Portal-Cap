@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useCurrentUserId } from '@/hooks/useCurrentUserId'
+import ClaimAlertsPanel from '@/components/claims-alert-panel'
 
 export interface AlertRanges {
   deposits: { enabled: boolean; min: string; max: string }
@@ -488,6 +489,10 @@ export default function AlertsDialog({ open, onOpenChange }: AlertsDialogProps) 
               ⚠ Enable push notifications above so your alert ranges can be saved to the server.
             </p>
           )}
+
+          <div className="border-t border-slate-700/50 pt-3">
+            <ClaimAlertsPanel refreshTrigger={open ? 1 : 0} />
+          </div>
         </div>
 
         <DialogFooter className="gap-2">

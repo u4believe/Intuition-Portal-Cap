@@ -8,32 +8,21 @@ import {
 } from '@/lib/web-push-server'
 import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
 
-// ─── Claim snapshot query ────────────────────────────────────────────────────
+// ─── Claim snapshot query — looks up vaults by term ID ───────────────────────
 const CLAIM_DATA_QUERY = `
-  query GetClaimsForNotification($labels: [String!]) {
-    vaults(
-      where: {
-        term: {
-          atom: { label: { _in: $labels } }
-        }
-      }
-      order_by: { market_cap: desc }
-    ) {
+  query GetClaimsByTermId($termIds: [String!]) {
+    vaults(where: { term: { id: { _in: $termIds } } }) {
       market_cap
       position_count
       total_shares
       total_assets
       current_share_price
-      term {
-        atom {
-          label
-        }
-      }
+      term { id }
     }
   }
 `
 
-// ─── Live Events queries ─────────────────────────────────────────────────────
+// ─── Live Events queries — include vault term ID for claim matching ───────────
 const RECENT_DEPOSITS_QUERY = `
   query GetRecentDeposits($since: timestamptz) {
     deposits(
@@ -44,7 +33,7 @@ const RECENT_DEPOSITS_QUERY = `
       created_at
       assets_after_fees
       vault {
-        term { atom { label } }
+        term { id atom { label } }
       }
     }
   }
@@ -60,7 +49,7 @@ const RECENT_REDEMPTIONS_QUERY = `
       created_at
       assets
       vault {
-        term { atom { label } }
+        term { id atom { label } }
       }
     }
   }
@@ -72,14 +61,13 @@ interface ClaimData {
   total_shares: string
   total_assets: string
   current_share_price: string
-  term: {
-    atom: { label: string } | null
-  }
+  term: { id: string }
 }
 
 interface LiveEvent {
   id: string
   type: 'deposit' | 'redemption'
+  termId: string
   atomLabel: string
   assets: number
   createdAt: string
@@ -89,7 +77,6 @@ function toNumber(val: string | number | null | undefined): number {
   if (val === null || val === undefined || val === '') return 0
   const n = typeof val === 'string' ? parseFloat(val) : val
   if (isNaN(n)) return 0
-  // Convert from wei if value is astronomically large
   if (n > 1e15) return n / 1e18
   return n
 }
@@ -115,6 +102,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
       events.push({
         id: String(d.id),
         type: 'deposit',
+        termId: d.vault?.term?.id || '',
         atomLabel: d.vault?.term?.atom?.label || 'Unknown',
         assets,
         createdAt: d.created_at,
@@ -132,6 +120,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
       events.push({
         id: String(r.id),
         type: 'redemption',
+        termId: r.vault?.term?.id || '',
         atomLabel: r.vault?.term?.atom?.label || 'Unknown',
         assets,
         createdAt: r.created_at,
@@ -166,71 +155,72 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Log subscription details for debugging
     for (const sub of subscriptions) {
+      const claimCount = Object.keys(sub.claim_alert_prefs || {}).length
       console.log(
         `[Check Notifications] Sub: address=${sub.address}, ` +
+        `claimPrefs=${claimCount}, ` +
         `watched=${JSON.stringify(sub.watched_claims)}, ` +
         `ranges=${JSON.stringify(sub.alert_ranges)}`
       )
     }
 
-    // ── 1. Determine the "since" timestamp for live events ──────────────────
-    // The poller passes ?since= when it has a previous run timestamp.
-    // This guarantees each event is processed exactly once.
+    // ── 1. Determine the "since" timestamp ──────────────────────────────────
     const sinceParam = req.nextUrl.searchParams.get('since')
     const since = sinceParam
       ? new Date(sinceParam)
-      : new Date(Date.now() - 5 * 60 * 1000) // fallback: last 5 min
+      : new Date(Date.now() - 5 * 60 * 1000)
     console.log(`[Check Notifications] Fetching live events since: ${since.toISOString()}`)
 
-    // ── 2. Fetch live events ────────────────────────────────────────────────
+    // ── 2. Fetch live events ─────────────────────────────────────────────────
     const liveEvents = await fetchRecentLiveEvents(since)
     console.log(`[Check Notifications] Got ${liveEvents.length} live event(s) since ${since.toISOString()}`)
     for (const ev of liveEvents) {
-      console.log(`  [Event] ${ev.type} id=${ev.id} assets=${ev.assets.toFixed(4)} TRUST atom="${ev.atomLabel}"`)
+      console.log(`  [Event] ${ev.type} id=${ev.id} assets=${ev.assets.toFixed(4)} TRUST termId="${ev.termId}" atom="${ev.atomLabel}"`)
     }
 
-    // ── 3. Fetch current claim data for all watched claims ──────────────────
-    const allWatchedLabels = new Set<string>()
+    // ── 3. Collect all termIds from claim_alert_prefs across subscriptions ───
+    const allTermIds = new Set<string>()
     for (const sub of subscriptions) {
-      for (const label of sub.watched_claims || []) {
-        allWatchedLabels.add(label)
+      for (const termId of Object.keys(sub.claim_alert_prefs || {})) {
+        if (termId) allTermIds.add(termId)
       }
     }
 
-    let currentClaimsMap = new Map<string, ClaimSnapshot>()
-    if (allWatchedLabels.size > 0) {
-      console.log(`[Check Notifications] Fetching claim data for: ${[...allWatchedLabels].join(', ')}`)
+    // ── 4. Fetch current claim data for all watched term IDs ─────────────────
+    const currentClaimsMap = new Map<string, ClaimSnapshot>()
+    if (allTermIds.size > 0) {
+      console.log(`[Check Notifications] Fetching claim data for ${allTermIds.size} term ID(s)`)
       try {
         const result = await queryIntuitionGraphQL(CLAIM_DATA_QUERY, {
-          labels: Array.from(allWatchedLabels),
+          termIds: Array.from(allTermIds),
         })
         for (const vault of (result?.vaults || []) as ClaimData[]) {
-          const label = vault.term?.atom?.label
-          if (!label) continue
+          const termId = vault.term?.id
+          if (!termId) continue
           const snap: ClaimSnapshot = {
-            claim_label: label,
+            claim_label: termId,
             market_cap: toNumber(vault.market_cap),
             position_count: vault.position_count || 0,
             total_shares: toNumber(vault.total_shares),
             total_assets: toNumber(vault.total_assets),
             current_share_price: toNumber(vault.current_share_price),
           }
-          currentClaimsMap.set(label, snap)
-          console.log(`  [Claim] "${label}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count}`)
+          currentClaimsMap.set(termId, snap)
+          console.log(`  [Claim] termId="${termId}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count}`)
         }
       } catch (e) {
         console.error('[Check Notifications] Claim GraphQL failed:', e)
       }
     }
 
+    // Load claim snapshots (baseline) from DB, keyed by termId
     const snapshots = await getClaimSnapshots()
     const snapshotsMap = new Map<string, ClaimSnapshot>()
     for (const snap of snapshots) snapshotsMap.set(snap.claim_label, snap)
     console.log(`[Check Notifications] Loaded ${snapshots.length} claim snapshot(s) from DB`)
 
-    // ── 4. Build notifications ──────────────────────────────────────────────
+    // ── 5. Build notifications per subscription ──────────────────────────────
     const notificationsToSend: Array<{
       subscription: typeof subscriptions[0]
       payload: { title: string; body: string; tag: string; url: string }
@@ -238,18 +228,19 @@ export async function GET(req: NextRequest) {
 
     for (const subscription of subscriptions) {
       const alerts: string[] = []
+      const claimPrefs = subscription.claim_alert_prefs || {}
 
-      // Claim snapshot alerts (requires a previous snapshot to compare against)
-      for (const claimLabel of subscription.watched_claims || []) {
-        const current = currentClaimsMap.get(claimLabel)
-        const previous = snapshotsMap.get(claimLabel)
+      // ─ A. Per-claim snapshot alerts (marketCap, positionCount, sharesChange) ─
+      for (const [termId, pref] of Object.entries(claimPrefs)) {
+        const current = currentClaimsMap.get(termId)
+        const previous = snapshotsMap.get(termId)
 
         if (!current) {
-          console.log(`  [Claim alert] No current data for "${claimLabel}", skipping`)
+          console.log(`  [Claim alert] No current data for termId="${termId}" (${pref.label}), skipping`)
           continue
         }
         if (!previous) {
-          console.log(`  [Claim alert] No previous snapshot for "${claimLabel}" — baseline will be set this run`)
+          console.log(`  [Claim alert] No snapshot for "${pref.label}" — baseline set this run`)
           continue
         }
 
@@ -258,65 +249,62 @@ export async function GET(req: NextRequest) {
         const sharesChange = pctChange(previous.total_shares, current.total_shares)
 
         console.log(
-          `  [Claim alert] "${claimLabel}" marketCap Δ${marketCapChange.toFixed(1)}% ` +
+          `  [Claim alert] "${pref.label}" marketCap Δ${marketCapChange.toFixed(1)}% ` +
           `positions Δ${positionChange} shares Δ${sharesChange.toFixed(1)}%`
         )
 
-        // 2% threshold for market cap / shares; 3 positions minimum change
-        if (marketCapChange >= 2) {
+        if (pref.marketCap && marketCapChange >= 2) {
           const dir = current.market_cap > previous.market_cap ? '↑' : '↓'
-          alerts.push(`${claimLabel}: market cap ${dir}${marketCapChange.toFixed(1)}%`)
+          alerts.push(`${pref.label}: market cap ${dir}${marketCapChange.toFixed(1)}%`)
         }
-        if (positionChange >= 3) {
+        if (pref.positionCount && positionChange >= 1) {
           const dir = current.position_count > previous.position_count ? '+' : '-'
-          alerts.push(`${claimLabel}: ${dir}${positionChange} position${positionChange > 1 ? 's' : ''}`)
+          alerts.push(`${pref.label}: ${dir}${positionChange} position${positionChange > 1 ? 's' : ''}`)
         }
-        if (sharesChange >= 2) {
+        if (pref.sharesChange && sharesChange >= 2) {
           const dir = current.total_shares > previous.total_shares ? '↑' : '↓'
-          alerts.push(`${claimLabel}: shares ${dir}${sharesChange.toFixed(1)}%`)
+          alerts.push(`${pref.label}: shares ${dir}${sharesChange.toFixed(1)}%`)
         }
       }
 
-      // Live Events range alerts
-      // If alert_ranges is null (user subscribed without configuring), default to all enabled
+      // ─ B. Live event alerts ───────────────────────────────────────────────
       const DEFAULT_RANGE = { enabled: true, min: 0, max: 10_000 }
       const ranges = subscription.alert_ranges
       const depositCfg = ranges?.deposits ?? DEFAULT_RANGE
       const redemptionCfg = ranges?.redemptions ?? DEFAULT_RANGE
 
-      if (!ranges) {
-        console.log(`  [Range check] address=${subscription.address} — no alert_ranges set, defaulting to all enabled`)
-      } else {
-        console.log(
-          `  [Range check] address=${subscription.address} ` +
-          `depositCfg=${JSON.stringify(depositCfg)} ` +
-          `redemptionCfg=${JSON.stringify(redemptionCfg)}`
-        )
-      }
-
       for (const event of liveEvents) {
-        const isOnWatchedClaim = (subscription.watched_claims || []).includes(event.atomLabel)
+        const claimPref = claimPrefs[event.termId]
 
-        if (event.type === 'deposit' && depositCfg?.enabled) {
-          const inRangeMatch = inRange(event.assets, depositCfg.min, depositCfg.max)
-          const matches = inRangeMatch || isOnWatchedClaim
-          console.log(
-            `    [Deposit] id=${event.id} assets=${event.assets.toFixed(4)} ` +
-            `range=${depositCfg.min}-${depositCfg.max} inRange=${inRangeMatch} watched=${isOnWatchedClaim} match=${matches}`
-          )
-          if (matches) {
-            alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
+        if (claimPref) {
+          // Per-claim alert: deposit/redemption on a specifically watched claim
+          if (event.type === 'deposit' && claimPref.deposits) {
+            const label = claimPref.label || event.atomLabel
+            console.log(`    [Deposit/Watched] "${label}" assets=${event.assets.toFixed(4)}`)
+            alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${label}"`)
           }
-        }
-        if (event.type === 'redemption' && redemptionCfg?.enabled) {
-          const inRangeMatch = inRange(event.assets, redemptionCfg.min, redemptionCfg.max)
-          const matches = inRangeMatch || isOnWatchedClaim
-          console.log(
-            `    [Redemption] id=${event.id} assets=${event.assets.toFixed(4)} ` +
-            `range=${redemptionCfg.min}-${redemptionCfg.max} inRange=${inRangeMatch} watched=${isOnWatchedClaim} match=${matches}`
-          )
-          if (matches) {
-            alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
+          if (event.type === 'redemption' && claimPref.redemptions) {
+            const label = claimPref.label || event.atomLabel
+            console.log(`    [Redemption/Watched] "${label}" assets=${event.assets.toFixed(4)}`)
+            alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${label}"`)
+          }
+        } else {
+          // Global range alert: fire for any event in the configured TRUST range
+          if (event.type === 'deposit' && depositCfg?.enabled) {
+            const matches = inRange(event.assets, depositCfg.min, depositCfg.max)
+            console.log(
+              `    [Deposit/Global] assets=${event.assets.toFixed(4)} ` +
+              `range=${depositCfg.min}-${depositCfg.max} match=${matches}`
+            )
+            if (matches) alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
+          }
+          if (event.type === 'redemption' && redemptionCfg?.enabled) {
+            const matches = inRange(event.assets, redemptionCfg.min, redemptionCfg.max)
+            console.log(
+              `    [Redemption/Global] assets=${event.assets.toFixed(4)} ` +
+              `range=${redemptionCfg.min}-${redemptionCfg.max} match=${matches}`
+            )
+            if (matches) alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
           }
         }
       }
@@ -337,7 +325,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── 5. Send notifications ───────────────────────────────────────────────
+    // ── 6. Send notifications ─────────────────────────────────────────────────
     let totalNotified = 0
     await Promise.allSettled(
       notificationsToSend.map(async ({ subscription, payload }) => {
@@ -346,7 +334,7 @@ export async function GET(req: NextRequest) {
       })
     )
 
-    // ── 6. Update claim snapshots (always, so baseline is current) ──────────
+    // ── 7. Update claim snapshots as new baseline ────────────────────────────
     if (currentClaimsMap.size > 0) {
       await Promise.allSettled(
         Array.from(currentClaimsMap.values()).map(snap => upsertClaimSnapshot(snap))
@@ -362,7 +350,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       subscriptions: subscriptions.length,
-      claimsWatched: allWatchedLabels.size,
+      claimsWatched: allTermIds.size,
       liveEventsChecked: liveEvents.length,
       notificationsSent: totalNotified,
     })

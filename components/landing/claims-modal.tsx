@@ -20,12 +20,13 @@ type SortOrder = "asc" | "desc"
 export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
   const { data: claims = [], isLoading: loading } = useAllClaims()
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
-  const { syncWatchedClaimsToServer } = usePushNotifications()
+  const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>("marketCap")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null)
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
+  const [selectedClaimTermId, setSelectedClaimTermId] = useState<string>("")
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
@@ -39,11 +40,14 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
     }
   }
 
-  const handleWatchClick = (claimLabel: string) => {
+  const handleWatchClick = (claimLabel: string, termId: string = "") => {
     if (isWatched(claimLabel)) {
       removeWatchedClaim(claimLabel)
+      syncWatchedClaimsToServer()
+      if (termId) removeClaimAlertPref(termId)
     } else {
       setSelectedClaimForWatch(claimLabel)
+      setSelectedClaimTermId(termId)
       setWatchDialogOpen(true)
     }
   }
@@ -170,7 +174,7 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
                       <td className="py-4 px-4 text-center">
                         <div className="flex justify-center">
                           <button
-                            onClick={() => handleWatchClick(claim.label)}
+                            onClick={() => handleWatchClick(claim.label, claim.termId)}
                             className={`p-2 rounded-lg transition-all ${
                               isWatched(claim.label)
                                 ? "bg-primary/20 text-primary hover:bg-primary/30"
@@ -216,16 +220,16 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Watch Preferences Dialog */}
       <WatchPreferencesDialog
         open={watchDialogOpen}
         onOpenChange={setWatchDialogOpen}
         claimLabel={selectedClaimForWatch || ""}
+        termId={selectedClaimTermId}
         onConfirm={(claimLabel) => {
           addWatchedClaim(claimLabel)
-          setTimeout(() => syncWatchedClaimsToServer(), 200)
-          setWatchDialogOpen(false)
           setSelectedClaimForWatch(null)
+          setSelectedClaimTermId("")
+          setTimeout(() => syncWatchedClaimsToServer(), 200)
         }}
       />
     </>

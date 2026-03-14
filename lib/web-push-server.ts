@@ -22,6 +22,15 @@ export interface AlertRangeConfig {
   max: number
 }
 
+export interface ClaimAlertPref {
+  label: string
+  deposits: boolean
+  redemptions: boolean
+  marketCap: boolean
+  positionCount: boolean
+  sharesChange: boolean
+}
+
 export interface PushSubscriptionRow {
   id: number
   address: string
@@ -33,6 +42,7 @@ export interface PushSubscriptionRow {
     deposits?: AlertRangeConfig
     redemptions?: AlertRangeConfig
   }
+  claim_alert_prefs: Record<string, ClaimAlertPref>
   created_at: Date
   updated_at: Date
 }
@@ -131,10 +141,53 @@ export async function updateAlertRanges(
   }
 }
 
+export async function upsertClaimAlertPref(
+  address: string,
+  termId: string,
+  pref: ClaimAlertPref
+): Promise<boolean> {
+  try {
+    const patch = JSON.stringify({ [termId]: pref })
+    await pool.query(
+      `UPDATE push_subscriptions
+         SET claim_alert_prefs = COALESCE(claim_alert_prefs, '{}'::jsonb) || $2::jsonb,
+             updated_at = NOW()
+       WHERE address = $1`,
+      [address, patch]
+    )
+    return true
+  } catch (error) {
+    console.error('[Push Server] Failed to upsert claim alert pref:', error)
+    return false
+  }
+}
+
+export async function removeClaimAlertPref(
+  address: string,
+  termId: string
+): Promise<boolean> {
+  try {
+    await pool.query(
+      `UPDATE push_subscriptions
+         SET claim_alert_prefs = COALESCE(claim_alert_prefs, '{}'::jsonb) - $2,
+             updated_at = NOW()
+       WHERE address = $1`,
+      [address, termId]
+    )
+    return true
+  } catch (error) {
+    console.error('[Push Server] Failed to remove claim alert pref:', error)
+    return false
+  }
+}
+
 export async function getAllSubscriptions(): Promise<PushSubscriptionRow[]> {
   try {
     const result = await pool.query('SELECT * FROM push_subscriptions')
-    return result.rows
+    return result.rows.map(row => ({
+      ...row,
+      claim_alert_prefs: row.claim_alert_prefs || {},
+    }))
   } catch (error) {
     console.error('[Push Server] Failed to get subscriptions:', error)
     return []
@@ -147,7 +200,10 @@ export async function getSubscriptionsByAddress(address: string): Promise<PushSu
       'SELECT * FROM push_subscriptions WHERE address = $1',
       [address]
     )
-    return result.rows
+    return result.rows.map(row => ({
+      ...row,
+      claim_alert_prefs: row.claim_alert_prefs || {},
+    }))
   } catch (error) {
     console.error('[Push Server] Failed to get subscriptions by address:', error)
     return []

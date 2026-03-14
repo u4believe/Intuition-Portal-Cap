@@ -5,6 +5,9 @@ import {
   getSubscriptionsByAddress,
   updateWatchedClaims,
   updateAlertRanges,
+  upsertClaimAlertPref,
+  removeClaimAlertPref,
+  ClaimAlertPref,
 } from '@/lib/web-push-server'
 
 // POST: Save a push subscription
@@ -78,10 +81,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PATCH: Update watched claims and/or alert ranges for an address
+// PATCH: Update watched claims, alert ranges, and/or per-claim alert prefs
 export async function PATCH(req: NextRequest) {
   try {
-    const { address, watchedClaims, alertRanges } = await req.json()
+    const { address, watchedClaims, alertRanges, claimAlertPref, removeClaimTermId } = await req.json()
 
     if (!address) {
       return NextResponse.json({ error: 'Missing address' }, { status: 400 })
@@ -98,6 +101,25 @@ export async function PATCH(req: NextRequest) {
     if (alertRanges !== undefined) {
       const ok = await updateAlertRanges(address, alertRanges)
       if (!ok) return NextResponse.json({ error: 'Failed to update alert ranges' }, { status: 500 })
+    }
+
+    // Upsert a single claim's alert preferences: { termId, pref }
+    if (claimAlertPref !== undefined) {
+      const { termId, pref } = claimAlertPref as { termId: string; pref: ClaimAlertPref }
+      if (!termId || !pref) {
+        return NextResponse.json({ error: 'claimAlertPref requires termId and pref' }, { status: 400 })
+      }
+      const ok = await upsertClaimAlertPref(address, termId, pref)
+      if (!ok) return NextResponse.json({ error: 'Failed to upsert claim alert pref' }, { status: 500 })
+    }
+
+    // Remove a single claim's alert preferences by termId
+    if (removeClaimTermId !== undefined) {
+      if (typeof removeClaimTermId !== 'string') {
+        return NextResponse.json({ error: 'removeClaimTermId must be a string' }, { status: 400 })
+      }
+      const ok = await removeClaimAlertPref(address, removeClaimTermId)
+      if (!ok) return NextResponse.json({ error: 'Failed to remove claim alert pref' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })

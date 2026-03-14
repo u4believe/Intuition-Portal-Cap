@@ -575,6 +575,7 @@ export default function LandingPage() {
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           claimLabel={editingClaim}
+          termId=""
           mode="edit"
           onConfirm={() => {
             setEditDialogOpen(false)
