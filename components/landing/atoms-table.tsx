@@ -5,6 +5,7 @@ import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-
 import Link from 'next/link'
 import { useAtoms } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
@@ -16,6 +17,7 @@ export default function AtomsTable() {
   const { data: result = { atoms: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAtoms(currentPage)
   const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
+  const { syncWatchedClaimsToServer } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
@@ -327,6 +329,7 @@ export default function AtomsTable() {
           onConfirm={() => {
             if (selectedClaimForWatch) {
               addWatchedClaim(selectedClaimForWatch)
+              setTimeout(() => syncWatchedClaimsToServer(), 200)
             }
             setWatchDialogOpen(false)
           }}
