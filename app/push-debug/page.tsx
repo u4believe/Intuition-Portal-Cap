@@ -159,10 +159,24 @@ export default function PushDebugPage() {
 
       <p className="text-slate-500 text-xs mb-2 break-all">UA: {state.ua}</p>
 
+      {!state.supported && state.ua.includes('iPhone') && (
+        <div className="bg-amber-900/40 border border-amber-600/50 rounded-lg p-4 mb-4">
+          <p className="text-amber-300 font-semibold text-sm mb-2">📱 iPhone detected — Safari requires a PWA install</p>
+          <p className="text-amber-200 text-xs mb-3">iOS Safari blocks push notifications in regular browser tabs. You must first add this app to your Home Screen:</p>
+          <ol className="text-amber-100 text-xs space-y-1 list-decimal list-inside">
+            <li>Tap the <strong>Share</strong> button (box with arrow, bottom of Safari)</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>Add</strong> in the top-right</li>
+            <li>Open the app from your Home Screen icon</li>
+            <li>Come back to <strong>/push-debug</strong> and tap Enable</li>
+          </ol>
+        </div>
+      )}
+
       <div className="space-y-2 mb-4">
         <button
           onClick={handleSubscribe}
-          disabled={busy || !userId}
+          disabled={busy || !userId || !state.supported}
           className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold py-3 rounded-lg text-sm"
         >
           {busy ? 'Working…' : 'Enable Alerts for This Account'}
