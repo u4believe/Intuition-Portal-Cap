@@ -18,15 +18,110 @@ interface WatchPreferencesDialogProps {
   initialPrefs?: Partial<ClaimAlertPref>
 }
 
-const ALERT_TYPES: { key: keyof Omit<ClaimAlertPref, 'label'>; label: string; desc: string; Icon: React.ElementType }[] = [
-  { key: 'deposits', label: 'Deposits', desc: 'Notify when TRUST is deposited into this vault', Icon: ArrowUpRight },
-  { key: 'redemptions', label: 'Redemptions', desc: 'Notify when TRUST is redeemed from this vault', Icon: ArrowDownLeft },
-  { key: 'marketCap', label: 'Market Cap Change', desc: 'Notify on significant market cap changes (2%+)', Icon: TrendingUp },
-  { key: 'positionCount', label: 'Position Count Change', desc: 'Notify when position count changes', Icon: Users },
-  { key: 'sharesChange', label: 'Shares Change', desc: 'Notify on significant share movements (2%+)', Icon: BarChart2 },
-]
+interface PrefState {
+  deposits: boolean
+  depositsMin: string
+  depositsMax: string
+  redemptions: boolean
+  redemptionsMin: string
+  redemptionsMax: string
+  marketCap: boolean
+  marketCapMin: string
+  positionCount: boolean
+  sharesChange: boolean
+  sharesChangeMin: string
+}
 
-const DEFAULT_PREFS = { deposits: true, redemptions: true, marketCap: true, positionCount: true, sharesChange: true }
+const DEFAULT_STATE: PrefState = {
+  deposits: true,
+  depositsMin: '0',
+  depositsMax: '10000',
+  redemptions: true,
+  redemptionsMin: '0',
+  redemptionsMax: '10000',
+  marketCap: true,
+  marketCapMin: '2',
+  positionCount: true,
+  sharesChange: true,
+  sharesChangeMin: '2',
+}
+
+function toState(p?: Partial<ClaimAlertPref>): PrefState {
+  if (!p) return DEFAULT_STATE
+  return {
+    deposits: p.deposits ?? true,
+    depositsMin: String(p.depositsMin ?? 0),
+    depositsMax: String(p.depositsMax ?? 10000),
+    redemptions: p.redemptions ?? true,
+    redemptionsMin: String(p.redemptionsMin ?? 0),
+    redemptionsMax: String(p.redemptionsMax ?? 10000),
+    marketCap: p.marketCap ?? true,
+    marketCapMin: String(p.marketCapMin ?? 2),
+    positionCount: p.positionCount ?? true,
+    sharesChange: p.sharesChange ?? true,
+    sharesChangeMin: String(p.sharesChangeMin ?? 2),
+  }
+}
+
+function toPref(label: string, s: PrefState): ClaimAlertPref {
+  return {
+    label,
+    deposits: s.deposits,
+    depositsMin: parseFloat(s.depositsMin) || 0,
+    depositsMax: parseFloat(s.depositsMax) || 10000,
+    redemptions: s.redemptions,
+    redemptionsMin: parseFloat(s.redemptionsMin) || 0,
+    redemptionsMax: parseFloat(s.redemptionsMax) || 10000,
+    marketCap: s.marketCap,
+    marketCapMin: parseFloat(s.marketCapMin) || 2,
+    positionCount: s.positionCount,
+    sharesChange: s.sharesChange,
+    sharesChangeMin: parseFloat(s.sharesChangeMin) || 2,
+  }
+}
+
+function RangeRow({
+  label,
+  minVal,
+  maxVal,
+  unit,
+  onMinChange,
+  onMaxChange,
+}: {
+  label?: string
+  minVal: string
+  maxVal?: string
+  unit: string
+  onMinChange: (v: string) => void
+  onMaxChange?: (v: string) => void
+}) {
+  return (
+    <div className="ml-8 mt-1.5 flex items-center gap-2 flex-wrap">
+      {label && <span className="text-xs text-slate-500 w-full mb-0.5">{label}</span>}
+      <span className="text-xs text-slate-500">Min</span>
+      <input
+        type="number"
+        value={minVal}
+        min="0"
+        onChange={e => onMinChange(e.target.value)}
+        className="w-20 h-6 px-1.5 text-xs rounded bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-cyan-500"
+      />
+      {maxVal !== undefined && onMaxChange && (
+        <>
+          <span className="text-xs text-slate-500">Max</span>
+          <input
+            type="number"
+            value={maxVal}
+            min="0"
+            onChange={e => onMaxChange(e.target.value)}
+            className="w-24 h-6 px-1.5 text-xs rounded bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-cyan-500"
+          />
+        </>
+      )}
+      <span className="text-xs text-slate-400">{unit}</span>
+    </div>
+  )
+}
 
 export default function WatchPreferencesDialog({
   open,
@@ -38,23 +133,22 @@ export default function WatchPreferencesDialog({
   initialPrefs,
 }: WatchPreferencesDialogProps) {
   const { isSubscribed, subscribe: enablePushNotifications, isLoading: pushLoading, upsertClaimAlertPref } = usePushNotifications()
-  const [prefs, setPrefs] = useState({ ...DEFAULT_PREFS })
+  const [prefs, setPrefs] = useState<PrefState>(DEFAULT_STATE)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setPrefs({ ...DEFAULT_PREFS, ...initialPrefs })
+    setPrefs(toState(initialPrefs))
   }, [open, claimLabel, initialPrefs])
 
-  const toggle = (key: keyof typeof prefs) => {
-    setPrefs(prev => ({ ...prev, [key]: !prev[key] }))
-  }
+  const set = (key: keyof PrefState, val: string | boolean) =>
+    setPrefs(prev => ({ ...prev, [key]: val }))
 
   const handleConfirm = async () => {
     setSaving(true)
     try {
       if (termId) {
-        await upsertClaimAlertPref(termId, { label: claimLabel, ...prefs })
+        await upsertClaimAlertPref(termId, toPref(claimLabel, prefs))
       }
       onConfirm(claimLabel, termId)
       onOpenChange(false)
@@ -63,11 +157,11 @@ export default function WatchPreferencesDialog({
     }
   }
 
-  const anySelected = Object.values(prefs).some(Boolean)
+  const anySelected = prefs.deposits || prefs.redemptions || prefs.marketCap || prefs.positionCount || prefs.sharesChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-w-md">
+      <DialogContent className="bg-slate-900 border-slate-700 max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white text-base">
             {mode === 'edit' ? 'Edit Alert Preferences' : 'Watch Claim'}
@@ -77,26 +171,132 @@ export default function WatchPreferencesDialog({
 
         <div className="space-y-2 py-1">
           <p className="text-xs text-slate-400 pb-1">Choose which events trigger a push notification:</p>
-          {ALERT_TYPES.map(({ key, label, desc, Icon }) => (
-            <label
-              key={key}
-              className="flex items-start gap-3 p-3 rounded-lg border border-slate-700 bg-slate-800/50 cursor-pointer hover:border-slate-600 transition-colors select-none"
-              onClick={() => toggle(key)}
-            >
+
+          {/* Deposits */}
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none" onClick={() => set('deposits', !prefs.deposits)}>
               <Checkbox
-                checked={prefs[key]}
-                onCheckedChange={() => toggle(key)}
+                checked={prefs.deposits}
+                onCheckedChange={() => set('deposits', !prefs.deposits)}
                 className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
               />
-              <div className="flex-1 min-w-0">
+              <div className="flex-1">
                 <div className="flex items-center gap-1.5">
-                  <Icon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span className="text-sm font-medium text-slate-200">{label}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-200">Deposits</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Notify when TRUST is deposited into this vault</p>
               </div>
             </label>
-          ))}
+            {prefs.deposits && (
+              <RangeRow
+                label="Alert range (TRUST amount):"
+                minVal={prefs.depositsMin}
+                maxVal={prefs.depositsMax}
+                unit="TRUST"
+                onMinChange={v => set('depositsMin', v)}
+                onMaxChange={v => set('depositsMax', v)}
+              />
+            )}
+          </div>
+
+          {/* Redemptions */}
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none" onClick={() => set('redemptions', !prefs.redemptions)}>
+              <Checkbox
+                checked={prefs.redemptions}
+                onCheckedChange={() => set('redemptions', !prefs.redemptions)}
+                className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <ArrowDownLeft className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-200">Redemptions</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Notify when TRUST is redeemed from this vault</p>
+              </div>
+            </label>
+            {prefs.redemptions && (
+              <RangeRow
+                label="Alert range (TRUST amount):"
+                minVal={prefs.redemptionsMin}
+                maxVal={prefs.redemptionsMax}
+                unit="TRUST"
+                onMinChange={v => set('redemptionsMin', v)}
+                onMaxChange={v => set('redemptionsMax', v)}
+              />
+            )}
+          </div>
+
+          {/* Market Cap */}
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none" onClick={() => set('marketCap', !prefs.marketCap)}>
+              <Checkbox
+                checked={prefs.marketCap}
+                onCheckedChange={() => set('marketCap', !prefs.marketCap)}
+                className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-200">Market Cap Change</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Notify on significant market cap changes</p>
+              </div>
+            </label>
+            {prefs.marketCap && (
+              <RangeRow
+                label="Minimum % change to trigger:"
+                minVal={prefs.marketCapMin}
+                unit="%"
+                onMinChange={v => set('marketCapMin', v)}
+              />
+            )}
+          </div>
+
+          {/* Position Count */}
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none" onClick={() => set('positionCount', !prefs.positionCount)}>
+              <Checkbox
+                checked={prefs.positionCount}
+                onCheckedChange={() => set('positionCount', !prefs.positionCount)}
+                className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-200">Position Count Change</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Notify when the number of positions changes</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Shares Change */}
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none" onClick={() => set('sharesChange', !prefs.sharesChange)}>
+              <Checkbox
+                checked={prefs.sharesChange}
+                onCheckedChange={() => set('sharesChange', !prefs.sharesChange)}
+                className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <BarChart2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-200">Shares Change</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Notify on significant share movements</p>
+              </div>
+            </label>
+            {prefs.sharesChange && (
+              <RangeRow
+                label="Minimum % change to trigger:"
+                minVal={prefs.sharesChangeMin}
+                unit="%"
+                onMinChange={v => set('sharesChangeMin', v)}
+              />
+            )}
+          </div>
         </div>
 
         {!isSubscribed && (

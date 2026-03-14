@@ -253,7 +253,9 @@ export async function GET(req: NextRequest) {
           `positions Δ${positionChange} shares Δ${sharesChange.toFixed(1)}%`
         )
 
-        if (pref.marketCap && marketCapChange >= 2) {
+        const mktCapThreshold = pref.marketCapMin ?? 2
+        const sharesThreshold = pref.sharesChangeMin ?? 2
+        if (pref.marketCap && marketCapChange >= mktCapThreshold) {
           const dir = current.market_cap > previous.market_cap ? '↑' : '↓'
           alerts.push(`${pref.label}: market cap ${dir}${marketCapChange.toFixed(1)}%`)
         }
@@ -261,7 +263,7 @@ export async function GET(req: NextRequest) {
           const dir = current.position_count > previous.position_count ? '+' : '-'
           alerts.push(`${pref.label}: ${dir}${positionChange} position${positionChange > 1 ? 's' : ''}`)
         }
-        if (pref.sharesChange && sharesChange >= 2) {
+        if (pref.sharesChange && sharesChange >= sharesThreshold) {
           const dir = current.total_shares > previous.total_shares ? '↑' : '↓'
           alerts.push(`${pref.label}: shares ${dir}${sharesChange.toFixed(1)}%`)
         }
@@ -280,13 +282,19 @@ export async function GET(req: NextRequest) {
           // Per-claim alert: deposit/redemption on a specifically watched claim
           if (event.type === 'deposit' && claimPref.deposits) {
             const label = claimPref.label || event.atomLabel
-            console.log(`    [Deposit/Watched] "${label}" assets=${event.assets.toFixed(4)}`)
-            alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${label}"`)
+            const min = claimPref.depositsMin ?? 0
+            const max = claimPref.depositsMax ?? 10_000
+            const matches = inRange(event.assets, min, max)
+            console.log(`    [Deposit/Watched] "${label}" assets=${event.assets.toFixed(4)} range=${min}-${max} match=${matches}`)
+            if (matches) alerts.push(`Deposit: ${event.assets.toFixed(2)} TRUST on "${label}"`)
           }
           if (event.type === 'redemption' && claimPref.redemptions) {
             const label = claimPref.label || event.atomLabel
-            console.log(`    [Redemption/Watched] "${label}" assets=${event.assets.toFixed(4)}`)
-            alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${label}"`)
+            const min = claimPref.redemptionsMin ?? 0
+            const max = claimPref.redemptionsMax ?? 10_000
+            const matches = inRange(event.assets, min, max)
+            console.log(`    [Redemption/Watched] "${label}" assets=${event.assets.toFixed(4)} range=${min}-${max} match=${matches}`)
+            if (matches) alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${label}"`)
           }
         } else {
           // Global range alert: fire for any event in the configured TRUST range
