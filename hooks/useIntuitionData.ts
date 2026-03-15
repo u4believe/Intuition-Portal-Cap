@@ -70,11 +70,13 @@ function isUnknownEntry(item: any): boolean {
   return false
 }
 
-export function useAllClaims(page: number = 1) {
+export function useAllClaims(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['allClaims', page],
+    queryKey: ['allClaims', page, search],
     queryFn: async () => {
-      const response = await fetch(`/api/all-claims-holders?page=${page}`)
+      const params = new URLSearchParams({ page: String(page) })
+      if (search) params.set('search', search)
+      const response = await fetch(`/api/all-claims-holders?${params}`)
       if (!response.ok) throw new Error('Failed to fetch claims')
       const data = await response.json()
       const filteredClaims = (data.claims || []).filter((claim: any) => !isUnknownEntry(claim))
@@ -83,15 +85,17 @@ export function useAllClaims(page: number = 1) {
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
-    staleTime: 86400000, // 24 hours
+    staleTime: search ? 60000 : 86400000,
   })
 }
 
-export function useTriples(page: number = 1) {
+export function useTriples(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['triples', page],
+    queryKey: ['triples', page, search],
     queryFn: async () => {
-      const response = await fetch(`/api/top-triples?page=${page}`)
+      const params = new URLSearchParams({ page: String(page) })
+      if (search) params.set('search', search)
+      const response = await fetch(`/api/top-triples?${params}`)
       if (!response.ok) throw new Error('Failed to fetch triples')
       const data = await response.json()
       const filteredTriples = (data.triples || []).filter((triple: any) => !isUnknownEntry(triple))
@@ -100,7 +104,7 @@ export function useTriples(page: number = 1) {
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
-    staleTime: 86400000, // 24 hours
+    staleTime: search ? 60000 : 86400000,
   })
 }
 
@@ -117,11 +121,13 @@ export function useTopClaims() {
   })
 }
 
-export function useAtoms(page: number = 1) {
+export function useAtoms(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['atoms', page],
+    queryKey: ['atoms', page, search],
     queryFn: async () => {
-      const response = await fetch(`/api/top-atoms?page=${page}`)
+      const params = new URLSearchParams({ page: String(page) })
+      if (search) params.set('search', search)
+      const response = await fetch(`/api/top-atoms?${params}`)
       if (!response.ok) throw new Error('Failed to fetch atoms')
       const data = await response.json()
       return {
@@ -155,6 +161,6 @@ export function useAtoms(page: number = 1) {
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
-    staleTime: 86400000, // 24 hours
+    staleTime: search ? 60000 : 86400000,
   })
 }

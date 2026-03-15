@@ -15,7 +15,8 @@ type SortOrder = 'asc' | 'desc'
 export default function TriplesTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
   const highlightRef = useRef<HTMLTableRowElement | HTMLAnchorElement | null>(null)
-  const { data: result = { triples: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useTriples(currentPage)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const { data: result = { triples: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useTriples(debouncedSearch ? 1 : currentPage, debouncedSearch)
   const { triples = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
@@ -65,6 +66,11 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
 
   const [tableSearch, setTableSearch] = useState('')
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(tableSearch.trim()), 350)
+    return () => clearTimeout(t)
+  }, [tableSearch])
+
   const sortedTriples = [...triples]
     .sort((a, b) => {
       let aValue: any = a[sortField]
@@ -79,15 +85,6 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
-
-  const q = tableSearch.trim().toLowerCase()
-  const filteredTriples = q
-    ? sortedTriples.filter(t =>
-        t.subjectLabel?.toLowerCase().includes(q) ||
-        t.predicateLabel?.toLowerCase().includes(q) ||
-        t.objectLabel?.toLowerCase().includes(q)
-      )
-    : sortedTriples
 
   const formatNumber = (num: number | undefined) => {
     if (!num) return '0'
@@ -114,7 +111,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
         {/* Table search bar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {loading ? 'Loading…' : tableSearch.trim() ? `${filteredTriples.length} of ${sortedTriples.length} claims` : `${pagination.total.toLocaleString()} claims`}
+            {loading ? (debouncedSearch ? 'Searching…' : 'Loading…') : debouncedSearch ? `${sortedTriples.length} result${sortedTriples.length !== 1 ? 's' : ''} for "${debouncedSearch}"` : `${pagination.total.toLocaleString()} claims`}
           </span>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -134,9 +131,9 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
         </div>
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading triples...</div>
-        ) : filteredTriples.length === 0 ? (
+        ) : sortedTriples.length === 0 ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-            {tableSearch.trim() ? `No claims match "${tableSearch}"` : 'No triples found'}
+            {debouncedSearch ? `No claims match "${debouncedSearch}"` : 'No triples found'}
           </div>
         ) : (
           <>
@@ -179,7 +176,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredTriples.map((triple, idx) => {
+                  {sortedTriples.map((triple, idx) => {
                     const isHighlighted = !!highlightTermId && triple.termId === highlightTermId
                     return (
                     <tr
@@ -274,7 +271,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
 
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredTriples.map((triple, idx) => {
+              {sortedTriples.map((triple, idx) => {
                 const isHighlightedMobile = !!highlightTermId && triple.termId === highlightTermId
                 return (
                 <Link
@@ -366,7 +363,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+            {!debouncedSearch && <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 <span className="hidden sm:inline">Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)</span>
                 <span className="sm:hidden">{pagination.page}/{pagination.totalPages}</span>
@@ -389,7 +386,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
+            </div>}
             </>
         )}
       </div>

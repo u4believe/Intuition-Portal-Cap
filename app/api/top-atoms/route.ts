@@ -5,12 +5,20 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const page = parseInt(url.searchParams.get("page") || "1")
-    const pageSize = 100
-    const offset = (page - 1) * pageSize
+    const search = url.searchParams.get("search")?.trim() || ""
+    const pageSize = search ? 200 : 100
+    const offset = search ? 0 : (page - 1) * pageSize
+
+    const whereClause = search
+      ? `, where: { term: { atom: { label: { _ilike: $search } } } }`
+      : ""
+    const queryVars = search
+      ? `$limit: Int, $offset: Int, $search: String`
+      : `$limit: Int, $offset: Int`
 
     const ATOMS_QUERY = `
-      query GetAtoms($limit: Int, $offset: Int) {
-        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}) {
+      query GetAtoms(${queryVars}) {
+        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}${whereClause}) {
           market_cap
           position_count
           total_shares
@@ -39,10 +47,14 @@ export async function GET(request: Request) {
       }
     `
 
-    // Get total count
+    const countWhere = search
+      ? `, where: { term: { atom: { label: { _ilike: $search } } } }`
+      : ""
+    const countVars = search ? `($search: String)` : ""
+
     const COUNT_QUERY = `
-      query GetVaultsCount {
-        vaults_aggregate {
+      query GetVaultsCount${countVars} {
+        vaults_aggregate${countWhere} {
           aggregate {
             count
           }
@@ -50,23 +62,26 @@ export async function GET(request: Request) {
       }
     `
 
+    const variables: Record<string, any> = { limit: pageSize, offset }
+    if (search) variables.search = `%${search}%`
+
     const [data, countData] = await Promise.all([
-      queryIntuitionGraphQL(ATOMS_QUERY, { limit: pageSize, offset }),
-      queryIntuitionGraphQL(COUNT_QUERY),
+      queryIntuitionGraphQL(ATOMS_QUERY, variables),
+      queryIntuitionGraphQL(COUNT_QUERY, search ? { search: `%${search}%` } : {}),
     ])
 
     const totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
 
-    // Transform vaults into atoms data, grouping by atom label
     const atomsMap = new Map<string, any>()
 
     ;(data?.vaults || []).forEach((vault: any) => {
       const atom = vault.term?.atom
+      if (!atom) return
       const atomLabel = atom?.label || "Unknown"
 
       if (!atomsMap.has(atomLabel)) {
         atomsMap.set(atomLabel, {
-          termId: vault.term?.id || "", // Use term.id since vault.id doesn't exist
+          termId: vault.term?.id || "",
           label: atomLabel,
           image: atom?.image && atom.image !== 'null' ? atom.image : "",
           marketCap: 0,
@@ -104,7 +119,7 @@ export async function GET(request: Request) {
     const atoms = Array.from(atomsMap.values())
       .sort((a, b) => b.marketCap - a.marketCap)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       atoms,
       pagination: {
         page,

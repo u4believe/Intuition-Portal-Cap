@@ -15,7 +15,8 @@ type SortOrder = 'asc' | 'desc'
 export default function AtomsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
   const highlightRef = useRef<HTMLTableRowElement | HTMLAnchorElement | null>(null)
-  const { data: result = { atoms: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAtoms(currentPage)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const { data: result = { atoms: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAtoms(debouncedSearch ? 1 : currentPage, debouncedSearch)
   const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
@@ -65,6 +66,11 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
 
   const [tableSearch, setTableSearch] = useState('')
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(tableSearch.trim()), 350)
+    return () => clearTimeout(t)
+  }, [tableSearch])
+
   const sortedAtoms = [...atoms]
     .sort((a, b) => {
       let aValue: any = a[sortField]
@@ -79,11 +85,6 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
-
-  const q = tableSearch.trim().toLowerCase()
-  const filteredAtoms = q
-    ? sortedAtoms.filter(a => a.label?.toLowerCase().includes(q))
-    : sortedAtoms
 
   const formatNumber = (num: number | undefined) => {
     if (!num) return '0'
@@ -115,7 +116,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
         {/* Table search bar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {loading ? 'Loading…' : tableSearch.trim() ? `${filteredAtoms.length} of ${sortedAtoms.length} identities` : `${pagination.total.toLocaleString()} identities`}
+            {loading ? (debouncedSearch ? 'Searching…' : 'Loading…') : debouncedSearch ? `${sortedAtoms.length} result${sortedAtoms.length !== 1 ? 's' : ''} for "${debouncedSearch}"` : `${pagination.total.toLocaleString()} identities`}
           </span>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -135,9 +136,9 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
         </div>
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading identities...</div>
-        ) : filteredAtoms.length === 0 ? (
+        ) : sortedAtoms.length === 0 ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-            {tableSearch.trim() ? `No identities match "${tableSearch}"` : 'No identities found'}
+            {debouncedSearch ? `No identities match "${debouncedSearch}"` : 'No identities found'}
           </div>
         ) : (
           <>
@@ -182,7 +183,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredAtoms.map((atom, idx) => {
+                  {sortedAtoms.map((atom, idx) => {
                     const isHighlighted = !!highlightTermId && atom.termId === highlightTermId
                     return (
                     <tr
@@ -279,7 +280,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
 
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredAtoms.map((atom, idx) => {
+              {sortedAtoms.map((atom, idx) => {
                 const isHighlightedMobile = !!highlightTermId && atom.termId === highlightTermId
                 return (
                 <Link
@@ -371,7 +372,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+            {!debouncedSearch && <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 <span className="hidden sm:inline">Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)</span>
                 <span className="sm:hidden">{pagination.page}/{pagination.totalPages}</span>
@@ -394,7 +395,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
+            </div>}
             </>
         )}
       </div>
