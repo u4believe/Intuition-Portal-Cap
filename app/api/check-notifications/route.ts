@@ -165,32 +165,45 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    // ── 0. Determine mode ────────────────────────────────────────────────────
+    // mode=events   → live deposits/redemptions only (fast, run every 10s)
+    // mode=snapshots → watched-claim comparison only (run every 15s)
+    // mode=all (default) → both (used for manual/backward-compat calls)
+    const mode = req.nextUrl.searchParams.get('mode') ?? 'all'
+    const doEvents = mode === 'all' || mode === 'events'
+    const doSnapshots = mode === 'all' || mode === 'snapshots'
+
     // ── 1. Determine the "since" timestamp ──────────────────────────────────
     const sinceParam = req.nextUrl.searchParams.get('since')
     const since = sinceParam
       ? new Date(sinceParam)
-      : new Date(Date.now() - 5 * 60 * 1000)
-    console.log(`[Check Notifications] Fetching live events since: ${since.toISOString()}`)
+      : new Date(Date.now() - 30 * 1000)
 
-    // ── 2. Fetch live events ─────────────────────────────────────────────────
-    const liveEvents = await fetchRecentLiveEvents(since)
-    console.log(`[Check Notifications] Got ${liveEvents.length} live event(s) since ${since.toISOString()}`)
-    for (const ev of liveEvents) {
-      console.log(`  [Event] ${ev.type} id=${ev.id} assets=${ev.assets.toFixed(4)} TRUST termId="${ev.termId}" atom="${ev.atomLabel}"`)
+    // ── 2. Fetch live events (events mode only) ──────────────────────────────
+    let liveEvents: LiveEvent[] = []
+    if (doEvents) {
+      console.log(`[Check Notifications] [events] Fetching since: ${since.toISOString()}`)
+      liveEvents = await fetchRecentLiveEvents(since)
+      console.log(`[Check Notifications] Got ${liveEvents.length} live event(s)`)
+      for (const ev of liveEvents) {
+        console.log(`  [Event] ${ev.type} id=${ev.id} assets=${ev.assets.toFixed(4)} TRUST termId="${ev.termId}" atom="${ev.atomLabel}"`)
+      }
     }
 
-    // ── 3. Collect all termIds from claim_alert_prefs across subscriptions ───
+    // ── 3. Collect all termIds from claim_alert_prefs (snapshots mode only) ──
     const allTermIds = new Set<string>()
-    for (const sub of subscriptions) {
-      for (const termId of Object.keys(sub.claim_alert_prefs || {})) {
-        if (termId) allTermIds.add(termId)
+    if (doSnapshots) {
+      for (const sub of subscriptions) {
+        for (const termId of Object.keys(sub.claim_alert_prefs || {})) {
+          if (termId) allTermIds.add(termId)
+        }
       }
     }
 
     // ── 4. Fetch current claim data for all watched term IDs ─────────────────
     const currentClaimsMap = new Map<string, ClaimSnapshot>()
-    if (allTermIds.size > 0) {
-      console.log(`[Check Notifications] Fetching claim data for ${allTermIds.size} term ID(s)`)
+    if (doSnapshots && allTermIds.size > 0) {
+      console.log(`[Check Notifications] [snapshots] Fetching claim data for ${allTermIds.size} term ID(s)`)
       try {
         const result = await queryIntuitionGraphQL(CLAIM_DATA_QUERY, {
           termIds: Array.from(allTermIds),
@@ -215,10 +228,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Load claim snapshots (baseline) from DB, keyed by termId
-    const snapshots = await getClaimSnapshots()
+    const snapshots = doSnapshots ? await getClaimSnapshots() : []
     const snapshotsMap = new Map<string, ClaimSnapshot>()
     for (const snap of snapshots) snapshotsMap.set(snap.claim_label, snap)
-    console.log(`[Check Notifications] Loaded ${snapshots.length} claim snapshot(s) from DB`)
+    if (doSnapshots) console.log(`[Check Notifications] Loaded ${snapshots.length} claim snapshot(s) from DB`)
 
     // ── 5. Build notifications per subscription ──────────────────────────────
     const notificationsToSend: Array<{
@@ -231,7 +244,7 @@ export async function GET(req: NextRequest) {
       const claimPrefs = subscription.claim_alert_prefs || {}
 
       // ─ A. Per-claim snapshot alerts (marketCap, positionCount, sharesChange) ─
-      for (const [termId, pref] of Object.entries(claimPrefs)) {
+      if (doSnapshots) for (const [termId, pref] of Object.entries(claimPrefs)) {
         const current = currentClaimsMap.get(termId)
         const previous = snapshotsMap.get(termId)
 
@@ -270,6 +283,7 @@ export async function GET(req: NextRequest) {
       }
 
       // ─ B. Live event alerts ───────────────────────────────────────────────
+      if (doEvents) {
       const DEFAULT_RANGE = { enabled: true, min: 0, max: 10_000 }
       const ranges = subscription.alert_ranges
       const depositCfg = ranges?.deposits ?? DEFAULT_RANGE
@@ -316,6 +330,7 @@ export async function GET(req: NextRequest) {
           }
         }
       }
+      } // end if (doEvents)
 
       if (alerts.length > 0) {
         console.log(`  [Notify] Queuing ${alerts.length} alert(s) for ${subscription.address}`)
@@ -342,8 +357,8 @@ export async function GET(req: NextRequest) {
       })
     )
 
-    // ── 7. Update claim snapshots as new baseline ────────────────────────────
-    if (currentClaimsMap.size > 0) {
+    // ── 7. Update claim snapshots as new baseline (snapshots mode only) ───────
+    if (doSnapshots && currentClaimsMap.size > 0) {
       await Promise.allSettled(
         Array.from(currentClaimsMap.values()).map(snap => upsertClaimSnapshot(snap))
       )
@@ -351,7 +366,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(
-      `[Check Notifications] Done. ${subscriptions.length} subs, ` +
+      `[Check Notifications] Done. [${mode}] ${subscriptions.length} subs, ` +
       `${liveEvents.length} events, ${totalNotified} sent`
     )
 
