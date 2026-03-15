@@ -5,7 +5,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { useAccount } from "wagmi"
 import { useDiscordAuth } from "@/hooks/useDiscordAuth"
-import { Search, Star, Pencil, X, Bell } from "lucide-react"
+import { Star, Pencil, X, Bell } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
@@ -21,24 +21,7 @@ import ClaimsTable from "./claims-table"
 import TriplesTable from "./triples-table"
 import AtomsTable from "./atoms-table"
 
-type SearchResult = { id: string; termId: string; label: string; type: string; image: string; market_cap: number; position_count: number; marketCapDisplay?: string; subject?: string; predicate?: string; object?: string }
-type SearchMode = 'atoms' | 'triples'
-type TripleFields = { subject: string; predicate: string; object: string }
-type Suggestion = { label: string; marketCapDisplay: string }
-
 export default function LandingPage() {
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
-  const [searchMode, setSearchMode] = useState<SearchMode>('atoms')
-  const [atomsQuery, setAtomsQuery] = useState('')
-  const [tripleFields, setTripleFields] = useState<TripleFields>({ subject: '', predicate: '', object: '' })
-  const [activeField, setActiveField] = useState<keyof TripleFields | null>(null)
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [highlightTermId, setHighlightTermId] = useState<string | null>(null)
-  const [highlightTargetPage, setHighlightTargetPage] = useState<number | null>(null)
-  const [highlightTabType, setHighlightTabType] = useState<string | null>(null)
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -47,7 +30,6 @@ export default function LandingPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
   const watchlistRef = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
 
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer } = usePushNotifications()
@@ -74,105 +56,6 @@ export default function LandingPage() {
     if (watchlistOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [watchlistOpen])
-
-  // Close search when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false)
-      }
-    }
-    if (searchOpen) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [searchOpen])
-
-  const clearSearch = () => {
-    setSearchResults([])
-    setAtomQuery('')
-    setTripleFields({ subject: '', predicate: '', object: '' })
-    setSuggestions([])
-    setActiveField(null)
-  }
-
-  // Atoms mode: debounced search
-  useEffect(() => {
-    if (searchMode !== 'atoms') return
-    if (!atomsQuery.trim()) { setSearchResults([]); return }
-    setSearchLoading(true)
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search-triples?mode=atoms&q=${encodeURIComponent(atomsQuery.trim())}`)
-        const data = await res.json()
-        setSearchResults(data.triples || [])
-      } catch { setSearchResults([]) }
-      finally { setSearchLoading(false) }
-    }, 300)
-    return () => clearTimeout(t)
-  }, [atomsQuery, searchMode])
-
-  // Triples mode: debounced search across all three fields
-  useEffect(() => {
-    if (searchMode !== 'triples') return
-    const { subject, predicate, object } = tripleFields
-    if (!subject.trim() && !predicate.trim() && !object.trim()) { setSearchResults([]); return }
-    setSearchLoading(true)
-    const t = setTimeout(async () => {
-      try {
-        const params = new URLSearchParams({ mode: 'triples-fields', s: subject, p: predicate, o: object })
-        const res = await fetch(`/api/search-triples?${params}`)
-        const data = await res.json()
-        setSearchResults(data.triples || [])
-      } catch { setSearchResults([]) }
-      finally { setSearchLoading(false) }
-    }, 350)
-    return () => clearTimeout(t)
-  }, [tripleFields, searchMode])
-
-  // Triples mode: per-field autocomplete suggestions
-  useEffect(() => {
-    if (searchMode !== 'triples' || !activeField) { setSuggestions([]); return }
-    const q = tripleFields[activeField]
-    if (q.trim().length < 2) { setSuggestions([]); return }
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search-triples?mode=field-autocomplete&q=${encodeURIComponent(q)}`)
-        const data = await res.json()
-        setSuggestions(data.suggestions || [])
-      } catch { setSuggestions([]) }
-    }, 250)
-    return () => clearTimeout(t)
-  }, [tripleFields, activeField, searchMode])
-
-  const setAtomQuery = (v: string) => setAtomsQuery(v)
-  const setField = (field: keyof TripleFields, value: string) => {
-    setTripleFields(prev => ({ ...prev, [field]: value }))
-    setSuggestions([])
-  }
-  const applySuggestion = (field: keyof TripleFields, label: string) => {
-    setTripleFields(prev => ({ ...prev, [field]: label }))
-    setSuggestions([])
-    setActiveField(null)
-  }
-
-  const handleResultClick = async (result: SearchResult) => {
-    const tab = result.type === 'atom' ? 'atoms' : 'claims'
-    const termId = result.termId || result.id
-    setActiveTab(tab)
-    setHighlightTermId(termId)
-    setHighlightTabType(result.type)
-    setHighlightTargetPage(null)
-    setSearchOpen(false)
-    setMobileSearchOpen(false)
-    clearSearch()
-    setTimeout(() => {
-      document.getElementById('claims')?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
-    try {
-      const res = await fetch(`/api/find-term-page?termId=${encodeURIComponent(termId)}`)
-      const json = await res.json()
-      if (json.page) setHighlightTargetPage(json.page)
-    } catch {}
-  }
 
   const handleUnwatch = (claimLabel: string) => {
     removeWatchedClaim(claimLabel)
@@ -202,154 +85,6 @@ export default function LandingPage() {
             </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <div className="relative" ref={searchRef}>
-              <button
-                onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) clearSearch() }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
-              >
-                <Search className="w-4 h-4" />
-                <span>Search</span>
-              </button>
-              {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-[500px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
-                  {/* Mode tabs */}
-                  <div className="flex border-b border-slate-200 dark:border-slate-800">
-                    <button
-                      onClick={() => { setSearchMode('atoms'); setSearchResults([]) }}
-                      className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${searchMode === 'atoms' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-b-2 border-purple-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                      Atoms <span className="text-xs font-normal opacity-70">(Identities)</span>
-                    </button>
-                    <button
-                      onClick={() => { setSearchMode('triples'); setSearchResults([]) }}
-                      className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${searchMode === 'triples' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                      Triples <span className="text-xs font-normal opacity-70">(Claims / Vaults)</span>
-                    </button>
-                  </div>
-
-                  {/* Atoms mode input */}
-                  {searchMode === 'atoms' && (
-                    <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Identity name</span>
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. Ethereum, Vitalik, AI…"
-                        value={atomsQuery}
-                        onChange={(e) => setAtomQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
-                        className="w-full px-3 py-2 border border-purple-200 dark:border-purple-800/60 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
-                        autoFocus
-                      />
-                    </div>
-                  )}
-
-                  {/* Triples mode inputs */}
-                  {searchMode === 'triples' && (
-                    <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">Fill in any field — leave blank to match anything</p>
-                      {(['subject', 'predicate', 'object'] as const).map((field) => {
-                        const colors: Record<string, string> = {
-                          subject:   'border-blue-200 dark:border-blue-800/60 focus:ring-blue-400',
-                          predicate: 'border-orange-200 dark:border-orange-800/60 focus:ring-orange-400',
-                          object:    'border-teal-200 dark:border-teal-800/60 focus:ring-teal-400',
-                        }
-                        const labels: Record<string, string> = { subject: 'Subject', predicate: 'Predicate', object: 'Object' }
-                        const labelColors: Record<string, string> = {
-                          subject:   'text-blue-600 dark:text-blue-400',
-                          predicate: 'text-orange-600 dark:text-orange-400',
-                          object:    'text-teal-600 dark:text-teal-400',
-                        }
-                        const placeholders: Record<string, string> = {
-                          subject:   'Who or what? e.g. Ethereum',
-                          predicate: 'Relationship? e.g. has tag',
-                          object:    'To what? e.g. DeFi',
-                        }
-                        return (
-                          <div key={field} className="relative">
-                            <label className={`text-xs font-semibold uppercase tracking-wide ${labelColors[field]}`}>{labels[field]}</label>
-                            <input
-                              type="text"
-                              placeholder={placeholders[field]}
-                              value={tripleFields[field]}
-                              onChange={(e) => setField(field, e.target.value)}
-                              onFocus={() => setActiveField(field)}
-                              onBlur={() => setTimeout(() => setActiveField(null), 150)}
-                              onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
-                              className={`mt-0.5 w-full px-3 py-1.5 border rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 text-sm ${colors[field]}`}
-                            />
-                            {activeField === field && suggestions.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full mt-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-10 max-h-36 overflow-y-auto">
-                                {suggestions.map((s, i) => (
-                                  <button key={i} onMouseDown={() => applySuggestion(field, s.label)}
-                                    className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between text-sm last:rounded-b-lg first:rounded-t-lg">
-                                    <span className="text-slate-800 dark:text-slate-200 truncate">{s.label}</span>
-                                    {s.marketCapDisplay && <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{s.marketCapDisplay}</span>}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Results */}
-                  <div className="max-h-[380px] overflow-y-auto">
-                    {searchLoading && <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">Searching…</div>}
-                    {!searchLoading && searchResults.length > 0 && (
-                      <div className="px-4 py-1.5 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                        {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} — ranked by market cap
-                      </div>
-                    )}
-                    {!searchLoading && searchResults.length === 0 && (
-                      searchMode === 'atoms' ? (
-                        atomsQuery.trim()
-                          ? <div className="p-5 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">No identities found for "{atomsQuery}"</p></div>
-                          : <div className="p-5 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">Type an identity name to search</p></div>
-                      ) : (
-                        (tripleFields.subject || tripleFields.predicate || tripleFields.object)
-                          ? <div className="p-5 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">No claims match those fields</p><p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Try leaving some fields blank to broaden the search</p></div>
-                          : <div className="p-5 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">Fill in Subject, Predicate, or Object to search claims</p></div>
-                      )
-                    )}
-                    {searchResults.map((result) => (
-                      <button
-                        key={result.id}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-start gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
-                        onClick={() => handleResultClick(result)}
-                      >
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 mt-0.5 ${
-                          result.type === 'atom' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
-                        }`}>
-                          {result.type === 'atom' ? 'identity' : 'claim'}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          {result.type === 'claim' && result.subject ? (
-                            <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">
-                              <span className="text-blue-600 dark:text-blue-400">{result.subject}</span>
-                              <span className="text-slate-400 mx-1">→</span>
-                              <span className="text-orange-600 dark:text-orange-400">{result.predicate}</span>
-                              <span className="text-slate-400 mx-1">→</span>
-                              <span className="text-teal-600 dark:text-teal-400">{result.object}</span>
-                            </p>
-                          ) : (
-                            <p className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</p>
-                          )}
-                          {result.marketCapDisplay && (
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{result.marketCapDisplay} · {result.position_count} position{result.position_count !== 1 ? 's' : ''}</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             <div className="relative" ref={watchlistRef}>
               <button
                 onClick={() => setWatchlistOpen(!watchlistOpen)}
@@ -449,17 +184,10 @@ export default function LandingPage() {
             </div>
           </nav>
           <div className="md:hidden flex gap-2 items-center">
-            <button
-              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setWatchlistOpen(false); setNotifOpen(false) }}
-              className={`p-2 rounded-lg transition-colors ${mobileSearchOpen ? 'bg-primary/20 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
-              title="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
             {mounted && isSignedIn && (
               <>
                 <button
-                  onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false); setMobileSearchOpen(false) }}
+                  onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false) }}
                   className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
                   title="Watchlist"
                 >
@@ -471,7 +199,7 @@ export default function LandingPage() {
                   )}
                 </button>
                 <button
-                  onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false); setMobileSearchOpen(false) }}
+                  onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false) }}
                   className={`relative p-2 rounded-lg transition-colors ${notifOpen ? 'bg-cyan-500/20 text-cyan-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
                   title="Notification Preferences"
                 >
@@ -505,142 +233,6 @@ export default function LandingPage() {
               </div>
               <div className="p-4">
                 <NotificationPreferencesPanel onOpenSettings={() => { setNotifOpen(false); setAlertsDialogOpen(true) }} />
-              </div>
-            </div>
-          )}
-
-          {/* Mobile search panel */}
-          {mobileSearchOpen && (
-            <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xl z-50 max-h-[80vh] flex flex-col">
-              {/* Mode tabs */}
-              <div className="flex border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-                <button
-                  onClick={() => { setSearchMode('atoms'); setSearchResults([]) }}
-                  className={`flex-1 py-3 text-sm font-semibold transition-colors ${searchMode === 'atoms' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-b-2 border-purple-500' : 'text-slate-500 dark:text-slate-400'}`}
-                >
-                  Atoms <span className="text-xs font-normal opacity-70">(Identities)</span>
-                </button>
-                <button
-                  onClick={() => { setSearchMode('triples'); setSearchResults([]) }}
-                  className={`flex-1 py-3 text-sm font-semibold transition-colors ${searchMode === 'triples' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 border-b-2 border-cyan-500' : 'text-slate-500 dark:text-slate-400'}`}
-                >
-                  Triples <span className="text-xs font-normal opacity-70">(Claims)</span>
-                </button>
-                <button onClick={() => { setMobileSearchOpen(false); clearSearch() }} className="px-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Atoms input */}
-              {searchMode === 'atoms' && (
-                <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-                  <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide block mb-1.5">Identity name</span>
-                  <input
-                    type="text"
-                    placeholder="e.g. Ethereum, Vitalik, AI…"
-                    value={atomsQuery}
-                    onChange={(e) => setAtomQuery(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-800/60 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
-                    autoFocus
-                  />
-                </div>
-              )}
-
-              {/* Triples inputs */}
-              {searchMode === 'triples' && (
-                <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2 flex-shrink-0">
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Fill in any field — leave blank to match anything</p>
-                  {(['subject', 'predicate', 'object'] as const).map((field) => {
-                    const inputColors: Record<string, string> = {
-                      subject:   'border-blue-200 dark:border-blue-800/60 focus:ring-blue-400',
-                      predicate: 'border-orange-200 dark:border-orange-800/60 focus:ring-orange-400',
-                      object:    'border-teal-200 dark:border-teal-800/60 focus:ring-teal-400',
-                    }
-                    const labelColors: Record<string, string> = {
-                      subject: 'text-blue-600 dark:text-blue-400',
-                      predicate: 'text-orange-600 dark:text-orange-400',
-                      object: 'text-teal-600 dark:text-teal-400',
-                    }
-                    const placeholders: Record<string, string> = {
-                      subject: 'Who or what? e.g. Ethereum',
-                      predicate: 'Relationship? e.g. has tag',
-                      object: 'To what? e.g. DeFi',
-                    }
-                    return (
-                      <div key={field} className="relative">
-                        <label className={`text-xs font-semibold uppercase tracking-wide ${labelColors[field]}`}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
-                        <input
-                          type="text"
-                          placeholder={placeholders[field]}
-                          value={tripleFields[field]}
-                          onChange={(e) => setField(field, e.target.value)}
-                          onFocus={() => setActiveField(field)}
-                          onBlur={() => setTimeout(() => setActiveField(null), 150)}
-                          className={`mt-0.5 w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 text-sm ${inputColors[field]}`}
-                        />
-                        {activeField === field && suggestions.length > 0 && (
-                          <div className="absolute left-0 right-0 top-full mt-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20 max-h-32 overflow-y-auto">
-                            {suggestions.map((s, i) => (
-                              <button key={i} onMouseDown={() => applySuggestion(field, s.label)}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between text-sm">
-                                <span className="text-slate-800 dark:text-slate-200 truncate">{s.label}</span>
-                                {s.marketCapDisplay && <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{s.marketCapDisplay}</span>}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Results */}
-              <div className="overflow-y-auto flex-1">
-                {searchLoading && <div className="p-5 text-center text-sm text-slate-400 dark:text-slate-500">Searching…</div>}
-                {!searchLoading && searchResults.length > 0 && (
-                  <div className="px-4 py-1.5 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} — ranked by market cap
-                  </div>
-                )}
-                {!searchLoading && searchResults.length === 0 && (
-                  searchMode === 'atoms'
-                    ? atomsQuery.trim()
-                      ? <div className="p-5 text-center text-sm text-slate-500 dark:text-slate-400">No identities found for "{atomsQuery}"</div>
-                      : <div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Type an identity name above to search</div>
-                    : (tripleFields.subject || tripleFields.predicate || tripleFields.object)
-                      ? <div className="p-5 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">No claims match those fields</p><p className="text-xs text-slate-400 mt-1">Try leaving some fields blank</p></div>
-                      : <div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Fill in Subject, Predicate, or Object above</div>
-                )}
-                {searchResults.map((result) => (
-                  <button
-                    key={result.id}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 flex items-start gap-3 border-b border-slate-100 dark:border-slate-800/60 last:border-0"
-                    onClick={() => handleResultClick(result)}
-                  >
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 mt-0.5 ${
-                      result.type === 'atom' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
-                    }`}>
-                      {result.type === 'atom' ? 'identity' : 'claim'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      {result.type === 'claim' && result.subject ? (
-                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">
-                          <span className="text-blue-600 dark:text-blue-400">{result.subject}</span>
-                          <span className="text-slate-400 mx-1">→</span>
-                          <span className="text-orange-600 dark:text-orange-400">{result.predicate}</span>
-                          <span className="text-slate-400 mx-1">→</span>
-                          <span className="text-teal-600 dark:text-teal-400">{result.object}</span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</p>
-                      )}
-                      {result.marketCapDisplay && (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{result.marketCapDisplay} · {result.position_count} position{result.position_count !== 1 ? 's' : ''}</p>
-                      )}
-                    </div>
-                  </button>
-                ))}
               </div>
             </div>
           )}
@@ -793,8 +385,8 @@ export default function LandingPage() {
 
           {/* Tab Content */}
           {activeTab === 'vaults' && <ClaimsTable />}
-          {activeTab === 'claims' && <TriplesTable targetPage={highlightTabType === 'claim' ? highlightTargetPage : null} highlightTermId={highlightTabType === 'claim' ? highlightTermId : null} onClearHighlight={() => { setHighlightTermId(null); setHighlightTargetPage(null) }} />}
-          {activeTab === 'atoms' && <AtomsTable targetPage={highlightTabType === 'atom' ? highlightTargetPage : null} highlightTermId={highlightTabType === 'atom' ? highlightTermId : null} onClearHighlight={() => { setHighlightTermId(null); setHighlightTargetPage(null) }} />}
+          {activeTab === 'claims' && <TriplesTable targetPage={null} highlightTermId={null} onClearHighlight={() => {}} />}
+          {activeTab === 'atoms' && <AtomsTable targetPage={null} highlightTermId={null} onClearHighlight={() => {}} />}
         </div>
       </section>
 
