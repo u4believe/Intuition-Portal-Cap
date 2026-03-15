@@ -88,7 +88,7 @@ export default function LandingPage() {
             <div className="relative" ref={watchlistRef}>
               <button
                 onClick={() => setWatchlistOpen(!watchlistOpen)}
-                className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm text-black dark:text-white hover:text-slate-900 dark:hover:text-slate-100"
+                className="relative flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm text-black dark:text-white hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <Star className="w-4 h-4" />
                 <span>Watchlist</span>
@@ -124,14 +124,14 @@ export default function LandingPage() {
                               <button
                                 onClick={() => handleEditClaim(claim)}
                                 title="Edit preferences"
-                                className="p-1.5 rounded-md text-slate-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
+                                className="p-1.5 rounded-md text-slate-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors cursor-pointer"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleUnwatch(claim)}
                                 title="Unwatch"
-                                className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                                className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors cursor-pointer"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -188,7 +188,7 @@ export default function LandingPage() {
               <>
                 <button
                   onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false) }}
-                  className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
+                  className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white cursor-pointer"
                   title="Watchlist"
                 >
                   <Star className="w-5 h-5" />
@@ -200,7 +200,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false) }}
-                  className={`relative p-2 rounded-lg transition-colors ${notifOpen ? 'bg-cyan-500/20 text-cyan-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
+                  className={`relative p-2 rounded-lg transition-colors cursor-pointer ${notifOpen ? 'bg-cyan-500/20 text-cyan-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
                   title="Notification Preferences"
                 >
                   <Bell className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function LandingPage() {
                   <Bell className="w-4 h-4 text-cyan-400" />
                   Notification Preferences
                 </h3>
-                <button onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <button onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -244,7 +244,7 @@ export default function LandingPage() {
                 <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                   Watchlist {watchedClaims.length > 0 && <span className="text-slate-400 font-normal">({watchedClaims.length})</span>}
                 </h3>
-                <button onClick={() => setWatchlistOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <button onClick={() => setWatchlistOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -256,14 +256,14 @@ export default function LandingPage() {
                       <span className="text-sm text-slate-700 dark:text-slate-200 flex-1 min-w-0 truncate">{claim}</span>
                       <button
                         onClick={() => handleEditClaim(claim)}
-                        className="p-2 rounded-md text-slate-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
+                        className="p-2 rounded-md text-slate-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors cursor-pointer"
                         title="Edit preferences"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleUnwatch(claim)}
-                        className="p-2 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                        className="p-2 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors cursor-pointer"
                         title="Unwatch"
                       >
                         <X className="w-4 h-4" />
@@ -353,7 +353,7 @@ export default function LandingPage() {
           <div className="flex justify-center gap-4 px-4">
             <button
               onClick={() => setActiveTab('vaults')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
@@ -363,7 +363,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => setActiveTab('claims')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
@@ -373,7 +373,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => setActiveTab('atoms')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
