@@ -25,7 +25,9 @@ export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const [searchResults, setSearchResults] = useState<{ id: string; termId: string; label: string; type: string; image: string; market_cap: number; position_count: number }[]>([])
-  const [searchHighlight, setSearchHighlight] = useState<{ id: string; termId: string; label: string; type: string; image: string; marketCap: number; positionCount: number } | null>(null)
+  const [highlightTermId, setHighlightTermId] = useState<string | null>(null)
+  const [highlightTargetPage, setHighlightTargetPage] = useState<number | null>(null)
+  const [highlightTabType, setHighlightTabType] = useState<string | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
@@ -163,24 +165,24 @@ export default function LandingPage() {
                       <button
                         key={result.id}
                         className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
-                        onClick={() => {
+                        onClick={async () => {
                           const tab = result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults'
+                          const termId = result.termId || result.id
                           setActiveTab(tab)
-                          setSearchHighlight({
-                            id: result.id,
-                            termId: result.termId || result.id,
-                            label: result.label,
-                            type: result.type,
-                            image: result.image || '',
-                            marketCap: result.market_cap || 0,
-                            positionCount: result.position_count || 0,
-                          })
+                          setHighlightTermId(termId)
+                          setHighlightTabType(result.type)
+                          setHighlightTargetPage(null)
                           setSearchOpen(false)
                           setSearchValue('')
                           setSearchResults([])
                           setTimeout(() => {
                             document.getElementById('claims')?.scrollIntoView({ behavior: 'smooth' })
                           }, 100)
+                          try {
+                            const res = await fetch(`/api/find-term-page?termId=${encodeURIComponent(termId)}`)
+                            const json = await res.json()
+                            if (json.page) setHighlightTargetPage(json.page)
+                          } catch {}
                         }}
                       >
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
@@ -465,7 +467,7 @@ export default function LandingPage() {
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
             <button
-              onClick={() => { setActiveTab('vaults'); setSearchHighlight(null) }}
+              onClick={() => { setActiveTab('vaults'); setHighlightTermId(null); setHighlightTargetPage(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
@@ -475,7 +477,7 @@ export default function LandingPage() {
               Vaults
             </button>
             <button
-              onClick={() => { setActiveTab('claims'); setSearchHighlight(null) }}
+              onClick={() => { setActiveTab('claims'); setHighlightTermId(null); setHighlightTargetPage(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
@@ -485,7 +487,7 @@ export default function LandingPage() {
               Claims
             </button>
             <button
-              onClick={() => { setActiveTab('atoms'); setSearchHighlight(null) }}
+              onClick={() => { setActiveTab('atoms'); setHighlightTermId(null); setHighlightTargetPage(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
@@ -497,9 +499,9 @@ export default function LandingPage() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'vaults' && <ClaimsTable highlightItem={searchHighlight?.type === 'vault' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
-          {activeTab === 'claims' && <TriplesTable highlightItem={searchHighlight?.type === 'claim' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
-          {activeTab === 'atoms' && <AtomsTable highlightItem={searchHighlight?.type === 'atom' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
+          {activeTab === 'vaults' && <ClaimsTable />}
+          {activeTab === 'claims' && <TriplesTable targetPage={highlightTabType === 'claim' ? highlightTargetPage : null} highlightTermId={highlightTabType === 'claim' ? highlightTermId : null} onClearHighlight={() => { setHighlightTermId(null); setHighlightTargetPage(null) }} />}
+          {activeTab === 'atoms' && <AtomsTable targetPage={highlightTabType === 'atom' ? highlightTargetPage : null} highlightTermId={highlightTabType === 'atom' ? highlightTermId : null} onClearHighlight={() => { setHighlightTermId(null); setHighlightTargetPage(null) }} />}
         </div>
       </section>
 

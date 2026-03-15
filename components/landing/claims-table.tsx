@@ -12,7 +12,7 @@ import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
 type SortOrder = 'asc' | 'desc'
 
-export default function ClaimsTable({ highlightItem, onClearHighlight }: { highlightItem?: { id: string; termId: string; label: string; image: string; marketCap: number; positionCount: number } | null, onClearHighlight?: () => void }) {
+export default function ClaimsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
   const { data: result = { claims: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAllClaims(currentPage)
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
