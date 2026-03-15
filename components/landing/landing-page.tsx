@@ -128,14 +128,14 @@ export default function LandingPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
               >
                 <Search className="w-4 h-4" />
-                <span>Search Claims</span>
+                <span>Search</span>
               </button>
               {searchOpen && (
                 <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="p-3 border-b border-slate-100 dark:border-slate-800">
                     <input
                       type="text"
-                      placeholder="Search claims, vaults or atoms…"
+                      placeholder="Search claims, vaults or identities…"
                       value={searchValue}
                       onChange={(e) => setSearchValue(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
@@ -155,7 +155,7 @@ export default function LandingPage() {
                     )}
                     {!searchLoading && !searchValue.trim() && (
                       <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                        Type to search across claims, vaults, and atoms
+                        Type to search across claims, vaults, and identities
                       </div>
                     )}
                     {searchResults.map((result) => (
@@ -177,7 +177,7 @@ export default function LandingPage() {
                             ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
                             : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
                         }`}>
-                          {result.type}
+                          {result.type === 'atom' ? 'identity' : result.type}
                         </span>
                         <span className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</span>
                       </button>
