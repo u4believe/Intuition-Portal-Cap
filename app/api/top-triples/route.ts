@@ -5,12 +5,20 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const page = parseInt(url.searchParams.get("page") || "1")
-    const pageSize = 100
-    const offset = (page - 1) * pageSize
+    const search = url.searchParams.get("search")?.trim() || ""
+    const pageSize = search ? 200 : 100
+    const offset = search ? 0 : (page - 1) * pageSize
+
+    const whereClause = search
+      ? `, where: { term: { triple: { _or: [ { subject: { label: { _ilike: $search } } }, { predicate: { label: { _ilike: $search } } }, { object: { label: { _ilike: $search } } } ] } } }`
+      : ""
+    const queryVars = search
+      ? `$limit: Int, $offset: Int, $search: String`
+      : `$limit: Int, $offset: Int`
 
     const TRIPLES_QUERY = `
-      query GetTriples($limit: Int, $offset: Int) {
-        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}) {
+      query GetTriples(${queryVars}) {
+        vaults(limit: $limit, offset: $offset, order_by: {market_cap: desc}${whereClause}) {
           market_cap
           position_count
           total_assets
@@ -47,10 +55,14 @@ export async function GET(request: Request) {
       }
     `
 
-    // Get total count
+    const countWhere = search
+      ? `, where: { term: { triple: { _or: [ { subject: { label: { _ilike: $search } } }, { predicate: { label: { _ilike: $search } } }, { object: { label: { _ilike: $search } } } ] } } }`
+      : ""
+    const countVars = search ? `($search: String)` : ""
+
     const COUNT_QUERY = `
-      query GetVaultsCount {
-        vaults_aggregate {
+      query GetVaultsCount${countVars} {
+        vaults_aggregate${countWhere} {
           aggregate {
             count
           }
@@ -58,18 +70,21 @@ export async function GET(request: Request) {
       }
     `
 
+    const variables: Record<string, any> = { limit: pageSize, offset }
+    if (search) variables.search = `%${search}%`
+
     const [data, countData] = await Promise.all([
-      queryIntuitionGraphQL(TRIPLES_QUERY, { limit: pageSize, offset }),
-      queryIntuitionGraphQL(COUNT_QUERY),
+      queryIntuitionGraphQL(TRIPLES_QUERY, variables),
+      queryIntuitionGraphQL(COUNT_QUERY, search ? { search: `%${search}%` } : {}),
     ])
 
     const totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
 
-    // Transform vaults into triples data, grouping by triple label
     const triplesMap = new Map<string, any>()
 
     ;(data?.vaults || []).forEach((vault: any) => {
       const triple = vault.term?.triple
+      if (!triple) return
       const subject = triple?.subject?.label || "Unknown"
       const predicate = triple?.predicate?.label || "Unknown"
       const object = triple?.object?.label || "Unknown"
@@ -77,7 +92,7 @@ export async function GET(request: Request) {
 
       if (!triplesMap.has(tripleLabel)) {
         triplesMap.set(tripleLabel, {
-          termId: vault.term?.id || "", // Use term.id since vault.id doesn't exist
+          termId: vault.term?.id || "",
           label: tripleLabel,
           subjectLabel: subject,
           predicateLabel: predicate,
@@ -118,7 +133,7 @@ export async function GET(request: Request) {
     const triples = Array.from(triplesMap.values())
       .sort((a, b) => b.marketCap - a.marketCap)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       triples,
       pagination: {
         page,

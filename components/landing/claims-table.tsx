@@ -14,7 +14,8 @@ type SortOrder = 'asc' | 'desc'
 
 export default function ClaimsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
-  const { data: result = { claims: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAllClaims(currentPage)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const { data: result = { claims: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAllClaims(debouncedSearch ? 1 : currentPage, debouncedSearch)
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
@@ -55,6 +56,11 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
 
   const [tableSearch, setTableSearch] = useState('')
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(tableSearch.trim()), 350)
+    return () => clearTimeout(t)
+  }, [tableSearch])
+
   const sortedClaims = [...claims]
     .sort((a, b) => {
       let aValue: any = a[sortField]
@@ -69,14 +75,6 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
-
-  const q = tableSearch.trim().toLowerCase()
-  const filteredClaims = q
-    ? sortedClaims.filter(c =>
-        c.label?.toLowerCase().includes(q) ||
-        c.atom_label?.toLowerCase().includes(q)
-      )
-    : sortedClaims
 
   const formatNumber = (num: number | undefined) => {
     if (!num) return '0'
@@ -104,7 +102,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
         {/* Table search bar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {loading ? 'Loading…' : tableSearch.trim() ? `${filteredClaims.length} of ${sortedClaims.length} vaults` : `${pagination.total.toLocaleString()} vaults`}
+            {loading ? (debouncedSearch ? 'Searching…' : 'Loading…') : debouncedSearch ? `${sortedClaims.length} result${sortedClaims.length !== 1 ? 's' : ''} for "${debouncedSearch}"` : `${pagination.total.toLocaleString()} vaults`}
           </span>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -124,9 +122,9 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
         </div>
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading claims...</div>
-        ) : filteredClaims.length === 0 ? (
+        ) : sortedClaims.length === 0 ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-            {tableSearch.trim() ? `No vaults match "${tableSearch}"` : 'No claims found'}
+            {debouncedSearch ? `No vaults match "${debouncedSearch}"` : 'No claims found'}
           </div>
         ) : (
           <>
@@ -169,7 +167,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredClaims.map((claim, idx) => (
+                  {sortedClaims.map((claim, idx) => (
                     <tr
                       key={`vault-${idx}`}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
@@ -251,7 +249,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
 
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredClaims.map((claim, idx) => (
+              {sortedClaims.map((claim, idx) => (
                 <Link
                   key={`vault-mobile-${idx}`}
                   href={`/vault/${claim.termId}`}
@@ -329,7 +327,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
             </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+            {!debouncedSearch && <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 <span className="hidden sm:inline">Page {pagination.page} of {pagination.totalPages} ({pagination.total} total items)</span>
                 <span className="sm:hidden">{pagination.page}/{pagination.totalPages}</span>
@@ -352,7 +350,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
+            </div>}
             </>
         )}
       </div>
