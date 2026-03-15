@@ -126,7 +126,7 @@ export function useAtoms(page: number = 1) {
       const data = await response.json()
       return {
         atoms: (data.atoms || []).filter((atom: any) => !isUnknownEntry(atom)).map((atom: any) => ({
-          termId: '', // Atoms don't have a direct termId, they're aggregated
+          termId: atom.termId || '',
           label: atom.label || 'Unknown',
           type: 'Atom',
           image: atom.image || null,
