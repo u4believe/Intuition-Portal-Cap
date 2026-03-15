@@ -147,21 +147,31 @@ export async function GET(request: NextRequest) {
         position_count: v.position_count || 0,
       }))
 
-    const claims = (claimsData.data?.triples || []).map((triple: any) => {
-      const s = triple.subject?.label || "?"
-      const p = triple.predicate?.label || "?"
-      const o = triple.object?.label || "?"
-      const termId = triple.triple_vault?.term?.id || ""
-      return {
-        id: `${s}__${p}__${o}`,
-        termId,
-        label: `${s} — ${p} — ${o}`,
-        image: "",
-        type: "claim",
-        market_cap: triple.triple_vault?.market_cap || 0,
-        position_count: triple.triple_vault?.position_count || 0,
-      }
-    })
+    const claims = (claimsData.data?.triples || [])
+      .filter((triple: any) => {
+        const s = triple.subject?.label || "?"
+        const p = triple.predicate?.label || "?"
+        const o = triple.object?.label || "?"
+        const key = `claim:${s}__${p}__${o}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map((triple: any) => {
+        const s = triple.subject?.label || "?"
+        const p = triple.predicate?.label || "?"
+        const o = triple.object?.label || "?"
+        const termId = triple.triple_vault?.term?.id || ""
+        return {
+          id: `${s}__${p}__${o}`,
+          termId,
+          label: `${s} — ${p} — ${o}`,
+          image: "",
+          type: "claim",
+          market_cap: triple.triple_vault?.market_cap || 0,
+          position_count: triple.triple_vault?.position_count || 0,
+        }
+      })
 
     return NextResponse.json({ triples: [...identities, ...claims], success: true })
   } catch (error: any) {
