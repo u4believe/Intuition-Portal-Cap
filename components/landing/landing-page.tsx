@@ -352,7 +352,7 @@ export default function LandingPage() {
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
             <button
-              onClick={() => { setActiveTab('vaults'); setHighlightTermId(null); setHighlightTargetPage(null) }}
+              onClick={() => setActiveTab('vaults')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
@@ -362,7 +362,7 @@ export default function LandingPage() {
               Vaults
             </button>
             <button
-              onClick={() => { setActiveTab('claims'); setHighlightTermId(null); setHighlightTargetPage(null) }}
+              onClick={() => setActiveTab('claims')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
@@ -372,7 +372,7 @@ export default function LandingPage() {
               Claims
             </button>
             <button
-              onClick={() => { setActiveTab('atoms'); setHighlightTermId(null); setHighlightTargetPage(null) }}
+              onClick={() => setActiveTab('atoms')}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
