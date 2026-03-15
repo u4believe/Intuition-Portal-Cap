@@ -24,7 +24,8 @@ import AtomsTable from "./atoms-table"
 export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
-  const [searchResults, setSearchResults] = useState<{ id: string; label: string; type: string }[]>([])
+  const [searchResults, setSearchResults] = useState<{ id: string; termId: string; label: string; type: string; image: string; market_cap: number; position_count: number }[]>([])
+  const [searchHighlight, setSearchHighlight] = useState<{ id: string; termId: string; label: string; type: string; image: string; marketCap: number; positionCount: number } | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [watchlistOpen, setWatchlistOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'vaults' | 'claims' | 'atoms'>('claims')
@@ -163,7 +164,17 @@ export default function LandingPage() {
                         key={result.id}
                         className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
                         onClick={() => {
-                          setActiveTab(result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults')
+                          const tab = result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults'
+                          setActiveTab(tab)
+                          setSearchHighlight({
+                            id: result.id,
+                            termId: result.termId || result.id,
+                            label: result.label,
+                            type: result.type,
+                            image: result.image || '',
+                            marketCap: result.market_cap || 0,
+                            positionCount: result.position_count || 0,
+                          })
                           setSearchOpen(false)
                           setSearchValue('')
                           setSearchResults([])
@@ -454,7 +465,7 @@ export default function LandingPage() {
           {/* Tab Toggle Buttons */}
           <div className="flex justify-center gap-4 px-4">
             <button
-              onClick={() => setActiveTab('vaults')}
+              onClick={() => { setActiveTab('vaults'); setSearchHighlight(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
@@ -464,7 +475,7 @@ export default function LandingPage() {
               Vaults
             </button>
             <button
-              onClick={() => setActiveTab('claims')}
+              onClick={() => { setActiveTab('claims'); setSearchHighlight(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
@@ -474,7 +485,7 @@ export default function LandingPage() {
               Claims
             </button>
             <button
-              onClick={() => setActiveTab('atoms')}
+              onClick={() => { setActiveTab('atoms'); setSearchHighlight(null) }}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
@@ -486,9 +497,9 @@ export default function LandingPage() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'vaults' && <ClaimsTable />}
-          {activeTab === 'claims' && <TriplesTable />}
-          {activeTab === 'atoms' && <AtomsTable />}
+          {activeTab === 'vaults' && <ClaimsTable highlightItem={searchHighlight?.type === 'vault' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
+          {activeTab === 'claims' && <TriplesTable highlightItem={searchHighlight?.type === 'claim' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
+          {activeTab === 'atoms' && <AtomsTable highlightItem={searchHighlight?.type === 'atom' ? searchHighlight : null} onClearHighlight={() => setSearchHighlight(null)} />}
         </div>
       </section>
 

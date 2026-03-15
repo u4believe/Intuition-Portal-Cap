@@ -9,6 +9,8 @@ const SEARCH_IDENTITIES_QUERY = `
       limit: $limit
       order_by: {market_cap: desc}
     ) {
+      market_cap
+      position_count
       term {
         id
         atom {
@@ -35,7 +37,11 @@ const SEARCH_CLAIMS_QUERY = `
       subject { label }
       predicate { label }
       object { label }
-      triple_vault { market_cap position_count }
+      triple_vault {
+        market_cap
+        position_count
+        term { id }
+      }
     }
   }
 `
@@ -133,17 +139,22 @@ export async function GET(request: NextRequest) {
       })
       .map((v: any) => ({
         id: v.term.id,
+        termId: v.term.id,
         label: v.term.atom?.label || "Unknown",
         image: v.term.atom?.image && v.term.atom.image !== 'null' ? v.term.atom.image : "",
         type: "atom",
+        market_cap: v.market_cap || 0,
+        position_count: v.position_count || 0,
       }))
 
     const claims = (claimsData.data?.triples || []).map((triple: any) => {
       const s = triple.subject?.label || "?"
       const p = triple.predicate?.label || "?"
       const o = triple.object?.label || "?"
+      const termId = triple.triple_vault?.term?.id || ""
       return {
         id: `${s}__${p}__${o}`,
+        termId,
         label: `${s} — ${p} — ${o}`,
         image: "",
         type: "claim",
