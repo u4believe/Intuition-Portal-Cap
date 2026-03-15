@@ -40,6 +40,18 @@ export const DEPOSITS_QUERY = `
           atom {
             label
           }
+          triple {
+            term_id
+            subject {
+              label
+            }
+            predicate {
+              label
+            }
+            object {
+              label
+            }
+          }
         }
       }
     }
@@ -58,6 +70,18 @@ export const REDEMPTIONS_QUERY = `
         term {
           atom {
             label
+          }
+          triple {
+            term_id
+            subject {
+              label
+            }
+            predicate {
+              label
+            }
+            object {
+              label
+            }
           }
         }
       }

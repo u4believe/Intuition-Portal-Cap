@@ -15,6 +15,18 @@ export async function GET() {
               atom {
                 label
               }
+              triple {
+                term_id
+                subject {
+                  label
+                }
+                predicate {
+                  label
+                }
+                object {
+                  label
+                }
+              }
             }
           }
         }
@@ -33,6 +45,18 @@ export async function GET() {
               atom {
                 label
               }
+              triple {
+                term_id
+                subject {
+                  label
+                }
+                predicate {
+                  label
+                }
+                object {
+                  label
+                }
+              }
             }
           }
         }
@@ -45,10 +69,18 @@ export async function GET() {
       const depositsData = await queryIntuitionGraphQL(DEPOSITS_QUERY, { limit: 50 })
       ;(depositsData?.deposits || []).forEach((deposit: any) => {
         const assets = deposit.assets_after_fees ? parseFloat(deposit.assets_after_fees) / 1e18 : 0
+        const term = deposit.vault?.term
+        const triple = term?.triple
+        const atomLabel = term?.atom?.label
+        const label = atomLabel
+          ? atomLabel
+          : triple
+          ? `${triple.subject?.label || '?'} → ${triple.predicate?.label || '?'} → ${triple.object?.label || '?'}`
+          : 'Unknown'
         allEvents.push({
           id: deposit.id,
           type: "deposit",
-          atomLabel: deposit.vault?.term?.atom?.label || "Unknown",
+          atomLabel: label,
           senderId: deposit.sender_id,
           assets: assets,
           createdAt: deposit.created_at,
@@ -62,10 +94,18 @@ export async function GET() {
       const redemptionsData = await queryIntuitionGraphQL(REDEMPTIONS_QUERY, { limit: 50 })
       ;(redemptionsData?.redemptions || []).forEach((redemption: any) => {
         const assets = redemption.assets ? parseFloat(redemption.assets) / 1e18 : 0
+        const term = redemption.vault?.term
+        const triple = term?.triple
+        const atomLabel = term?.atom?.label
+        const label = atomLabel
+          ? atomLabel
+          : triple
+          ? `${triple.subject?.label || '?'} → ${triple.predicate?.label || '?'} → ${triple.object?.label || '?'}`
+          : 'Unknown'
         allEvents.push({
           id: redemption.id,
           type: "redemption",
-          atomLabel: redemption.vault?.term?.atom?.label || "Unknown",
+          atomLabel: label,
           receiverId: redemption.receiver_id,
           assets: assets,
           createdAt: redemption.created_at,
