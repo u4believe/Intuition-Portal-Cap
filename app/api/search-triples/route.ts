@@ -2,101 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 
 const GRAPHQL_ENDPOINT = "https://mainnet.intuition.sh/v1/graphql"
 
-// ── Atoms (identity) search ──────────────────────────────────────────────────
-const SEARCH_ATOMS_QUERY = `
-  query SearchAtoms($search: String!, $limit: Int) {
-    vaults(
-      where: {term: {atom: {label: {_ilike: $search}}}}
-      limit: $limit
-      order_by: {market_cap: desc}
-    ) {
-      market_cap
-      position_count
-      term {
-        id
-        atom { label image }
-      }
-    }
-  }
-`
-
-// ── General claim search (any field) ─────────────────────────────────────────
-const SEARCH_CLAIMS_QUERY = `
-  query SearchClaims($search: String!, $limit: Int) {
-    triples(
-      where: {
-        _or: [
-          {subject:   {label: {_ilike: $search}}}
-          {predicate: {label: {_ilike: $search}}}
-          {object:    {label: {_ilike: $search}}}
-        ]
-      }
-      limit: $limit
-      order_by: {triple_vault: {market_cap: desc}}
-    ) {
-      subject   { label }
-      predicate { label }
-      object    { label }
-      triple_vault {
-        market_cap
-        position_count
-        term { id }
-      }
-    }
-  }
-`
-
-// ── Triple field-by-field search (Subject / Predicate / Object individually) ─
-const SEARCH_TRIPLES_FIELDS_QUERY = `
-  query SearchTriplesByFields($subject: String!, $predicate: String!, $object: String!, $limit: Int) {
-    triples(
-      where: {
-        _and: [
-          {subject:   {label: {_ilike: $subject}}}
-          {predicate: {label: {_ilike: $predicate}}}
-          {object:    {label: {_ilike: $object}}}
-        ]
-      }
-      limit: $limit
-      order_by: {triple_vault: {market_cap: desc}}
-    ) {
-      subject   { label }
-      predicate { label }
-      object    { label }
-      triple_vault {
-        market_cap
-        position_count
-        term { id }
-      }
-    }
-  }
-`
-
-// ── Triples-mode autocomplete for a single field (subject / predicate / object)
-const AUTOCOMPLETE_FIELD_QUERY = `
-  query AutocompleteField($search: String!, $limit: Int) {
-    vaults(
-      where: {term: {atom: {label: {_ilike: $search}}}}
-      limit: $limit
-      order_by: {market_cap: desc}
-    ) {
-      market_cap
-      term { atom { label } }
-    }
-  }
-`
-
-const FETCH_TRIPLES_QUERY = `
-  query Triples($orderBy: [triples_order_by!], $eventsOrderBy: [events_order_by!]) {
-    triples(order_by: $orderBy) {
-      subject { label image creator_id created_at }
-      triple_vault { market_cap position_count }
-      positions(order_by: $orderBy) { shares account_id }
-    }
-    events(order_by: $eventsOrderBy) { created_at }
-  }
-`
-
+// ── Shared GQL helper ─────────────────────────────────────────────────────────
 async function gql(query: string, variables: Record<string, unknown>) {
   const res = await fetch(GRAPHQL_ENDPOINT, {
     method: "POST",
@@ -108,67 +14,236 @@ async function gql(query: string, variables: Record<string, unknown>) {
 }
 
 function formatMarketCap(raw: number | string | null | undefined): string {
-  if (!raw) return ''
-  const n = typeof raw === 'string' ? parseFloat(raw) : raw
-  if (isNaN(n) || n === 0) return ''
+  if (!raw) return ""
+  const n = typeof raw === "string" ? parseFloat(raw) : raw
+  if (isNaN(n) || n === 0) return ""
+  // values come in wei-scale (1e18)
   const trust = n > 1e15 ? n / 1e18 : n
   if (trust >= 1000) return `${(trust / 1000).toFixed(1)}k TRUST`
   return `${trust.toFixed(1)} TRUST`
 }
 
-function mapTriple(triple: any) {
-  const s = triple.subject?.label || "?"
-  const p = triple.predicate?.label || "?"
-  const o = triple.object?.label || "?"
-  const termId = triple.triple_vault?.term?.id || ""
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOMS (identity) search
+// Uses the SAME vaults table the AtomsTable uses so results are consistent.
+// ─────────────────────────────────────────────────────────────────────────────
+const SEARCH_ATOMS_QUERY = `
+  query SearchAtoms($search: String!, $limit: Int) {
+    vaults(
+      where: { term: { atom: { label: { _ilike: $search } } } }
+      limit: $limit
+      order_by: { market_cap: desc }
+    ) {
+      market_cap
+      position_count
+      term {
+        id
+        atom { label image }
+      }
+    }
+  }
+`
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRIPLES search — keyword across any field
+// Uses the SAME vaults table the TriplesTable uses.
+// Filters to vaults that have a triple (term.triple) and whose subject/predicate/
+// object label matches the keyword.
+// ─────────────────────────────────────────────────────────────────────────────
+const SEARCH_TRIPLES_KEYWORD_QUERY = `
+  query SearchTriplesKeyword($search: String!, $limit: Int) {
+    vaults(
+      where: {
+        term: {
+          triple: {
+            _or: [
+              { subject:   { label: { _ilike: $search } } }
+              { predicate: { label: { _ilike: $search } } }
+              { object:    { label: { _ilike: $search } } }
+            ]
+          }
+        }
+      }
+      limit: $limit
+      order_by: { market_cap: desc }
+    ) {
+      market_cap
+      position_count
+      term {
+        id
+        triple {
+          subject   { label }
+          predicate { label }
+          object    { label }
+        }
+      }
+    }
+  }
+`
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRIPLES field-by-field search (S/P/O individually)
+// Also uses vaults so coverage is identical to the TriplesTable.
+// ─────────────────────────────────────────────────────────────────────────────
+const SEARCH_TRIPLES_FIELDS_QUERY = `
+  query SearchTriplesByFields(
+    $subject: String!
+    $predicate: String!
+    $object: String!
+    $limit: Int
+  ) {
+    vaults(
+      where: {
+        term: {
+          triple: {
+            _and: [
+              { subject:   { label: { _ilike: $subject   } } }
+              { predicate: { label: { _ilike: $predicate } } }
+              { object:    { label: { _ilike: $object    } } }
+            ]
+          }
+        }
+      }
+      limit: $limit
+      order_by: { market_cap: desc }
+    ) {
+      market_cap
+      position_count
+      term {
+        id
+        triple {
+          subject   { label }
+          predicate { label }
+          object    { label }
+        }
+      }
+    }
+  }
+`
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Field autocomplete — same vaults/atom query as atom search
+// ─────────────────────────────────────────────────────────────────────────────
+const AUTOCOMPLETE_FIELD_QUERY = `
+  query AutocompleteField($search: String!, $limit: Int) {
+    vaults(
+      where: { term: { atom: { label: { _ilike: $search } } } }
+      limit: $limit
+      order_by: { market_cap: desc }
+    ) {
+      market_cap
+      term { atom { label } }
+    }
+  }
+`
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mappers
+// ─────────────────────────────────────────────────────────────────────────────
+function mapAtomVault(v: any) {
   return {
-    id: `${s}__${p}__${o}`,
-    termId,
+    id: v.term.id,
+    termId: v.term.id,
+    label: v.term.atom?.label || "Unknown",
+    image: v.term.atom?.image && v.term.atom.image !== "null" ? v.term.atom.image : "",
+    type: "atom",
+    market_cap: v.market_cap || 0,
+    position_count: v.position_count || 0,
+    marketCapDisplay: formatMarketCap(v.market_cap),
+  }
+}
+
+function mapTripleVault(v: any) {
+  const triple = v.term?.triple
+  const s = triple?.subject?.label || "?"
+  const p = triple?.predicate?.label || "?"
+  const o = triple?.object?.label || "?"
+  const mc = v.market_cap ? parseFloat(v.market_cap) : 0
+  return {
+    id: `${v.term.id}`,
+    termId: v.term.id,
     label: `${s} — ${p} — ${o}`,
     subject: s,
     predicate: p,
     object: o,
     image: "",
     type: "claim",
-    market_cap: triple.triple_vault?.market_cap || 0,
-    position_count: triple.triple_vault?.position_count || 0,
-    marketCapDisplay: formatMarketCap(triple.triple_vault?.market_cap),
+    market_cap: mc,
+    position_count: v.position_count || 0,
+    marketCapDisplay: formatMarketCap(mc),
+    _contentKey: `${s}__${p}__${o}`,
   }
 }
 
+// Deduplicate triples by content (S/P/O), keeping the vault with highest market cap
+function dedupeTriples(vaults: any[]): any[] {
+  const map = new Map<string, any>()
+  for (const v of vaults) {
+    const key = v._contentKey
+    const existing = map.get(key)
+    if (!existing || v.market_cap > existing.market_cap) {
+      map.set(key, v)
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => b.market_cap - a.market_cap)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Route handler
+// ─────────────────────────────────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
   try {
     const sp = request.nextUrl.searchParams
     const mode = sp.get("mode")
 
-    // ── Legacy triples fetch (not used by search UI) ─────────────────────────
-    if (mode === "triples") {
-      const data = await gql(FETCH_TRIPLES_QUERY, {
-        orderBy: [{ created_at: "desc" }],
-        eventsOrderBy: [{ created_at: "desc" }],
-      })
-      if (data.errors) return NextResponse.json({ triples: [] })
-      const triples = (data.data?.triples || []).map((t: any) => ({
-        id: t.subject?.label || "unknown",
-        label: t.subject?.label || "Unknown",
-        image: t.subject?.image && t.subject.image !== 'null' ? t.subject.image : "",
-        type: "claim",
-        market_cap: t.triple_vault?.market_cap || 0,
-        position_count: t.triple_vault?.position_count || 0,
-        positions: t.positions || [],
-        created_at: t.subject?.created_at,
-      }))
-      return NextResponse.json({ triples, success: true })
+    // ── Atoms mode ─────────────────────────────────────────────────────────
+    if (mode === "atoms") {
+      const q = sp.get("q") || ""
+      if (!q.trim()) return NextResponse.json({ triples: [], total: 0, identityCount: 0, claimCount: 0, success: true })
+
+      const data = await gql(SEARCH_ATOMS_QUERY, { search: `%${q}%`, limit: 200 })
+      const seen = new Set<string>()
+      const results = (data.data?.vaults || [])
+        .filter((v: any) => {
+          if (!v.term?.atom) return false
+          const key = v.term.id
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        .map(mapAtomVault)
+
+      return NextResponse.json({ triples: results, total: results.length, identityCount: results.length, claimCount: 0, success: true })
     }
 
-    // ── Atoms autocomplete for a field in triple search ───────────────────────
+    // ── Triples field-by-field mode ────────────────────────────────────────
+    if (mode === "triples-fields") {
+      const s = sp.get("s") || ""
+      const p = sp.get("p") || ""
+      const o = sp.get("o") || ""
+      if (!s.trim() && !p.trim() && !o.trim()) {
+        return NextResponse.json({ triples: [], total: 0, success: true })
+      }
+
+      const data = await gql(SEARCH_TRIPLES_FIELDS_QUERY, {
+        subject:   s.trim() ? `%${s}%` : "%%",
+        predicate: p.trim() ? `%${p}%` : "%%",
+        object:    o.trim() ? `%${o}%` : "%%",
+        limit: 200,
+      })
+
+      const raw = (data.data?.vaults || [])
+        .filter((v: any) => !!v.term?.triple)
+        .map(mapTripleVault)
+      const results = dedupeTriples(raw)
+      return NextResponse.json({ triples: results, total: results.length, success: true })
+    }
+
+    // ── Field autocomplete ─────────────────────────────────────────────────
     if (mode === "field-autocomplete") {
       const q = sp.get("q") || ""
       if (q.trim().length < 1) return NextResponse.json({ suggestions: [] })
-      const data = await gql(AUTOCOMPLETE_FIELD_QUERY, {
-        search: `%${q}%`,
-        limit: 8,
-      })
+      const data = await gql(AUTOCOMPLETE_FIELD_QUERY, { search: `%${q}%`, limit: 8 })
       const seen = new Set<string>()
       const suggestions = (data.data?.vaults || [])
         .filter((v: any) => {
@@ -184,105 +259,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ suggestions })
     }
 
-    // ── Triples field-by-field search ─────────────────────────────────────────
-    if (mode === "triples-fields") {
-      const s = sp.get("s") || ""
-      const p = sp.get("p") || ""
-      const o = sp.get("o") || ""
-
-      // Need at least one field
-      if (!s.trim() && !p.trim() && !o.trim()) {
-        return NextResponse.json({ triples: [], total: 0, success: true })
-      }
-
-      const data = await gql(SEARCH_TRIPLES_FIELDS_QUERY, {
-        subject:   s.trim() ? `%${s}%` : "%%",
-        predicate: p.trim() ? `%${p}%` : "%%",
-        object:    o.trim() ? `%${o}%` : "%%",
-        limit: 50,
-      })
-
-      const seen = new Set<string>()
-      const results = (data.data?.triples || [])
-        .filter((t: any) => {
-          const key = `${t.subject?.label}__${t.predicate?.label}__${t.object?.label}`
-          if (seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
-        .map(mapTriple)
-
-      return NextResponse.json({ triples: results, total: results.length, success: true })
+    // ── Legacy triples-fetch mode (kept for compat) ────────────────────────
+    if (mode === "triples") {
+      return NextResponse.json({ triples: [], success: true })
     }
 
-    // ── Atoms search ──────────────────────────────────────────────────────────
-    if (mode === "atoms") {
-      const q = sp.get("q") || ""
-      if (!q.trim()) return NextResponse.json({ triples: [], total: 0, identityCount: 0, claimCount: 0, success: true })
-
-      const data = await gql(SEARCH_ATOMS_QUERY, { search: `%${q}%`, limit: 50 })
-      const seen = new Set<string>()
-      const results = (data.data?.vaults || [])
-        .filter((v: any) => {
-          const key = v.term?.id
-          if (!key || seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
-        .map((v: any) => ({
-          id: v.term.id,
-          termId: v.term.id,
-          label: v.term.atom?.label || "Unknown",
-          image: v.term.atom?.image && v.term.atom.image !== 'null' ? v.term.atom.image : "",
-          type: "atom",
-          market_cap: v.market_cap || 0,
-          position_count: v.position_count || 0,
-          marketCapDisplay: formatMarketCap(v.market_cap),
-        }))
-
-      return NextResponse.json({ triples: results, total: results.length, identityCount: results.length, claimCount: 0, success: true })
-    }
-
-    // ── Default combined search (q param) ─────────────────────────────────────
+    // ── Default combined search (q= param) ────────────────────────────────
+    // Runs atom search + triple keyword search in parallel using the SAME
+    // vaults table the tables use, so coverage is identical.
     const query = sp.get("q")
     if (!query) return NextResponse.json({ triples: [] })
 
-    const limit = 50
     const search = `%${query}%`
+    const limit = 200
 
-    const [identitiesData, claimsData] = await Promise.all([
-      gql(SEARCH_ATOMS_QUERY,  { search, limit }),
-      gql(SEARCH_CLAIMS_QUERY, { search, limit }),
+    const [atomsData, triplesData] = await Promise.all([
+      gql(SEARCH_ATOMS_QUERY, { search, limit }),
+      gql(SEARCH_TRIPLES_KEYWORD_QUERY, { search, limit }),
     ])
 
     const seen = new Set<string>()
 
-    const identities = (identitiesData.data?.vaults || [])
+    const identities = (atomsData.data?.vaults || [])
       .filter((v: any) => {
-        const key = v.term?.id
-        if (!key || seen.has(key)) return false
-        seen.add(key)
-        return true
-      })
-      .map((v: any) => ({
-        id: v.term.id,
-        termId: v.term.id,
-        label: v.term.atom?.label || "Unknown",
-        image: v.term.atom?.image && v.term.atom.image !== 'null' ? v.term.atom.image : "",
-        type: "atom",
-        market_cap: v.market_cap || 0,
-        position_count: v.position_count || 0,
-        marketCapDisplay: formatMarketCap(v.market_cap),
-      }))
-
-    const claims = (claimsData.data?.triples || [])
-      .filter((t: any) => {
-        const key = `claim:${t.subject?.label}__${t.predicate?.label}__${t.object?.label}`
+        if (!v.term?.atom) return false
+        const key = v.term.id
         if (seen.has(key)) return false
         seen.add(key)
         return true
       })
-      .map(mapTriple)
+      .map(mapAtomVault)
+
+    const claimsRaw = (triplesData.data?.vaults || [])
+      .filter((v: any) => {
+        if (!v.term?.triple) return false
+        const key = v.term.id
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map(mapTripleVault)
+    const claims = dedupeTriples(claimsRaw)
 
     const combined = [...identities, ...claims]
     return NextResponse.json({
