@@ -33,7 +33,16 @@ const RECENT_DEPOSITS_QUERY = `
       created_at
       assets_after_fees
       vault {
-        term { id atom { label } }
+        term {
+          id
+          atom { label }
+          triple {
+            term_id
+            subject { label }
+            predicate { label }
+            object { label }
+          }
+        }
       }
     }
   }
@@ -49,7 +58,16 @@ const RECENT_REDEMPTIONS_QUERY = `
       created_at
       assets
       vault {
-        term { id atom { label } }
+        term {
+          id
+          atom { label }
+          triple {
+            term_id
+            subject { label }
+            predicate { label }
+            object { label }
+          }
+        }
       }
     }
   }
@@ -94,6 +112,16 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
   const events: LiveEvent[] = []
   const sinceISO = since.toISOString()
 
+  function resolveLabel(term: any): string {
+    const atomLabel = term?.atom?.label
+    if (atomLabel) return atomLabel
+    const triple = term?.triple
+    if (triple) {
+      return `${triple.subject?.label || '?'} → ${triple.predicate?.label || '?'} → ${triple.object?.label || '?'}`
+    }
+    return 'Unknown'
+  }
+
   try {
     const depositsData = await queryIntuitionGraphQL(RECENT_DEPOSITS_QUERY, { since: sinceISO })
     ;(depositsData?.deposits || []).forEach((d: any) => {
@@ -103,7 +131,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
         id: String(d.id),
         type: 'deposit',
         termId: d.vault?.term?.id || '',
-        atomLabel: d.vault?.term?.atom?.label || 'Unknown',
+        atomLabel: resolveLabel(d.vault?.term),
         assets,
         createdAt: d.created_at,
       })
@@ -121,7 +149,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
         id: String(r.id),
         type: 'redemption',
         termId: r.vault?.term?.id || '',
-        atomLabel: r.vault?.term?.atom?.label || 'Unknown',
+        atomLabel: resolveLabel(r.vault?.term),
         assets,
         createdAt: r.created_at,
       })
