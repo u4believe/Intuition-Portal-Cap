@@ -481,7 +481,7 @@ export default function LandingPage() {
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              Atoms
+              Identities
             </button>
           </div>
 

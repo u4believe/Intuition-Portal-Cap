@@ -91,9 +91,9 @@ export default function AtomsTable() {
     <>
       <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading atoms...</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading identities...</div>
         ) : sortedAtoms.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No atoms found</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No identities found</div>
         ) : (
           <>
             {/* Desktop Table */}
