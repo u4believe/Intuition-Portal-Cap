@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import Link from 'next/link'
 import { useAtoms } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
@@ -12,10 +12,9 @@ import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
 type SortOrder = 'asc' | 'desc'
 
-type HighlightItem = { id: string; termId: string; label: string; image: string; marketCap: number; positionCount: number }
-
-export default function AtomsTable({ highlightItem, onClearHighlight }: { highlightItem?: HighlightItem | null, onClearHighlight?: () => void }) {
+export default function AtomsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
+  const highlightRef = useRef<HTMLTableRowElement | HTMLAnchorElement | null>(null)
   const { data: result = { atoms: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useAtoms(currentPage)
   const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
@@ -28,6 +27,20 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
 
   const watchedClaims = getWatchedClaims()
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
+
+  useEffect(() => {
+    if (targetPage && targetPage !== currentPage) {
+      setCurrentPage(targetPage)
+    }
+  }, [targetPage])
+
+  useEffect(() => {
+    if (!loading && highlightTermId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 150)
+    }
+  }, [loading, highlightTermId])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -91,74 +104,6 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
 
   return (
     <>
-      {highlightItem && (
-        <div className="w-full mb-1">
-          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-t-lg">
-            <Search className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium flex-1 truncate">
-              Search result: <span className="font-semibold">{highlightItem.label}</span>
-            </span>
-            <button
-              onClick={onClearHighlight}
-              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors flex-shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-              View all
-            </button>
-          </div>
-          <div className="w-full bg-white dark:bg-slate-900 border border-t-0 border-amber-300 dark:border-amber-700 rounded-b-lg overflow-hidden shadow-sm">
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <tbody>
-                  <tr className="bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-amber-400">
-                    <td className="py-2.5 px-3 text-left">
-                      <Link href={`/vault/${highlightItem.termId}`} className="flex items-center gap-2 hover:no-underline">
-                        <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(highlightItem.label, highlightItem.termId) }}
-                          className="p-1 hover:scale-125 transition-transform flex-shrink-0"
-                        >
-                          <Star className={`w-4 h-4 ${isWatched(highlightItem.label) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'}`} />
-                        </button>
-                        {highlightItem.image && <img src={highlightItem.image} alt={highlightItem.label} className="w-5 h-5 rounded-full flex-shrink-0" />}
-                        <div className="min-w-0">
-                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">{highlightItem.label}</p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="py-2.5 px-2 text-center font-medium text-sm text-slate-900 dark:text-slate-100">{(highlightItem.marketCap / 1e18).toFixed(4)}</td>
-                    <td className="py-2.5 px-2 text-center text-slate-400 text-sm">—</td>
-                    <td className="py-2.5 px-2 text-center text-slate-400 text-sm">—</td>
-                    <td className="py-2.5 px-2 text-center text-slate-400 text-sm">—</td>
-                    <td className="py-2.5 px-2 text-center font-medium text-sm text-slate-900 dark:text-slate-100">{highlightItem.positionCount}</td>
-                    <td className="py-2.5 px-2 text-center">
-                      <button
-                        onClick={() => handleWatchClick(highlightItem.label, highlightItem.termId)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isWatched(highlightItem.label) ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
-                      >
-                        {isWatched(highlightItem.label) ? 'Watching' : 'Watch'}
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="md:hidden p-3">
-              <Link href={`/vault/${highlightItem.termId}`} className="flex items-center justify-between hover:no-underline">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {highlightItem.image && <img src={highlightItem.image} alt={highlightItem.label} className="w-8 h-8 rounded-full flex-shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">{highlightItem.label}</p>
-                    <p className="text-xs text-slate-500">{highlightItem.positionCount} positions · Mkt cap {(highlightItem.marketCap / 1e18).toFixed(4)}</p>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </div>
-          <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-2 px-4">
-            <span className="text-xs text-slate-500 dark:text-slate-400">All identities</span>
-          </div>
-        </div>
-      )}
       <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading identities...</div>
@@ -207,10 +152,13 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {sortedAtoms.map((atom, idx) => (
+                  {sortedAtoms.map((atom, idx) => {
+                    const isHighlighted = !!highlightTermId && atom.termId === highlightTermId
+                    return (
                     <tr
                       key={`atom-${idx}`}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                      ref={isHighlighted ? (el) => { (highlightRef as { current: HTMLTableRowElement | null }).current = el } : undefined}
+                      className={`transition-colors group cursor-pointer ${isHighlighted ? 'bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400 dark:border-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                     >
                       <td className="py-2.5 px-3 text-left">
                         <Link href={`/vault/${atom.termId}`} className="flex items-center gap-2 hover:no-underline">
@@ -234,7 +182,17 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
                             <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-5 h-5 rounded-full flex-shrink-0" />
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate hover:text-primary transition-colors">{atom.label}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate hover:text-primary transition-colors">{atom.label}</p>
+                              {isHighlighted && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                                  Search result
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClearHighlight?.() }} className="hover:text-amber-900 dark:hover:text-amber-100">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{atom.creatorLabel}</p>
                           </div>
                         </Link>
@@ -283,18 +241,22 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
-              {sortedAtoms.map((atom, idx) => (
+              {sortedAtoms.map((atom, idx) => {
+                const isHighlightedMobile = !!highlightTermId && atom.termId === highlightTermId
+                return (
                 <Link
                   key={`atom-mobile-${idx}`}
+                  ref={isHighlightedMobile ? (el) => { (highlightRef as { current: HTMLAnchorElement | null }).current = el } : undefined}
                   href={`/vault/${atom.termId}`}
-                  className="block hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className={`block transition-colors ${isHighlightedMobile ? 'bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                 >
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -319,7 +281,17 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
                           <img src={atom.image || '/placeholder.svg'} alt={atom.label} className="w-6 h-6 rounded-full flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">{atom.label}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">{atom.label}</p>
+                            {isHighlightedMobile && (
+                              <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                                Search result
+                                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClearHighlight?.() }} className="hover:text-amber-900 dark:hover:text-amber-100">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{atom.creatorLabel}</p>
                         </div>
                       </div>
@@ -364,7 +336,8 @@ export default function AtomsTable({ highlightItem, onClearHighlight }: { highli
                     </div>
                   </div>
                 </Link>
-              ))}
+                )
+              })}
             </div>
 
             {/* Pagination Controls */}
