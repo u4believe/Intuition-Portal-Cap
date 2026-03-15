@@ -204,7 +204,7 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-6">
             <div className="relative" ref={searchRef}>
               <button
-                onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setSearchValue('') }}
+                onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) clearSearch() }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm text-black dark:text-white"
               >
                 <Search className="w-4 h-4" />
