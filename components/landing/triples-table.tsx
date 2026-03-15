@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
@@ -63,6 +63,8 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
     }
   }
 
+  const [tableSearch, setTableSearch] = useState('')
+
   const sortedTriples = [...triples]
     .sort((a, b) => {
       let aValue: any = a[sortField]
@@ -77,6 +79,15 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
+
+  const q = tableSearch.trim().toLowerCase()
+  const filteredTriples = q
+    ? sortedTriples.filter(t =>
+        t.subjectLabel?.toLowerCase().includes(q) ||
+        t.predicateLabel?.toLowerCase().includes(q) ||
+        t.objectLabel?.toLowerCase().includes(q)
+      )
+    : sortedTriples
 
   const formatNumber = (num: number | undefined) => {
     if (!num) return '0'
@@ -100,10 +111,33 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
   return (
     <>
       <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        {/* Table search bar */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {loading ? 'Loading…' : tableSearch.trim() ? `${filteredTriples.length} of ${sortedTriples.length} claims` : `${pagination.total.toLocaleString()} claims`}
+          </span>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={tableSearch}
+              onChange={e => setTableSearch(e.target.value)}
+              placeholder="Search Subject, Predicate, Object…"
+              className="pl-8 pr-7 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 w-52 sm:w-72"
+            />
+            {tableSearch && (
+              <button onClick={() => setTableSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading triples...</div>
-        ) : sortedTriples.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">No triples found</div>
+        ) : filteredTriples.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+            {tableSearch.trim() ? `No claims match "${tableSearch}"` : 'No triples found'}
+          </div>
         ) : (
           <>
             {/* Desktop Table */}
@@ -145,7 +179,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {sortedTriples.map((triple, idx) => {
+                  {filteredTriples.map((triple, idx) => {
                     const isHighlighted = !!highlightTermId && triple.termId === highlightTermId
                     return (
                     <tr
@@ -240,7 +274,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
 
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-200 dark:divide-slate-800">
-              {sortedTriples.map((triple, idx) => {
+              {filteredTriples.map((triple, idx) => {
                 const isHighlightedMobile = !!highlightTermId && triple.termId === highlightTermId
                 return (
                 <Link
