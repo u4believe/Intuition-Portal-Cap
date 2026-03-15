@@ -21,10 +21,14 @@ import ClaimsTable from "./claims-table"
 import TriplesTable from "./triples-table"
 import AtomsTable from "./atoms-table"
 
+type SearchResult = { id: string; termId: string; label: string; type: string; image: string; market_cap: number; position_count: number; marketCapDisplay?: string }
+
 export default function LandingPage() {
   const [searchOpen, setSearchOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
-  const [searchResults, setSearchResults] = useState<{ id: string; termId: string; label: string; type: string; image: string; market_cap: number; position_count: number }[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchTotal, setSearchTotal] = useState<{ identities: number; claims: number } | null>(null)
   const [highlightTermId, setHighlightTermId] = useState<string | null>(null)
   const [highlightTargetPage, setHighlightTargetPage] = useState<number | null>(null)
   const [highlightTabType, setHighlightTabType] = useState<string | null>(null)
@@ -80,6 +84,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (!searchValue.trim()) {
       setSearchResults([])
+      setSearchTotal(null)
       return
     }
     setSearchLoading(true)
@@ -88,14 +93,38 @@ export default function LandingPage() {
         const res = await fetch(`/api/search-triples?q=${encodeURIComponent(searchValue.trim())}`)
         const data = await res.json()
         setSearchResults(data.triples || [])
+        setSearchTotal(data.identityCount !== undefined ? { identities: data.identityCount, claims: data.claimCount } : null)
       } catch {
         setSearchResults([])
+        setSearchTotal(null)
       } finally {
         setSearchLoading(false)
       }
     }, 300)
     return () => clearTimeout(timer)
   }, [searchValue])
+
+  const handleResultClick = async (result: SearchResult) => {
+    const tab = result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults'
+    const termId = result.termId || result.id
+    setActiveTab(tab)
+    setHighlightTermId(termId)
+    setHighlightTabType(result.type)
+    setHighlightTargetPage(null)
+    setSearchOpen(false)
+    setMobileSearchOpen(false)
+    setSearchValue('')
+    setSearchResults([])
+    setSearchTotal(null)
+    setTimeout(() => {
+      document.getElementById('claims')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+    try {
+      const res = await fetch(`/api/find-term-page?termId=${encodeURIComponent(termId)}`)
+      const json = await res.json()
+      if (json.page) setHighlightTargetPage(json.page)
+    } catch {}
+  }
 
   const handleUnwatch = (claimLabel: string) => {
     removeWatchedClaim(claimLabel)
@@ -134,56 +163,49 @@ export default function LandingPage() {
                 <span>Search</span>
               </button>
               {searchOpen && (
-                <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="p-3 border-b border-slate-100 dark:border-slate-800">
                     <input
                       type="text"
                       placeholder="Search claims, vaults or identities…"
                       value={searchValue}
                       onChange={(e) => setSearchValue(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
                       className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                       autoFocus
                     />
                   </div>
-                  <div className="max-h-72 overflow-y-auto">
+                  {searchResults.length > 0 && searchTotal && (
+                    <div className="px-4 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                      <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</span>
+                      {searchTotal.identities > 0 && <span className="text-purple-500">{searchTotal.identities} {searchTotal.identities === 1 ? 'identity' : 'identities'}</span>}
+                      {searchTotal.claims > 0 && <span className="text-cyan-500">{searchTotal.claims} claim{searchTotal.claims !== 1 ? 's' : ''}</span>}
+                    </div>
+                  )}
+                  <div className="max-h-[420px] overflow-y-auto">
                     {searchLoading && (
                       <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
                         Searching…
                       </div>
                     )}
                     {!searchLoading && searchValue.trim() && searchResults.length === 0 && (
-                      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                        No results for "{searchValue}"
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">No results for "{searchValue}"</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Try a different keyword or part of a claim label</p>
                       </div>
                     )}
                     {!searchLoading && !searchValue.trim() && (
-                      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                        Type to search across claims, vaults, and identities
+                      <div className="p-6 text-center">
+                        <Search className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Search across all claims, vaults and identities</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Results are ranked by market cap</p>
                       </div>
                     )}
                     {searchResults.map((result) => (
                       <button
                         key={result.id}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
-                        onClick={async () => {
-                          const tab = result.type === 'atom' ? 'atoms' : result.type === 'claim' ? 'claims' : 'vaults'
-                          const termId = result.termId || result.id
-                          setActiveTab(tab)
-                          setHighlightTermId(termId)
-                          setHighlightTabType(result.type)
-                          setHighlightTargetPage(null)
-                          setSearchOpen(false)
-                          setSearchValue('')
-                          setSearchResults([])
-                          setTimeout(() => {
-                            document.getElementById('claims')?.scrollIntoView({ behavior: 'smooth' })
-                          }, 100)
-                          try {
-                            const res = await fetch(`/api/find-term-page?termId=${encodeURIComponent(termId)}`)
-                            const json = await res.json()
-                            if (json.page) setHighlightTargetPage(json.page)
-                          } catch {}
-                        }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-50 dark:border-slate-800/60 last:border-0"
+                        onClick={() => handleResultClick(result)}
                       >
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
                           result.type === 'atom'
@@ -192,7 +214,12 @@ export default function LandingPage() {
                         }`}>
                           {result.type === 'atom' ? 'identity' : result.type}
                         </span>
-                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</p>
+                          {result.marketCapDisplay && (
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{result.marketCapDisplay} · {result.position_count} position{result.position_count !== 1 ? 's' : ''}</p>
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -299,10 +326,17 @@ export default function LandingPage() {
             </div>
           </nav>
           <div className="md:hidden flex gap-2 items-center">
+            <button
+              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setWatchlistOpen(false); setNotifOpen(false) }}
+              className={`p-2 rounded-lg transition-colors ${mobileSearchOpen ? 'bg-primary/20 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
+              title="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             {mounted && isSignedIn && (
               <>
                 <button
-                  onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false) }}
+                  onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false); setMobileSearchOpen(false) }}
                   className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
                   title="Watchlist"
                 >
@@ -314,7 +348,7 @@ export default function LandingPage() {
                   )}
                 </button>
                 <button
-                  onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false) }}
+                  onClick={() => { setNotifOpen(!notifOpen); setWatchlistOpen(false); setMobileSearchOpen(false) }}
                   className={`relative p-2 rounded-lg transition-colors ${notifOpen ? 'bg-cyan-500/20 text-cyan-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-black dark:text-white'}`}
                   title="Notification Preferences"
                 >
@@ -348,6 +382,75 @@ export default function LandingPage() {
               </div>
               <div className="p-4">
                 <NotificationPreferencesPanel onOpenSettings={() => { setNotifOpen(false); setAlertsDialogOpen(true) }} />
+              </div>
+            </div>
+          )}
+
+          {/* Mobile search panel */}
+          {mobileSearchOpen && (
+            <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xl z-50 max-h-[75vh] flex flex-col">
+              <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search claims, vaults or identities…"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Escape' && setMobileSearchOpen(false)}
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-black dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    autoFocus
+                  />
+                </div>
+                <button onClick={() => { setMobileSearchOpen(false); setSearchValue(''); setSearchResults([]) }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {searchResults.length > 0 && searchTotal && (
+                <div className="px-4 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
+                  <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</span>
+                  {searchTotal.identities > 0 && <span className="text-purple-500">{searchTotal.identities} {searchTotal.identities === 1 ? 'identity' : 'identities'}</span>}
+                  {searchTotal.claims > 0 && <span className="text-cyan-500">{searchTotal.claims} claim{searchTotal.claims !== 1 ? 's' : ''}</span>}
+                </div>
+              )}
+              <div className="overflow-y-auto flex-1">
+                {searchLoading && (
+                  <div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Searching…</div>
+                )}
+                {!searchLoading && searchValue.trim() && searchResults.length === 0 && (
+                  <div className="p-6 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No results for "{searchValue}"</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Try a different keyword or part of a claim label</p>
+                  </div>
+                )}
+                {!searchLoading && !searchValue.trim() && (
+                  <div className="p-8 text-center">
+                    <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Search across all claims, vaults and identities</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Results are ranked by market cap</p>
+                  </div>
+                )}
+                {searchResults.map((result) => (
+                  <button
+                    key={result.id}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/60 last:border-0 active:bg-slate-100 dark:active:bg-slate-700"
+                    onClick={() => handleResultClick(result)}
+                  >
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
+                      result.type === 'atom'
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                        : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
+                    }`}>
+                      {result.type === 'atom' ? 'identity' : result.type}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800 dark:text-slate-200 truncate">{result.label}</p>
+                      {result.marketCapDisplay && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{result.marketCapDisplay} · {result.position_count} position{result.position_count !== 1 ? 's' : ''}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}

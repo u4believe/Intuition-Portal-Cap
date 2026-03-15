@@ -33,6 +33,7 @@ const SEARCH_CLAIMS_QUERY = `
         ]
       }
       limit: $limit
+      order_by: {triple_vault: {market_cap: desc}}
     ) {
       subject { label }
       predicate { label }
@@ -80,6 +81,15 @@ async function gql(query: string, variables: Record<string, unknown>) {
   return res.json()
 }
 
+function formatMarketCap(raw: number | string | null | undefined): string {
+  if (!raw) return ''
+  const n = typeof raw === 'string' ? parseFloat(raw) : raw
+  if (isNaN(n) || n === 0) return ''
+  const trust = n > 1e15 ? n / 1e18 : n
+  if (trust >= 1000) return `${(trust / 1000).toFixed(1)}k TRUST`
+  return `${trust.toFixed(1)} TRUST`
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -120,7 +130,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ triples: [] })
     }
 
-    const limit = 10
+    const limit = 50
     const search = `%${query}%`
 
     const [identitiesData, claimsData] = await Promise.all([
@@ -145,6 +155,7 @@ export async function GET(request: NextRequest) {
         type: "atom",
         market_cap: v.market_cap || 0,
         position_count: v.position_count || 0,
+        marketCapDisplay: formatMarketCap(v.market_cap),
       }))
 
     const claims = (claimsData.data?.triples || [])
@@ -170,10 +181,19 @@ export async function GET(request: NextRequest) {
           type: "claim",
           market_cap: triple.triple_vault?.market_cap || 0,
           position_count: triple.triple_vault?.position_count || 0,
+          marketCapDisplay: formatMarketCap(triple.triple_vault?.market_cap),
         }
       })
 
-    return NextResponse.json({ triples: [...identities, ...claims], success: true })
+    const combined = [...identities, ...claims]
+
+    return NextResponse.json({
+      triples: combined,
+      total: combined.length,
+      identityCount: identities.length,
+      claimCount: claims.length,
+      success: true,
+    })
   } catch (error: any) {
     console.error("[Search] Error:", error)
     return NextResponse.json({ triples: [], error: error.message }, { status: 500 })
