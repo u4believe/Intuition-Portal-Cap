@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { WalletConnectButton } from '@/components/wallet-connect-button'
 import { useAuthCheck } from '@/hooks/useAuth'
 import Link from 'next/link'
-import Image from 'next/image'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -27,7 +27,6 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false)
   const [activeMethod, setActiveMethod] = useState<'wallet' | 'discord' | null>(null)
 
-  // Translate URL error params to user-friendly messages
   const urlError = searchParams.get('error')
   const errorMessages: Record<string, string> = {
     discord_cancelled: 'Discord sign-in was cancelled.',
@@ -37,7 +36,6 @@ function LoginPageContent() {
     discord_failed: 'Discord sign-in failed — please try again.',
   }
 
-  // Redirect to home if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       router.push('/')
@@ -72,7 +70,7 @@ function LoginPageContent() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -81,35 +79,39 @@ function LoginPageContent() {
   const displayError = error || (urlError ? errorMessages[urlError] : '')
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 to-slate-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+      {/* Theme toggle */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       {/* Logo */}
-      <Link href="/" className="mb-8 hover:opacity-80 transition-opacity">
+      <Link href="/" className="mb-8 hover:opacity-80 transition-opacity cursor-pointer">
         <img src="/logo.jpg" alt="Portal Cap" className="h-14 w-14 rounded-full" />
       </Link>
 
       <div className="w-full max-w-md space-y-3">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">Sign in to Portal Cap</h1>
-          <p className="text-slate-400 text-sm">Choose how you want to sign in</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign in to Portal Cap</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Choose how you want to sign in</p>
         </div>
 
         {displayError && (
-          <div className="bg-red-900/30 border border-red-700/50 text-red-300 text-sm rounded-lg px-4 py-3 text-center">
+          <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700/50 text-red-700 dark:text-red-300 text-sm rounded-lg px-4 py-3 text-center">
             {displayError}
           </div>
         )}
 
         {/* Wallet Option */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-9 h-9 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-white text-sm">Crypto Wallet</p>
-              <p className="text-xs text-slate-400">MetaMask, WalletConnect &amp; more</p>
+              <p className="font-semibold text-slate-900 dark:text-white text-sm">Crypto Wallet</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">MetaMask, WalletConnect & more</p>
             </div>
           </div>
 
@@ -117,15 +119,15 @@ function LoginPageContent() {
             <WalletConnectButton />
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-                <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                <p className="text-sm font-mono text-slate-300 truncate">
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                <p className="text-sm font-mono text-slate-600 dark:text-slate-300 truncate">
                   {address?.slice(0, 6)}…{address?.slice(-4)}
                 </p>
               </div>
               <Button
                 onClick={handleWalletLogin}
-                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
+                className="w-full bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white cursor-pointer"
                 disabled={loading && activeMethod === 'wallet'}
               >
                 {loading && activeMethod === 'wallet' ? (
@@ -134,7 +136,7 @@ function LoginPageContent() {
                     Signing…
                   </span>
                 ) : (
-                  'Sign &amp; Continue'
+                  'Sign & Continue'
                 )}
               </Button>
             </div>
@@ -143,26 +145,26 @@ function LoginPageContent() {
 
         {/* Divider */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 border-t border-slate-800" />
-          <span className="text-xs text-slate-600 uppercase tracking-wider">or</span>
-          <div className="flex-1 border-t border-slate-800" />
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
+          <span className="text-xs text-slate-400 dark:text-slate-600 uppercase tracking-wider">or</span>
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
         </div>
 
         {/* Discord Option */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-              <DiscordIcon className="w-5 h-5 text-indigo-400" />
+              <DiscordIcon className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
             </div>
             <div>
-              <p className="font-semibold text-white text-sm">Discord</p>
-              <p className="text-xs text-slate-400">Sign in with your Discord account</p>
+              <p className="font-semibold text-slate-900 dark:text-white text-sm">Discord</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Sign in with your Discord account</p>
             </div>
           </div>
 
           <a href="/api/auth/discord">
             <Button
-              className="w-full bg-[#5865F2] hover:bg-[#4752c4] text-white gap-2"
+              className="w-full bg-[#5865F2] hover:bg-[#4752c4] text-white gap-2 cursor-pointer"
             >
               <DiscordIcon className="w-4 h-4" />
               Continue with Discord
@@ -170,7 +172,7 @@ function LoginPageContent() {
           </a>
         </div>
 
-        <p className="text-center text-xs text-slate-600 pt-2">
+        <p className="text-center text-xs text-slate-400 dark:text-slate-600 pt-2">
           By signing in, you agree to use this app for monitoring Intuition blockchain data.
         </p>
       </div>
@@ -181,7 +183,7 @@ function LoginPageContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
       </div>
     }>

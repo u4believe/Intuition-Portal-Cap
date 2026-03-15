@@ -23,8 +23,7 @@ export function WalletConnectButton() {
         <div key={connector.uid}>
           <Button
             onClick={() => handleConnect(connector.uid)}
-            variant="outline"
-            className="gap-2 w-full justify-start"
+            className="gap-2 w-full justify-start bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white border border-slate-700 dark:border-slate-600 cursor-pointer"
             disabled={isPending && selectedConnector === connector.uid}
             type="button"
           >
@@ -36,7 +35,7 @@ export function WalletConnectButton() {
             )}
           </Button>
           {error && selectedConnector === connector.uid && (
-            <p className="text-xs text-red-500 mt-1">
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1">
               Failed to connect. Please try again.
             </p>
           )}
