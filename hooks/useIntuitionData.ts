@@ -23,6 +23,7 @@ export interface Claim {
   objectLabel: string
   objectType: string
   marketCap: number
+  totalMarketCap: number
   totalShares: number
   currentSharePrice: number
   totalAssets: number

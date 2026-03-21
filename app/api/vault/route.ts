@@ -142,7 +142,11 @@ function parseAmount(val: string | number | null | undefined): number {
 
 function buildSide(termData: any) {
   if (!termData) return null
-  const vault = termData.vaults?.[0] ?? null
+  // vaults[0] = Exponential bonding curve (primary/default vault)
+  // vaults[1] = Linear bonding curve (secondary vault, may not exist)
+  const expVault = termData.vaults?.[0] ?? null
+  const linVault = termData.vaults?.[1] ?? null
+  const vault = expVault  // alias for clarity
   const spc = vault?.share_price_change_stats_daily?.[0] ?? null
   let sharePriceChange24h = 0
   if (spc) {
@@ -153,13 +157,27 @@ function buildSide(termData: any) {
 
   return {
     type: termData.type || '',
+    // Term-level totals (Exponential + Linear combined)
     totalMarketCap: parseAmount(termData.total_market_cap),
     totalAssets: parseAmount(termData.total_assets),
-    marketCap: parseAmount(vault?.market_cap),
-    vaultTotalAssets: parseAmount(vault?.total_assets),
-    totalShares: parseAmount(vault?.total_shares),
-    currentSharePrice: parseAmount(vault?.current_share_price),
-    positionCount: vault?.position_count || 0,
+    // Exponential vault metrics (vault[0])
+    expMarketCap: parseAmount(expVault?.market_cap),
+    expTotalAssets: parseAmount(expVault?.total_assets),
+    expTotalShares: parseAmount(expVault?.total_shares),
+    expSharePrice: parseAmount(expVault?.current_share_price),
+    expPositionCount: expVault?.position_count || 0,
+    // Linear vault metrics (vault[1], if it exists)
+    linMarketCap: linVault ? parseAmount(linVault.market_cap) : null,
+    linTotalAssets: linVault ? parseAmount(linVault.total_assets) : null,
+    linTotalShares: linVault ? parseAmount(linVault.total_shares) : null,
+    linSharePrice: linVault ? parseAmount(linVault.current_share_price) : null,
+    linPositionCount: linVault ? (linVault.position_count || 0) : null,
+    // Legacy aliases (Exponential vault) — kept for existing consumers
+    marketCap: parseAmount(expVault?.market_cap),
+    vaultTotalAssets: parseAmount(expVault?.total_assets),
+    totalShares: parseAmount(expVault?.total_shares),
+    currentSharePrice: parseAmount(expVault?.current_share_price),
+    positionCount: expVault?.position_count || 0,
     sharePriceChange24h,
     sharePriceStats: spc ? {
       difference: parseAmount(spc.difference),

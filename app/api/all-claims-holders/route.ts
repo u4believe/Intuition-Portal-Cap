@@ -9,6 +9,7 @@ const CLAIMS_FIELDS = `
   current_share_price
   term {
     id
+    total_market_cap
     triple {
       subject { label image }
       predicate { label }
@@ -98,6 +99,8 @@ function mapClaim(vault: any) {
   const predicate = triple?.predicate?.label || "Unknown"
   const object = triple?.object?.label || "Unknown"
   const marketCap = vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
+  // term.total_market_cap = sum across Exponential + Linear vaults (this vault's market_cap is Exponential only)
+  const totalMarketCap = vault.term?.total_market_cap ? parseFloat(vault.term.total_market_cap) / 1e18 : marketCap
   const totalAssets = vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
   const totalShares = vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
   const currentSharePrice = vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0
@@ -120,7 +123,9 @@ function mapClaim(vault: any) {
     predicateType: "",
     objectLabel: object,
     objectType: "",
+    // marketCap = Exponential vault only; totalMarketCap = Exponential + Linear combined
     marketCap,
+    totalMarketCap,
     totalAssets,
     totalShares,
     currentSharePrice,
