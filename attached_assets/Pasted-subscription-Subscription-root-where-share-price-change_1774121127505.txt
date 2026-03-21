@@ -1,0 +1,161 @@
+subscription Subscription_root($where: share_price_change_stats_daily_bool_exp) {
+  triples {
+    term_id
+    subject {
+      label
+      image
+    }
+    predicate {
+      label
+      image
+    }
+    object {
+      label
+      image
+    }
+    term {
+      type
+      total_market_cap
+      total_assets
+      signals {
+        deposit {
+          assets_after_fees
+          id
+          sender_id
+          created_at
+        }
+        redemption {
+          assets
+          id
+          receiver_id
+          created_at
+        }
+      }
+      vaults {
+        total_shares
+        market_cap
+        total_assets
+        position_count
+        share_price_change_stats_daily(where: $where) {
+          difference
+          first_share_price
+          last_share_price
+          change_count
+        }
+        deposits {
+          id
+          created_at
+          shares
+        }
+        redemptions {
+          id
+          created_at
+          shares
+        }
+        positions {
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
+      }
+      positions {
+        account_id
+        shares
+        total_deposit_assets_after_total_fees
+        total_redeem_assets_for_receiver
+      }
+      deposits {
+        id
+        assets_after_fees
+        created_at
+        total_shares
+        sender_id
+      }
+      redemptions {
+        id
+        assets
+        created_at
+        total_shares
+        receiver_id
+      }
+    }
+    counter_term {
+      type
+      total_market_cap
+      total_assets
+      signals {
+        deposit {
+          assets_after_fees
+          id
+          sender_id
+          created_at
+        }
+        redemption {
+          assets
+          id
+          receiver_id
+          created_at
+        }
+      }
+      positions {
+        account_id
+        shares
+        total_deposit_assets_after_total_fees
+        total_redeem_assets_for_receiver
+      }
+      deposits {
+        id
+        assets_after_fees
+        created_at
+        total_shares
+        sender_id
+      }
+      redemptions {
+        id
+        assets
+        created_at
+        total_shares
+        receiver_id
+      }
+      vaults {
+        total_shares
+        market_cap
+        total_assets
+        position_count
+        share_price_change_stats_daily(where: $where) {
+          difference
+          first_share_price
+          last_share_price
+          change_count
+        }
+        deposits {
+          id
+          created_at
+          shares
+        }
+        redemptions {
+          id
+          created_at
+          shares
+        }
+        positions {
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
+      }
+    }
+    counter_term_id
+    positions {
+      account_id
+      shares
+      total_deposit_assets_after_total_fees
+      total_redeem_assets_for_receiver
+      updated_at
+      curve_id
+      id
+    }
+  }
+}
