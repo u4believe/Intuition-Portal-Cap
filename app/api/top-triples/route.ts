@@ -13,6 +13,22 @@ const TRIPLES_FIELDS = `
       subject { label image }
       predicate { label }
       object { label }
+      counter_term {
+        type
+        vaults {
+          total_shares
+          market_cap
+          total_assets
+          position_count
+          current_share_price
+          share_price_change_stats_daily {
+            difference
+            first_share_price
+            last_share_price
+            change_count
+          }
+        }
+      }
     }
     positions {
       account_id
@@ -115,6 +131,13 @@ function buildTriples(vaults: any[]) {
         positionCount: 0,
         sharePriceChange24h: 0,
         positions: [],
+        opposeMarketCap: 0,
+        opposeTotalAssets: 0,
+        opposeTotalShares: 0,
+        opposeSharePrice: 0,
+        opposePositionCount: 0,
+        opposeSharePriceChange24h: 0,
+        hasOppose: false,
       })
     }
     const d = triplesMap.get(key)!
@@ -130,6 +153,25 @@ function buildTriples(vaults: any[]) {
       if (first > 0) d.sharePriceChange24h = ((last - first) / first) * 100
     }
     d.positions.push(...(vault.term?.positions || []))
+
+    // Aggregate counter_term (oppose) vault data
+    const counterVaults: any[] = triple.counter_term?.vaults || []
+    if (counterVaults.length > 0) {
+      d.hasOppose = true
+      for (const cv of counterVaults) {
+        d.opposeMarketCap += cv.market_cap ? parseFloat(cv.market_cap) / 1e18 : 0
+        d.opposeTotalAssets += cv.total_assets ? parseFloat(cv.total_assets) / 1e18 : 0
+        d.opposeTotalShares += cv.total_shares ? parseFloat(cv.total_shares) / 1e18 : 0
+        d.opposeSharePrice = Math.max(d.opposeSharePrice, cv.current_share_price ? parseFloat(cv.current_share_price) / 1e18 : 0)
+        d.opposePositionCount += cv.position_count || 0
+        const cspc = cv.share_price_change_stats_daily?.[0]
+        if (cspc) {
+          const last = parseFloat(cspc.last_share_price || "0") / 1e18
+          const first = parseFloat(cspc.first_share_price || "0") / 1e18
+          if (first > 0) d.opposeSharePriceChange24h = ((last - first) / first) * 100
+        }
+      }
+    }
   }
   return Array.from(triplesMap.values()).sort((a, b) => b.marketCap - a.marketCap)
 }
