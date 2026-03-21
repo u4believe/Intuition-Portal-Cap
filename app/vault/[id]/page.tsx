@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Star, TrendingUp, TrendingDown } from 'lucide-react'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
+import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
+import type { ClaimAlertPref } from '@/lib/push-notifications'
 
 type SideMode = 'support' | 'oppose'
 
@@ -85,11 +88,14 @@ function Td({ children, center, mono }: { children: React.ReactNode; center?: bo
 
 export default function VaultDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
+  const { removeClaimAlertPref, getClaimAlertPrefs } = usePushNotifications()
   const [claim, setClaim] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [termId, setTermId] = useState<string | null>(null)
   const [sideMode, setSideMode] = useState<SideMode>('support')
+  const [watchDialogOpen, setWatchDialogOpen] = useState(false)
+  const [existingPrefs, setExistingPrefs] = useState<Partial<ClaimAlertPref> | undefined>(undefined)
 
   useEffect(() => {
     let mounted = true
@@ -110,13 +116,27 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
     return () => { mounted = false }
   }, [termId])
 
+  useEffect(() => {
+    if (!termId) return
+    getClaimAlertPrefs().then(prefs => {
+      if (prefs[termId]) setExistingPrefs(prefs[termId])
+    }).catch(() => {})
+  }, [termId, getClaimAlertPrefs])
+
   const watchedClaims = getWatchedClaims()
-  const isWatched = claim ? watchedClaims.includes(claim.label) : false
+  const isWatched = claim
+    ? (existingPrefs !== undefined || watchedClaims.includes(claim.label))
+    : false
 
   const handleWatchClick = () => {
     if (!claim) return
-    if (isWatched) removeWatchedClaim(claim.label)
-    else addWatchedClaim(claim.label, 'PROFIT')
+    if (isWatched) {
+      removeWatchedClaim(claim.label)
+      if (termId) removeClaimAlertPref(termId)
+      setExistingPrefs(undefined)
+    } else {
+      setWatchDialogOpen(true)
+    }
   }
 
   if (isLoading || !termId) {
@@ -536,6 +556,21 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
 
         <div className="h-8" />
       </div>
+
+      <WatchPreferencesDialog
+        open={watchDialogOpen}
+        onOpenChange={setWatchDialogOpen}
+        claimLabel={claim?.label || ''}
+        termId={termId || ''}
+        mode={existingPrefs ? 'edit' : 'add'}
+        initialPrefs={existingPrefs}
+        onConfirm={(claimLabel) => {
+          addWatchedClaim(claimLabel)
+          getClaimAlertPrefs().then(prefs => {
+            if (termId && prefs[termId]) setExistingPrefs(prefs[termId])
+          }).catch(() => {})
+        }}
+      />
     </div>
   )
 }
