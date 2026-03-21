@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
+type SortField = 'label' | 'positionCount' | 'totalMarketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
 type SortOrder = 'asc' | 'desc'
 
 export default function ClaimsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
@@ -18,7 +18,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { removeClaimAlertPref, getClaimAlertPrefs } = usePushNotifications()
 
-  const [sortField, setSortField] = useState<SortField>('marketCap')
+  const [sortField, setSortField] = useState<SortField>('totalMarketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [tableSearch, setTableSearch] = useState('')
 
@@ -153,7 +153,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                       <SortHeader field="label" label="Vault" />
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex justify-center"><SortHeader field="marketCap" label="Market Cap" /></div>
+                      <div className="flex justify-center"><SortHeader field="totalMarketCap" label="Total Mkt Cap" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center"><SortHeader field="totalAssets" label="Total Assets" /></div>
@@ -162,7 +162,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                       <div className="flex justify-center"><SortHeader field="totalShares" label="Total Shares" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex justify-center"><SortHeader field="currentSharePrice" label="Share Price" /></div>
+                      <div className="flex justify-center"><SortHeader field="currentSharePrice" label="Share Price (Exp)" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center"><SortHeader field="positionCount" label="Positions" /></div>
@@ -194,7 +194,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
-                        <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">{fmt(claim.marketCap)}</Link>
+                        <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">{fmt(claim.totalMarketCap ?? claim.marketCap)}</Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">{fmt(claim.totalAssets)}</Link>
@@ -250,15 +250,15 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Market Cap</p>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{fmt(claim.marketCap)}</p>
+                        <p className="text-slate-500 dark:text-slate-400">Total Mkt Cap</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{fmt(claim.totalMarketCap ?? claim.marketCap)}</p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Total Assets</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{fmt(claim.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Share Price</p>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price (Exp)</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
                           {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                         </p>

@@ -154,7 +154,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">
-                        <SortHeader field="marketCap" label="Market Cap" />
+                        <SortHeader field="marketCap" label="Total Mkt Cap" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
@@ -169,7 +169,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">
-                        <SortHeader field="currentSharePrice" label="Share Price" />
+                        <SortHeader field="currentSharePrice" label="Share Price (Exp)" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
@@ -343,7 +343,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Market Cap</p>
+                        <p className="text-slate-500 dark:text-slate-400">Total Mkt Cap</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.marketCap)}</p>
                       </div>
                       <div>
@@ -351,7 +351,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Share Price</p>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price (Exp)</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
                           {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                         </p>
