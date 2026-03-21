@@ -13,6 +13,7 @@ const CLAIMS_FIELDS = `
       subject { label image }
       predicate { label }
       object { label }
+      counter_term { id }
     }
     positions {
       account_id
@@ -109,6 +110,7 @@ function mapClaim(vault: any) {
   }
   return {
     termId: vault.term?.id || "",
+    opposeTermId: triple?.counter_term?.id || "",
     label: `${subject} - ${predicate} - ${object}`,
     type: "Triple",
     image: triple?.subject?.image && triple.subject.image !== "null" ? triple.subject.image : null,

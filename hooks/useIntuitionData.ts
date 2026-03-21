@@ -12,6 +12,7 @@ export interface LiveEvent {
 
 export interface Claim {
   termId: string
+  opposeTermId: string
   label: string
   type: string
   image: string | null
