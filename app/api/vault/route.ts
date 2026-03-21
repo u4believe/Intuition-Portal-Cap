@@ -142,11 +142,13 @@ function parseAmount(val: string | number | null | undefined): number {
 
 function buildSide(termData: any) {
   if (!termData) return null
-  // vaults[0] = Exponential bonding curve (primary/default vault)
-  // vaults[1] = Linear bonding curve (secondary vault, may not exist)
-  const expVault = termData.vaults?.[0] ?? null
-  const linVault = termData.vaults?.[1] ?? null
-  const vault = expVault  // alias for clarity
+  // vaults[0] = Linear bonding curve (primary/first created vault)
+  // vaults[1] = Exponential bonding curve (secondary vault, may not always be present in results)
+  const linVault = termData.vaults?.[0] ?? null
+  const expVault = termData.vaults?.[1] ?? null
+  // Deposits/redemptions/positions tables use the Exponential vault (vaults[1])
+  // Share price change stats come from the Exponential vault
+  const vault = expVault ?? linVault  // prefer Exponential; fall back to Linear if only one vault returned
   const spc = vault?.share_price_change_stats_daily?.[0] ?? null
   let sharePriceChange24h = 0
   if (spc) {
@@ -160,24 +162,24 @@ function buildSide(termData: any) {
     // Term-level totals (Exponential + Linear combined)
     totalMarketCap: parseAmount(termData.total_market_cap),
     totalAssets: parseAmount(termData.total_assets),
-    // Exponential vault metrics (vault[0])
-    expMarketCap: parseAmount(expVault?.market_cap),
-    expTotalAssets: parseAmount(expVault?.total_assets),
-    expTotalShares: parseAmount(expVault?.total_shares),
-    expSharePrice: parseAmount(expVault?.current_share_price),
-    expPositionCount: expVault?.position_count || 0,
-    // Linear vault metrics (vault[1], if it exists)
-    linMarketCap: linVault ? parseAmount(linVault.market_cap) : null,
-    linTotalAssets: linVault ? parseAmount(linVault.total_assets) : null,
-    linTotalShares: linVault ? parseAmount(linVault.total_shares) : null,
-    linSharePrice: linVault ? parseAmount(linVault.current_share_price) : null,
-    linPositionCount: linVault ? (linVault.position_count || 0) : null,
-    // Legacy aliases (Exponential vault) — kept for existing consumers
-    marketCap: parseAmount(expVault?.market_cap),
-    vaultTotalAssets: parseAmount(expVault?.total_assets),
-    totalShares: parseAmount(expVault?.total_shares),
-    currentSharePrice: parseAmount(expVault?.current_share_price),
-    positionCount: expVault?.position_count || 0,
+    // Exponential vault metrics (vault[1])
+    expMarketCap: expVault ? parseAmount(expVault.market_cap) : null,
+    expTotalAssets: expVault ? parseAmount(expVault.total_assets) : null,
+    expTotalShares: expVault ? parseAmount(expVault.total_shares) : null,
+    expSharePrice: expVault ? parseAmount(expVault.current_share_price) : null,
+    expPositionCount: expVault ? (expVault.position_count || 0) : null,
+    // Linear vault metrics (vault[0])
+    linMarketCap: parseAmount(linVault?.market_cap),
+    linTotalAssets: parseAmount(linVault?.total_assets),
+    linTotalShares: parseAmount(linVault?.total_shares),
+    linSharePrice: parseAmount(linVault?.current_share_price),
+    linPositionCount: linVault?.position_count || 0,
+    // Legacy aliases (prefer Exponential; fall back to Linear) — kept for existing consumers
+    marketCap: parseAmount((expVault ?? linVault)?.market_cap),
+    vaultTotalAssets: parseAmount((expVault ?? linVault)?.total_assets),
+    totalShares: parseAmount((expVault ?? linVault)?.total_shares),
+    currentSharePrice: parseAmount((expVault ?? linVault)?.current_share_price),
+    positionCount: (expVault ?? linVault)?.position_count || 0,
     sharePriceChange24h,
     sharePriceStats: spc ? {
       difference: parseAmount(spc.difference),
