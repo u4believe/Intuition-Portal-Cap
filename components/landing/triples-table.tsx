@@ -11,9 +11,11 @@ import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
 type SortOrder = 'asc' | 'desc'
+type SideMode = 'support' | 'oppose'
 
 export default function TriplesTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
   const [currentPage, setCurrentPage] = useState(1)
+  const [sideMode, setSideMode] = useState<SideMode>('support')
   const highlightRef = useRef<HTMLTableRowElement | HTMLAnchorElement | null>(null)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const { data: result = { triples: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } }, isLoading: loading } = useTriples(debouncedSearch ? 1 : currentPage, debouncedSearch)
@@ -71,10 +73,22 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
     return () => clearTimeout(t)
   }, [tableSearch])
 
+  // Returns the correct value for a triple field depending on support vs oppose mode
+  const getVal = (triple: any, field: SortField) => {
+    if (sideMode === 'oppose') {
+      if (field === 'marketCap') return triple.opposeMarketCap ?? 0
+      if (field === 'totalAssets') return triple.opposeTotalAssets ?? 0
+      if (field === 'totalShares') return triple.opposeTotalShares ?? 0
+      if (field === 'currentSharePrice') return triple.opposeSharePrice ?? 0
+      if (field === 'positionCount') return triple.opposePositionCount ?? 0
+    }
+    return triple[field]
+  }
+
   const sortedTriples = [...triples]
     .sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: any = getVal(a, sortField)
+      let bValue: any = getVal(b, sortField)
 
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase()
@@ -108,12 +122,39 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
   return (
     <>
       <div className="w-full bg-white dark:bg-slate-900 border-t border-b border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        {/* Table search bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {loading ? (debouncedSearch ? 'Searching…' : 'Loading…') : debouncedSearch ? `${sortedTriples.length} result${sortedTriples.length !== 1 ? 's' : ''} for "${debouncedSearch}"` : `${pagination.total.toLocaleString()} claims`}
-          </span>
-          <div className="relative">
+        {/* Table toolbar: count + Support/Oppose toggle + search */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+          {/* Left: count + toggle */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
+              {loading ? (debouncedSearch ? 'Searching…' : 'Loading…') : debouncedSearch ? `${sortedTriples.length} result${sortedTriples.length !== 1 ? 's' : ''} for "${debouncedSearch}"` : `${pagination.total.toLocaleString()} claims`}
+            </span>
+            {/* Support / Oppose pill toggle */}
+            <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs font-semibold shrink-0">
+              <button
+                onClick={() => setSideMode('support')}
+                className={`px-3 py-1 transition-colors cursor-pointer ${
+                  sideMode === 'support'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600'
+                }`}
+              >
+                Support
+              </button>
+              <button
+                onClick={() => setSideMode('oppose')}
+                className={`px-3 py-1 transition-colors cursor-pointer border-l border-slate-200 dark:border-slate-700 ${
+                  sideMode === 'oppose'
+                    ? 'bg-rose-500 text-white'
+                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600'
+                }`}
+              >
+                Oppose
+              </button>
+            </div>
+          </div>
+          {/* Right: search */}
+          <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -223,27 +264,27 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                          {formatNumber(triple.marketCap)}
+                          {formatNumber(getVal(triple, 'marketCap'))}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                          {formatNumber(triple.totalAssets)}
+                          {formatNumber(getVal(triple, 'totalAssets'))}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                          {formatNumber(triple.totalShares)}
+                          {formatNumber(getVal(triple, 'totalShares'))}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                          {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                          {getVal(triple, 'currentSharePrice') ? (getVal(triple, 'currentSharePrice') as number).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-700 dark:text-slate-300 text-sm">
                         <Link href={`/vault/${triple.termId}`} className="hover:text-primary transition-colors">
-                          {formatNumber(triple.positionCount)}
+                          {formatNumber(getVal(triple, 'positionCount'))}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center">
@@ -335,25 +376,25 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Market Cap</p>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.marketCap)}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(getVal(triple, 'marketCap'))}</p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Total Assets</p>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.totalAssets)}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(getVal(triple, 'totalAssets'))}</p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Share Price</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {triple.currentSharePrice ? triple.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                          {getVal(triple, 'currentSharePrice') ? (getVal(triple, 'currentSharePrice') as number).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                         </p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Total Shares</p>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.totalShares)}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(getVal(triple, 'totalShares'))}</p>
                       </div>
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Positions</p>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(triple.positionCount)}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(getVal(triple, 'positionCount'))}</p>
                       </div>
                     </div>
                   </div>
