@@ -174,6 +174,52 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
+        {/* Atom Identity info */}
+        {claim.type === 'Atom' && (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+            {(claim.emoji || claim.atomType) && (
+              <div className="flex items-center gap-6 px-5 py-4 flex-wrap">
+                {claim.emoji && (
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Emoji</p>
+                    <p className="text-2xl">{claim.emoji}</p>
+                  </div>
+                )}
+                {claim.atomType && (
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Atom Type</p>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">{claim.atomType}</span>
+                  </div>
+                )}
+                {claim.createdAt && (
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Created</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{fmtDate(claim.createdAt)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {claim.creator?.label && (
+              <div className="px-5 py-4 flex items-center gap-3">
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Creator</p>
+                  <div className="flex items-center gap-2">
+                    {claim.creator.image && <img src={claim.creator.image} alt={claim.creator.label} className="w-6 h-6 rounded-full" />}
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">{claim.creator.label}</p>
+                    {claim.creator.id && <p className="text-xs font-mono text-slate-400 dark:text-slate-500">{shortAddr(claim.creator.id)}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+            {claim.data && (
+              <div className="px-5 py-4">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Data</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 break-all font-mono">{claim.data}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Triple info */}
         {claim.type === 'Triple' && (
           <div className="grid grid-cols-3 gap-3">
@@ -423,6 +469,35 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                 </TableWrap>
               </>
             )}
+          </>
+        )}
+
+        {/* Atom-level positions */}
+        {claim.type === 'Atom' && claim.atomPositions?.length > 0 && (
+          <>
+            <SectionTitle>Atom Positions ({claim.atomPositions.length})</SectionTitle>
+            <TableWrap>
+              <thead>
+                <tr>
+                  <Th>ID</Th>
+                  <Th>Account</Th>
+                  <Th center>Shares</Th>
+                  <Th center>Deposited (TRUST)</Th>
+                  <Th center>Redeemed (TRUST)</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {claim.atomPositions.map((p: any, i: number) => (
+                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <Td mono>{shortAddr(p.id)}</Td>
+                    <Td mono><span title={p.accountId}>{shortAddr(p.accountId)}</span></Td>
+                    <Td center>{fmt(p.shares, 6)}</Td>
+                    <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
+                    <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableWrap>
           </>
         )}
 
