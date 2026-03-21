@@ -11,6 +11,7 @@ const TRIPLES_FIELDS = `
     id
     vaults {
       position_count
+      current_share_price
     }
     triple {
       subject { label image }
@@ -147,10 +148,12 @@ function buildTriples(vaults: any[]) {
     d.marketCap += vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
     d.totalAssets += vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
     d.totalShares += vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
-    d.currentSharePrice = Math.max(d.currentSharePrice, vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0)
-    // Sum position_count across all term vaults (Linear + Exponential) for the support side
-    const termVaultPositions = (vault.term?.vaults || []).reduce((sum: number, tv: any) => sum + (tv.position_count || 0), 0)
-    if (termVaultPositions > 0) d.positionCount = termVaultPositions
+    // Sum position_count and share price across all term vaults (Linear + Exponential) for the support side
+    const termVaults: any[] = vault.term?.vaults || []
+    if (termVaults.length > 0) {
+      d.positionCount = termVaults.reduce((sum: number, tv: any) => sum + (tv.position_count || 0), 0)
+      d.currentSharePrice = termVaults.reduce((sum: number, tv: any) => sum + (tv.current_share_price ? parseFloat(tv.current_share_price) / 1e18 : 0), 0)
+    }
     const spc = vault.term?.share_price_change_stats_daily?.[0]
     if (spc) {
       const last = parseFloat(spc.last_share_price || "0") / 1e18
@@ -167,7 +170,7 @@ function buildTriples(vaults: any[]) {
         d.opposeMarketCap += cv.market_cap ? parseFloat(cv.market_cap) / 1e18 : 0
         d.opposeTotalAssets += cv.total_assets ? parseFloat(cv.total_assets) / 1e18 : 0
         d.opposeTotalShares += cv.total_shares ? parseFloat(cv.total_shares) / 1e18 : 0
-        d.opposeSharePrice = Math.max(d.opposeSharePrice, cv.current_share_price ? parseFloat(cv.current_share_price) / 1e18 : 0)
+        d.opposeSharePrice += cv.current_share_price ? parseFloat(cv.current_share_price) / 1e18 : 0
         d.opposePositionCount += cv.position_count || 0
         const cspc = cv.share_price_change_stats_daily?.[0]
         if (cspc) {
