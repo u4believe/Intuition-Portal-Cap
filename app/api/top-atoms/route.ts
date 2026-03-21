@@ -1,77 +1,80 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
-const ATOM_FIELDS = `
-  term_id
-  data
-  label
-  image
-  emoji
-  type
-  created_at
-  creator {
+const ATOM_VAULT_FIELDS = `
+  market_cap
+  position_count
+  total_shares
+  total_assets
+  current_share_price
+  share_price_change_stats_daily {
+    difference
+    first_share_price
+    last_share_price
+    change_count
+  }
+  deposits {
     id
-    label
-    image
+    created_at
+    shares
+  }
+  redemptions {
+    id
+    created_at
+    shares
+  }
+  positions {
+    account_id
+    shares
+    total_deposit_assets_after_total_fees
+    total_redeem_assets_for_receiver
   }
   term {
-    type
-    total_market_cap
-    total_assets
-    vaults {
-      total_shares
-      market_cap
-      total_assets
-      position_count
-      current_share_price
-      share_price_change_stats_daily {
-        difference
-        first_share_price
-        last_share_price
-        change_count
-      }
-      deposits {
+    id
+    atom {
+      label
+      image
+      emoji
+      type
+      data
+      created_at
+      creator {
         id
-        created_at
-        shares
-      }
-      redemptions {
-        id
-        created_at
-        shares
+        label
+        image
       }
       positions {
-        account_id
+        id
         shares
+        account_id
         total_deposit_assets_after_total_fees
         total_redeem_assets_for_receiver
       }
     }
   }
-  positions {
-    id
-    shares
-    account_id
-    total_deposit_assets_after_total_fees
-    total_redeem_assets_for_receiver
-  }
 `
 
 const ATOMS_BROWSE_QUERY = `
   query GetAtoms($limit: Int, $offset: Int) {
-    atoms(limit: $limit, offset: $offset) {
-      ${ATOM_FIELDS}
+    vaults(
+      limit: $limit
+      offset: $offset
+      order_by: { market_cap: desc }
+      where: { term: { atom: { label: { _is_null: false } } } }
+    ) {
+      ${ATOM_VAULT_FIELDS}
     }
   }
 `
 
 const ATOMS_SEARCH_QUERY = `
   query SearchAtoms($search: String!, $limit: Int) {
-    atoms(
-      where: { label: { _ilike: $search } }
+    vaults(
+      where: { term: { atom: { label: { _ilike: $search } } } }
       limit: $limit
+      order_by: { market_cap: desc }
     ) {
-      ${ATOM_FIELDS}
+      ${ATOM_VAULT_FIELDS}
     }
   }
 `
@@ -99,67 +102,84 @@ function parseAmount(val: string | number | null | undefined): number {
   return n / 1e18
 }
 
-function buildAtoms(atoms: any[]) {
-  return atoms
-    .filter(a => a.label && a.label !== 'Unknown')
-    .map(a => {
-      const vault = a.term?.vaults?.[0] ?? null
-      const spc = vault?.share_price_change_stats_daily?.[0] ?? null
-      let sharePriceChange24h = 0
-      if (spc) {
-        const last = parseAmount(spc.last_share_price)
-        const first = parseAmount(spc.first_share_price)
-        if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
-      }
-      return {
-        termId: a.term_id || '',
-        label: a.label || 'Unknown',
-        image: a.image && a.image !== 'null' ? a.image : '',
-        emoji: a.emoji || '',
-        atomType: a.type || '',
-        data: a.data || '',
-        createdAt: a.created_at || '',
-        creatorId: a.creator?.id || '',
-        creatorLabel: a.creator?.label || '',
-        creatorImage: a.creator?.image && a.creator.image !== 'null' ? a.creator.image : '',
-        marketCap: parseAmount(vault?.market_cap),
-        totalAssets: parseAmount(vault?.total_assets),
-        totalShares: parseAmount(vault?.total_shares),
-        currentSharePrice: parseAmount(vault?.current_share_price),
-        positionCount: vault?.position_count || 0,
-        sharePriceChange24h,
-        sharePriceStats: spc ? {
-          difference: parseAmount(spc.difference),
-          firstSharePrice: parseAmount(spc.first_share_price),
-          lastSharePrice: parseAmount(spc.last_share_price),
-          changeCount: spc.change_count || 0,
-        } : null,
-        vaultDeposits: (vault?.deposits || []).map((d: any) => ({
-          id: d.id,
-          shares: parseAmount(d.shares),
-          createdAt: d.created_at,
-        })),
-        vaultRedemptions: (vault?.redemptions || []).map((r: any) => ({
-          id: r.id,
-          shares: parseAmount(r.shares),
-          createdAt: r.created_at,
-        })),
-        vaultPositions: (vault?.positions || []).map((p: any) => ({
-          accountId: p.account_id,
-          shares: parseAmount(p.shares),
-          totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
-          totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-        })),
-        positions: (a.positions || []).map((p: any) => ({
+function buildAtoms(vaults: any[]) {
+  const atomsMap = new Map<string, any>()
+
+  for (const vault of vaults) {
+    const atom = vault.term?.atom
+    if (!atom || !atom.label || atom.label === 'Unknown') continue
+    const termId = vault.term?.id || ''
+    if (!atomsMap.has(termId)) {
+      atomsMap.set(termId, {
+        termId,
+        label: atom.label,
+        image: atom.image && atom.image !== 'null' ? atom.image : '',
+        emoji: atom.emoji || '',
+        atomType: atom.type || '',
+        data: atom.data || '',
+        createdAt: atom.created_at || '',
+        creatorId: atom.creator?.id || '',
+        creatorLabel: atom.creator?.label || '',
+        creatorImage: atom.creator?.image && atom.creator.image !== 'null' ? atom.creator.image : '',
+        marketCap: 0,
+        totalAssets: 0,
+        totalShares: 0,
+        currentSharePrice: 0,
+        positionCount: 0,
+        sharePriceChange24h: 0,
+        sharePriceStats: null as any,
+        vaultDeposits: [] as any[],
+        vaultRedemptions: [] as any[],
+        vaultPositions: [] as any[],
+        positions: (atom.positions || []).map((p: any) => ({
           id: p.id,
           accountId: p.account_id,
           shares: parseAmount(p.shares),
           totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
           totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
         })),
+      })
+    }
+
+    const d = atomsMap.get(termId)!
+    d.marketCap += parseAmount(vault.market_cap)
+    d.totalAssets += parseAmount(vault.total_assets)
+    d.totalShares += parseAmount(vault.total_shares)
+    d.currentSharePrice = Math.max(d.currentSharePrice, parseAmount(vault.current_share_price))
+    d.positionCount += vault.position_count || 0
+
+    const spc = vault.share_price_change_stats_daily?.[0]
+    if (spc) {
+      const last = parseAmount(spc.last_share_price)
+      const first = parseAmount(spc.first_share_price)
+      if (first > 0) d.sharePriceChange24h = ((last - first) / first) * 100
+      d.sharePriceStats = {
+        difference: parseAmount(spc.difference),
+        firstSharePrice: parseAmount(spc.first_share_price),
+        lastSharePrice: parseAmount(spc.last_share_price),
+        changeCount: spc.change_count || 0,
       }
-    })
-    .sort((a, b) => b.marketCap - a.marketCap)
+    }
+
+    d.vaultDeposits.push(...(vault.deposits || []).map((dep: any) => ({
+      id: dep.id,
+      shares: parseAmount(dep.shares),
+      createdAt: dep.created_at,
+    })))
+    d.vaultRedemptions.push(...(vault.redemptions || []).map((r: any) => ({
+      id: r.id,
+      shares: parseAmount(r.shares),
+      createdAt: r.created_at,
+    })))
+    d.vaultPositions.push(...(vault.positions || []).map((p: any) => ({
+      accountId: p.account_id,
+      shares: parseAmount(p.shares),
+      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    })))
+  }
+
+  return Array.from(atomsMap.values()).sort((a, b) => b.marketCap - a.marketCap)
 }
 
 export async function GET(request: Request) {
@@ -170,7 +190,7 @@ export async function GET(request: Request) {
     const pageSize = search ? 200 : 100
     const offset = (page - 1) * pageSize
 
-    let atomsData: any[]
+    let vaultsData: any[]
     let totalCount = 0
 
     if (search) {
@@ -178,18 +198,18 @@ export async function GET(request: Request) {
         queryIntuitionGraphQL(ATOMS_SEARCH_QUERY, { search: `%${search}%`, limit: pageSize }),
         queryIntuitionGraphQL(ATOMS_SEARCH_COUNT_QUERY, { search: `%${search}%` }),
       ])
-      atomsData = data?.atoms || []
+      vaultsData = data?.vaults || []
       totalCount = countData?.atoms_aggregate?.aggregate?.count || 0
     } else {
       const [data, countData] = await Promise.all([
         queryIntuitionGraphQL(ATOMS_BROWSE_QUERY, { limit: pageSize, offset }),
         queryIntuitionGraphQL(ATOMS_COUNT_QUERY, {}),
       ])
-      atomsData = data?.atoms || []
+      vaultsData = data?.vaults || []
       totalCount = countData?.atoms_aggregate?.aggregate?.count || 0
     }
 
-    const atoms = buildAtoms(atomsData)
+    const atoms = buildAtoms(vaultsData)
 
     return NextResponse.json({
       atoms,
