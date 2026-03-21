@@ -11,6 +11,22 @@ const VAULT_QUERY = `
       atom {
         label
         image
+        emoji
+        type
+        data
+        created_at
+        creator {
+          id
+          label
+          image
+        }
+        positions {
+          id
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
       }
       triple {
         subject { label image }
@@ -238,10 +254,26 @@ export async function GET(request: Request) {
       }))
     } else {
       claim.label = atom?.label || "Unknown"
+      claim.image = atom?.image && atom.image !== 'null' ? atom.image : null
+      claim.emoji = atom?.emoji || ''
+      claim.atomType = atom?.type || ''
+      claim.data = atom?.data || ''
+      claim.createdAt = atom?.created_at || ''
+      claim.creator = atom?.creator ? {
+        id: atom.creator.id || '',
+        label: atom.creator.label || '',
+        image: atom.creator.image && atom.creator.image !== 'null' ? atom.creator.image : null,
+      } : null
+      claim.atomPositions = (atom?.positions || []).map((p: any) => ({
+        id: p.id,
+        accountId: p.account_id,
+        shares: parseAmount(p.shares),
+        totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+        totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+      }))
       claim.subjectLabel = ""
       claim.predicateLabel = ""
       claim.objectLabel = ""
-      claim.image = atom?.image && atom.image !== 'null' ? atom.image : null
       claim.support = buildSide(term)
       claim.oppose = null
       claim.triplePositions = []
