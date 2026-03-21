@@ -300,32 +300,32 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
         {side && (
           <>
             <SectionTitle>{sideMode === 'support' ? 'Support' : 'Oppose'} — Market Overview</SectionTitle>
-            {/* Term-level totals (Exponential + Linear combined) */}
+            {/* Term-level totals (Linear + Exponential combined) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <StatCard label="Total Mkt Cap — Exp+Lin (TRUST)" value={fmt(side.totalMarketCap)} />
-              <StatCard label="Total Assets — Exp+Lin (TRUST)" value={fmt(side.totalAssets)} />
-              {/* Exponential vault */}
-              <StatCard label="Market Cap — Exp (TRUST)" value={fmt(side.expMarketCap ?? side.marketCap)} />
-              <StatCard label="Total Assets — Exp (TRUST)" value={fmt(side.expTotalAssets ?? side.vaultTotalAssets)} />
-              <StatCard label="Total Shares — Exp" value={fmt(side.expTotalShares ?? side.totalShares)} />
-              <StatCard label="Share Price — Exp (TRUST)" value={fmt(side.expSharePrice ?? side.currentSharePrice, 6)} />
-              <StatCard label="Positions — Exp" value={String(side.expPositionCount ?? side.positionCount)} />
-              <StatCard
-                label="24h Price Change — Exp"
-                value={`${side.sharePriceChange24h >= 0 ? '+' : ''}${side.sharePriceChange24h.toFixed(3)}%`}
-                accent={side.sharePriceChange24h >= 0 ? 'green' : 'red'}
-              />
-              {side.sharePriceStats && (
-                <StatCard label="24h Change Count — Exp" value={String(side.sharePriceStats.changeCount)} />
-              )}
-              {/* Linear vault (shown only when a Linear vault exists) */}
-              {side.linMarketCap !== null && side.linMarketCap !== undefined && (
+              <StatCard label="Total Mkt Cap — Lin+Exp (TRUST)" value={fmt(side.totalMarketCap)} />
+              <StatCard label="Total Assets — Lin+Exp (TRUST)" value={fmt(side.totalAssets)} />
+              {/* Linear vault (vaults[0] — always present) */}
+              <StatCard label="Market Cap — Lin (TRUST)" value={fmt(side.linMarketCap)} />
+              <StatCard label="Total Assets — Lin (TRUST)" value={fmt(side.linTotalAssets)} />
+              <StatCard label="Total Shares — Lin" value={fmt(side.linTotalShares)} />
+              <StatCard label="Share Price — Lin (TRUST)" value={fmt(side.linSharePrice, 6)} />
+              <StatCard label="Positions — Lin" value={String(side.linPositionCount ?? 0)} />
+              {/* Exponential vault (vaults[1] — shown when present) */}
+              {side.expMarketCap !== null && side.expMarketCap !== undefined && (
                 <>
-                  <StatCard label="Market Cap — Lin (TRUST)" value={fmt(side.linMarketCap)} />
-                  <StatCard label="Total Assets — Lin (TRUST)" value={fmt(side.linTotalAssets ?? 0)} />
-                  <StatCard label="Total Shares — Lin" value={fmt(side.linTotalShares ?? 0)} />
-                  <StatCard label="Share Price — Lin (TRUST)" value={fmt(side.linSharePrice ?? 0, 6)} />
-                  <StatCard label="Positions — Lin" value={String(side.linPositionCount ?? 0)} />
+                  <StatCard label="Market Cap — Exp (TRUST)" value={fmt(side.expMarketCap)} />
+                  <StatCard label="Total Assets — Exp (TRUST)" value={fmt(side.expTotalAssets ?? 0)} />
+                  <StatCard label="Total Shares — Exp" value={fmt(side.expTotalShares ?? 0)} />
+                  <StatCard label="Share Price — Exp (TRUST)" value={fmt(side.expSharePrice ?? 0, 6)} />
+                  <StatCard label="Positions — Exp" value={String(side.expPositionCount ?? 0)} />
+                  <StatCard
+                    label="24h Price Change — Exp"
+                    value={`${side.sharePriceChange24h >= 0 ? '+' : ''}${side.sharePriceChange24h.toFixed(3)}%`}
+                    accent={side.sharePriceChange24h >= 0 ? 'green' : 'red'}
+                  />
+                  {side.sharePriceStats && (
+                    <StatCard label="24h Change Count — Exp" value={String(side.sharePriceStats.changeCount)} />
+                  )}
                 </>
               )}
             </div>

@@ -9,6 +9,9 @@ const TRIPLES_FIELDS = `
   current_share_price
   term {
     id
+    vaults {
+      position_count
+    }
     triple {
       subject { label image }
       predicate { label }
@@ -145,7 +148,9 @@ function buildTriples(vaults: any[]) {
     d.totalAssets += vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
     d.totalShares += vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
     d.currentSharePrice = Math.max(d.currentSharePrice, vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0)
-    d.positionCount += vault.position_count || 0
+    // Sum position_count across all term vaults (Linear + Exponential) for the support side
+    const termVaultPositions = (vault.term?.vaults || []).reduce((sum: number, tv: any) => sum + (tv.position_count || 0), 0)
+    if (termVaultPositions > 0) d.positionCount = termVaultPositions
     const spc = vault.term?.share_price_change_stats_daily?.[0]
     if (spc) {
       const last = parseFloat(spc.last_share_price || "0") / 1e18
