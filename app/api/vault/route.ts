@@ -1,6 +1,195 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
+const VAULT_QUERY = `
+  query GetVault($id: String!) {
+    terms(where: {id: {_eq: $id}}) {
+      id
+      type
+      total_market_cap
+      total_assets
+      atom {
+        label
+        image
+      }
+      triple {
+        subject { label image }
+        predicate { label image }
+        object { label image }
+        counter_term {
+          type
+          total_market_cap
+          total_assets
+          vaults {
+            total_shares
+            market_cap
+            total_assets
+            position_count
+            current_share_price
+            share_price_change_stats_daily {
+              difference
+              first_share_price
+              last_share_price
+              change_count
+            }
+            deposits { id created_at shares }
+            redemptions { id created_at shares }
+            positions {
+              account_id
+              shares
+              total_deposit_assets_after_total_fees
+              total_redeem_assets_for_receiver
+            }
+          }
+          positions {
+            account_id
+            shares
+            total_deposit_assets_after_total_fees
+            total_redeem_assets_for_receiver
+          }
+          deposits {
+            id
+            assets_after_fees
+            created_at
+            total_shares
+            sender_id
+          }
+          redemptions {
+            id
+            assets
+            created_at
+            total_shares
+            receiver_id
+          }
+        }
+        positions {
+          id
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+          updated_at
+          curve_id
+        }
+      }
+      vaults {
+        total_shares
+        market_cap
+        total_assets
+        position_count
+        current_share_price
+        share_price_change_stats_daily {
+          difference
+          first_share_price
+          last_share_price
+          change_count
+        }
+        deposits { id created_at shares }
+        redemptions { id created_at shares }
+        positions {
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
+      }
+      positions {
+        account_id
+        shares
+        total_deposit_assets_after_total_fees
+        total_redeem_assets_for_receiver
+      }
+      deposits {
+        id
+        assets_after_fees
+        created_at
+        total_shares
+        sender_id
+      }
+      redemptions {
+        id
+        assets
+        created_at
+        total_shares
+        receiver_id
+      }
+    }
+  }
+`
+
+function parseAmount(val: string | number | null | undefined): number {
+  if (val === null || val === undefined || val === '') return 0
+  const n = typeof val === 'string' ? parseFloat(val) : val
+  if (isNaN(n)) return 0
+  return n / 1e18
+}
+
+function buildSide(termData: any) {
+  if (!termData) return null
+  const vault = termData.vaults?.[0] ?? null
+  const spc = vault?.share_price_change_stats_daily?.[0] ?? null
+  let sharePriceChange24h = 0
+  if (spc) {
+    const last = parseAmount(spc.last_share_price)
+    const first = parseAmount(spc.first_share_price)
+    if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
+  }
+
+  return {
+    type: termData.type || '',
+    totalMarketCap: parseAmount(termData.total_market_cap),
+    totalAssets: parseAmount(termData.total_assets),
+    marketCap: parseAmount(vault?.market_cap),
+    vaultTotalAssets: parseAmount(vault?.total_assets),
+    totalShares: parseAmount(vault?.total_shares),
+    currentSharePrice: parseAmount(vault?.current_share_price),
+    positionCount: vault?.position_count || 0,
+    sharePriceChange24h,
+    sharePriceStats: spc ? {
+      difference: parseAmount(spc.difference),
+      firstSharePrice: parseAmount(spc.first_share_price),
+      lastSharePrice: parseAmount(spc.last_share_price),
+      changeCount: spc.change_count || 0,
+    } : null,
+    vaultDeposits: (vault?.deposits || []).map((d: any) => ({
+      id: d.id,
+      shares: parseAmount(d.shares),
+      createdAt: d.created_at,
+    })),
+    vaultRedemptions: (vault?.redemptions || []).map((r: any) => ({
+      id: r.id,
+      shares: parseAmount(r.shares),
+      createdAt: r.created_at,
+    })),
+    vaultPositions: (vault?.positions || []).map((p: any) => ({
+      accountId: p.account_id,
+      shares: parseAmount(p.shares),
+      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    })),
+    termDeposits: (termData.deposits || []).map((d: any) => ({
+      id: d.id,
+      assets: parseAmount(d.assets_after_fees),
+      totalShares: parseAmount(d.total_shares),
+      senderId: d.sender_id,
+      createdAt: d.created_at,
+    })),
+    termRedemptions: (termData.redemptions || []).map((r: any) => ({
+      id: r.id,
+      assets: parseAmount(r.assets),
+      totalShares: parseAmount(r.total_shares),
+      receiverId: r.receiver_id,
+      createdAt: r.created_at,
+    })),
+    termPositions: (termData.positions || []).map((p: any) => ({
+      accountId: p.account_id,
+      shares: parseAmount(p.shares),
+      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    })),
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
@@ -9,50 +198,6 @@ export async function GET(request: Request) {
     if (!termId) {
       return NextResponse.json({ error: "termId parameter required" }, { status: 400 })
     }
-
-    const VAULT_QUERY = `
-      query GetVault($id: String!) {
-        terms(where: {id: {_eq: $id}}) {
-          id
-          atom {
-            label
-            image
-          }
-          triple {
-            subject {
-              label
-              image
-            }
-            predicate {
-              label
-            }
-            object {
-              label
-              image
-            }
-          }
-          vaults {
-            market_cap
-            position_count
-            total_assets
-            total_shares
-            current_share_price
-            positions {
-              account_id
-              shares
-              total_deposit_assets_after_total_fees
-              total_redeem_assets_for_receiver
-            }
-            share_price_change_stats_daily {
-              difference
-              first_share_price
-              last_share_price
-              change_count
-            }
-          }
-        }
-      }
-    `
 
     const data = await queryIntuitionGraphQL(VAULT_QUERY, { id: termId })
 
@@ -63,13 +208,10 @@ export async function GET(request: Request) {
     const term = data.terms[0]
     const triple = term.triple
     const atom = term.atom
-    const vault = term.vaults?.[0]
-
-    // Determine if it's a triple or atom
     const isTriple = !!triple
     const isAtom = !!atom
 
-    let claim: any = {
+    const claim: any = {
       termId: term.id,
       type: isTriple ? "Triple" : isAtom ? "Atom" : "Unknown",
     }
@@ -77,59 +219,44 @@ export async function GET(request: Request) {
     if (isTriple) {
       claim.label = `${triple.subject?.label || "Unknown"} - ${triple.predicate?.label || "Unknown"} - ${triple.object?.label || "Unknown"}`
       claim.subjectLabel = triple.subject?.label || "Unknown"
-      claim.subjectType = ""
+      claim.subjectImage = triple.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : null
       claim.predicateLabel = triple.predicate?.label || "Unknown"
-      claim.predicateType = ""
+      claim.predicateImage = triple.predicate?.image && triple.predicate.image !== 'null' ? triple.predicate.image : null
       claim.objectLabel = triple.object?.label || "Unknown"
-      claim.objectType = ""
-      claim.image = triple.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : null
-    } else if (isAtom) {
-      claim.label = atom.label || "Unknown"
-      claim.subjectLabel = ""
-      claim.subjectType = ""
-      claim.predicateLabel = ""
-      claim.predicateType = ""
-      claim.objectLabel = ""
-      claim.objectType = ""
-      claim.image = atom.image && atom.image !== 'null' ? atom.image : null
-    }
-
-    if (vault) {
-      claim.marketCap = vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
-      claim.totalAssets = vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
-      claim.totalShares = vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
-      claim.currentSharePrice = vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0
-      claim.positionCount = vault.position_count || 0
-
-      const sharePriceChange = vault.share_price_change_stats_daily?.[0]
-      if (sharePriceChange) {
-        const lastPrice = parseFloat(sharePriceChange.last_share_price || "0") / 1e18
-        const firstPrice = parseFloat(sharePriceChange.first_share_price || "0") / 1e18
-        if (firstPrice > 0) {
-          claim.sharePriceChange24h = ((lastPrice - firstPrice) / firstPrice) * 100
-        } else {
-          claim.sharePriceChange24h = 0
-        }
-      }
-
-      claim.positions = (vault.positions || []).map((pos: any) => ({
-        accountId: pos.account_id,
-        shares: pos.shares ? parseFloat(pos.shares) / 1e18 : 0,
-        totalDepositAssetsAfterTotalFees: pos.total_deposit_assets_after_total_fees ? parseFloat(pos.total_deposit_assets_after_total_fees) / 1e18 : 0,
-        totalRedeemAssetsForReceiver: pos.total_redeem_assets_for_receiver ? parseFloat(pos.total_redeem_assets_for_receiver) / 1e18 : 0,
+      claim.objectImage = triple.object?.image && triple.object.image !== 'null' ? triple.object.image : null
+      claim.image = claim.subjectImage
+      claim.support = buildSide(term)
+      claim.oppose = buildSide(triple.counter_term) || null
+      claim.triplePositions = (triple.positions || []).map((p: any) => ({
+        id: p.id,
+        accountId: p.account_id,
+        shares: parseAmount(p.shares),
+        totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+        totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+        updatedAt: p.updated_at,
+        curveId: p.curve_id,
       }))
     } else {
-      claim.marketCap = 0
-      claim.totalAssets = 0
-      claim.totalShares = 0
-      claim.currentSharePrice = 0
-      claim.positionCount = 0
-      claim.sharePriceChange24h = 0
-      claim.positions = []
+      claim.label = atom?.label || "Unknown"
+      claim.subjectLabel = ""
+      claim.predicateLabel = ""
+      claim.objectLabel = ""
+      claim.image = atom?.image && atom.image !== 'null' ? atom.image : null
+      claim.support = buildSide(term)
+      claim.oppose = null
+      claim.triplePositions = []
     }
 
-    claim.deposits = []
-    claim.redemptions = []
+    // Legacy flat fields for any existing consumers
+    claim.marketCap = claim.support?.marketCap ?? 0
+    claim.totalAssets = claim.support?.vaultTotalAssets ?? 0
+    claim.totalShares = claim.support?.totalShares ?? 0
+    claim.currentSharePrice = claim.support?.currentSharePrice ?? 0
+    claim.positionCount = claim.support?.positionCount ?? 0
+    claim.sharePriceChange24h = claim.support?.sharePriceChange24h ?? 0
+    claim.positions = claim.support?.vaultPositions ?? []
+    claim.deposits = claim.support?.vaultDeposits ?? []
+    claim.redemptions = claim.support?.vaultRedemptions ?? []
 
     return NextResponse.json({ claim })
   } catch (error) {
