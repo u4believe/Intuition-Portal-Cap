@@ -21,6 +21,7 @@ const TRIPLES_FIELDS = `
       predicate { label }
       object { label }
       counter_term {
+        id
         type
         total_market_cap
         total_assets
@@ -150,6 +151,7 @@ function buildTriples(vaults: any[]) {
         sharePriceChange24h: 0,
         positions: [],
         // Oppose side (processed only once per triple — see counterTermProcessed guard below)
+        opposeTermId: '',
         opposeMarketCap: 0,
         opposeTotalAssets: 0,
         opposeTotalShares: 0,
@@ -204,6 +206,7 @@ function buildTriples(vaults: any[]) {
       if (counterVaults.length > 0 || counterTerm?.total_market_cap) {
         d.hasOppose = true
         d.counterTermProcessed = true
+        d.opposeTermId = counterTerm?.id || ''
 
         // Term-level totals for oppose (Lin+Exp combined, same as how support works)
         d.opposeMarketCap  = parseE18(counterTerm?.total_market_cap)

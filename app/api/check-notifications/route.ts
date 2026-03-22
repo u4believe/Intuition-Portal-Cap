@@ -8,16 +8,22 @@ import {
 } from '@/lib/web-push-server'
 import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
 
-// ─── Claim snapshot query — looks up vaults by term ID ───────────────────────
+// ─── Claim snapshot query — uses term-level aggregates (Lin+Exp combined) ─────
+// Querying `terms` directly (not `vaults`) ensures we get the true combined total
+// for both Support (termId) and Against (opposeTermId / counter_term.id) watched claims.
+// term.total_market_cap and term.total_assets are pre-computed Lin+Exp sums.
+// term.vaults[] always returns ALL vaults — summing them gives accurate totals.
 const CLAIM_DATA_QUERY = `
   query GetClaimsByTermId($termIds: [String!]) {
-    vaults(where: { term: { id: { _in: $termIds } } }) {
-      market_cap
-      position_count
-      total_shares
+    terms(where: { id: { _in: $termIds } }) {
+      id
+      total_market_cap
       total_assets
-      current_share_price
-      term { id }
+      vaults {
+        position_count
+        current_share_price
+        total_shares
+      }
     }
   }
 `
@@ -73,13 +79,15 @@ const RECENT_REDEMPTIONS_QUERY = `
   }
 `
 
-interface ClaimData {
-  market_cap: string
-  position_count: number
-  total_shares: string
+interface TermData {
+  id: string
+  total_market_cap: string
   total_assets: string
-  current_share_price: string
-  term: { id: string }
+  vaults: Array<{
+    position_count: number
+    current_share_price: string
+    total_shares: string
+  }>
 }
 
 interface LiveEvent {
@@ -236,19 +244,21 @@ export async function GET(req: NextRequest) {
         const result = await queryIntuitionGraphQL(CLAIM_DATA_QUERY, {
           termIds: Array.from(allTermIds),
         })
-        for (const vault of (result?.vaults || []) as ClaimData[]) {
-          const termId = vault.term?.id
+        for (const term of (result?.terms || []) as TermData[]) {
+          const termId = term.id
           if (!termId) continue
+          const termVaults = term.vaults || []
           const snap: ClaimSnapshot = {
             claim_label: termId,
-            market_cap: toNumber(vault.market_cap),
-            position_count: vault.position_count || 0,
-            total_shares: toNumber(vault.total_shares),
-            total_assets: toNumber(vault.total_assets),
-            current_share_price: toNumber(vault.current_share_price),
+            market_cap: toNumber(term.total_market_cap),
+            total_assets: toNumber(term.total_assets),
+            // Sum Lin+Exp vaults for accurate combined totals (works for both For and Against termIds)
+            total_shares: termVaults.reduce((s, v) => s + toNumber(v.total_shares), 0),
+            position_count: termVaults.reduce((s, v) => s + (v.position_count || 0), 0),
+            current_share_price: termVaults.reduce((s, v) => s + toNumber(v.current_share_price), 0),
           }
           currentClaimsMap.set(termId, snap)
-          console.log(`  [Claim] termId="${termId}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count}`)
+          console.log(`  [Claim] termId="${termId}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count} vaults=${termVaults.length}`)
         }
       } catch (e) {
         console.error('[Check Notifications] Claim GraphQL failed:', e)
