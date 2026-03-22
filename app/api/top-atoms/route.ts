@@ -31,6 +31,13 @@ const ATOM_VAULT_FIELDS = `
   }
   term {
     id
+    total_market_cap
+    total_assets
+    vaults {
+      position_count
+      current_share_price
+      total_shares
+    }
     atom {
       label
       image
@@ -142,11 +149,21 @@ function buildAtoms(vaults: any[]) {
     }
 
     const d = atomsMap.get(termId)!
-    d.marketCap += parseAmount(vault.market_cap)
-    d.totalAssets += parseAmount(vault.total_assets)
-    d.totalShares += parseAmount(vault.total_shares)
-    d.currentSharePrice = Math.max(d.currentSharePrice, parseAmount(vault.current_share_price))
-    d.positionCount += vault.position_count || 0
+
+    // Use term-level aggregates (total_market_cap / total_assets) — true Lin+Exp combined totals.
+    // Assigning (not +=) is idempotent: the same value is returned for every vault row of this term.
+    if (vault.term?.total_market_cap) d.marketCap  = parseAmount(vault.term.total_market_cap)
+    if (vault.term?.total_assets)     d.totalAssets = parseAmount(vault.term.total_assets)
+
+    // Sum shares / share price / positions from term.vaults sub-query.
+    // This sub-query always returns ALL vaults for the term (Lin + Exp), so re-assigning
+    // on each vault row is safe and always gives the correct total.
+    const termVaults: any[] = vault.term?.vaults || []
+    if (termVaults.length > 0) {
+      d.totalShares       = termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.total_shares), 0)
+      d.positionCount     = termVaults.reduce((s: number, tv: any) => s + (tv.position_count || 0), 0)
+      d.currentSharePrice = termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.current_share_price), 0)
+    }
 
     const spc = vault.share_price_change_stats_daily?.[0]
     if (spc) {

@@ -169,12 +169,12 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">
-                        <SortHeader field="currentSharePrice" label="Share Price (Exp)" />
+                        <SortHeader field="currentSharePrice" label="Total Share Price" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">
-                        <SortHeader field="positionCount" label="Positions" />
+                        <SortHeader field="positionCount" label="Total Positions" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
@@ -351,9 +351,9 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Share Price (Exp)</p>
+                        <p className="text-slate-500 dark:text-slate-400">Total Share Price</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          {atom.currentSharePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                       <div>
@@ -361,7 +361,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.totalShares)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Positions</p>
+                        <p className="text-slate-500 dark:text-slate-400">Total Positions</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.positionCount)}</p>
                       </div>
                     </div>
