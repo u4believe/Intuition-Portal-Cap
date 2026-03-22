@@ -9,9 +9,12 @@ const TRIPLES_FIELDS = `
   current_share_price
   term {
     id
+    total_market_cap
+    total_assets
     vaults {
       position_count
       current_share_price
+      total_shares
     }
     triple {
       subject { label image }
@@ -19,6 +22,8 @@ const TRIPLES_FIELDS = `
       object { label }
       counter_term {
         type
+        total_market_cap
+        total_assets
         vaults {
           total_shares
           market_cap
@@ -111,15 +116,23 @@ const TRIPLES_SEARCH_COUNT_QUERY = `
   }
 `
 
+function parseE18(v: any): number {
+  if (!v) return 0
+  return parseFloat(v) / 1e18
+}
+
 function buildTriples(vaults: any[]) {
   const triplesMap = new Map<string, any>()
+
   for (const vault of vaults) {
     const triple = vault.term?.triple
     if (!triple) continue
+
     const subject = triple.subject?.label || "Unknown"
     const predicate = triple.predicate?.label || "Unknown"
     const object = triple.object?.label || "Unknown"
     const key = `${subject} - ${predicate} - ${object}`
+
     if (!triplesMap.has(key)) {
       triplesMap.set(key, {
         termId: vault.term?.id || "",
@@ -128,6 +141,7 @@ function buildTriples(vaults: any[]) {
         predicateLabel: predicate,
         objectLabel: object,
         image: triple.subject?.image && triple.subject.image !== "null" ? triple.subject.image : "",
+        // Support side (set from term-level aggregates — idempotent regardless of how many vault rows appear)
         marketCap: 0,
         totalAssets: 0,
         totalShares: 0,
@@ -135,6 +149,7 @@ function buildTriples(vaults: any[]) {
         positionCount: 0,
         sharePriceChange24h: 0,
         positions: [],
+        // Oppose side (processed only once per triple — see counterTermProcessed guard below)
         opposeMarketCap: 0,
         opposeTotalAssets: 0,
         opposeTotalShares: 0,
@@ -142,45 +157,74 @@ function buildTriples(vaults: any[]) {
         opposePositionCount: 0,
         opposeSharePriceChange24h: 0,
         hasOppose: false,
+        counterTermProcessed: false,
       })
     }
+
     const d = triplesMap.get(key)!
-    d.marketCap += vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
-    d.totalAssets += vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
-    d.totalShares += vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
-    // Sum position_count and share price across all term vaults (Linear + Exponential) for the support side
+
+    // ── Support side ──
+    // Use term-level aggregates (total_market_cap / total_assets) — these are the true
+    // Lin+Exp combined totals and are identical for every vault row of the same term.
+    // Assigning (not +=) makes this idempotent even when multiple vault rows appear.
+    if (vault.term?.total_market_cap) {
+      d.marketCap = parseE18(vault.term.total_market_cap)
+    }
+    if (vault.term?.total_assets) {
+      d.totalAssets = parseE18(vault.term.total_assets)
+    }
+
+    // Sum shares / share price / positions from the term.vaults sub-query.
+    // This sub-query always returns ALL vaults for the term, so the result is
+    // the correct Lin+Exp total and is safe to re-assign on each vault row.
     const termVaults: any[] = vault.term?.vaults || []
     if (termVaults.length > 0) {
-      d.positionCount = termVaults.reduce((sum: number, tv: any) => sum + (tv.position_count || 0), 0)
-      d.currentSharePrice = termVaults.reduce((sum: number, tv: any) => sum + (tv.current_share_price ? parseFloat(tv.current_share_price) / 1e18 : 0), 0)
+      d.totalShares      = termVaults.reduce((s: number, tv: any) => s + parseE18(tv.total_shares), 0)
+      d.positionCount    = termVaults.reduce((s: number, tv: any) => s + (tv.position_count || 0), 0)
+      d.currentSharePrice = termVaults.reduce((s: number, tv: any) => s + parseE18(tv.current_share_price), 0)
     }
+
     const spc = vault.term?.share_price_change_stats_daily?.[0]
     if (spc) {
-      const last = parseFloat(spc.last_share_price || "0") / 1e18
-      const first = parseFloat(spc.first_share_price || "0") / 1e18
+      const last = parseE18(spc.last_share_price)
+      const first = parseE18(spc.first_share_price)
       if (first > 0) d.sharePriceChange24h = ((last - first) / first) * 100
     }
+
     d.positions.push(...(vault.term?.positions || []))
 
-    // Aggregate counter_term (oppose) vault data
-    const counterVaults: any[] = triple.counter_term?.vaults || []
-    if (counterVaults.length > 0) {
-      d.hasOppose = true
-      for (const cv of counterVaults) {
-        d.opposeMarketCap += cv.market_cap ? parseFloat(cv.market_cap) / 1e18 : 0
-        d.opposeTotalAssets += cv.total_assets ? parseFloat(cv.total_assets) / 1e18 : 0
-        d.opposeTotalShares += cv.total_shares ? parseFloat(cv.total_shares) / 1e18 : 0
-        d.opposeSharePrice += cv.current_share_price ? parseFloat(cv.current_share_price) / 1e18 : 0
-        d.opposePositionCount += cv.position_count || 0
-        const cspc = cv.share_price_change_stats_daily?.[0]
-        if (cspc) {
-          const last = parseFloat(cspc.last_share_price || "0") / 1e18
-          const first = parseFloat(cspc.first_share_price || "0") / 1e18
-          if (first > 0) d.opposeSharePriceChange24h = ((last - first) / first) * 100
+    // ── Oppose side ──
+    // Guard: only process counter_term data once per triple.
+    // Without this guard, each support vault row (Lin and Exp) would re-process
+    // the same counter_term data, doubling (or more) every oppose value.
+    if (!d.counterTermProcessed) {
+      const counterTerm = triple.counter_term
+      const counterVaults: any[] = counterTerm?.vaults || []
+
+      if (counterVaults.length > 0 || counterTerm?.total_market_cap) {
+        d.hasOppose = true
+        d.counterTermProcessed = true
+
+        // Term-level totals for oppose (Lin+Exp combined, same as how support works)
+        d.opposeMarketCap  = parseE18(counterTerm?.total_market_cap)
+        d.opposeTotalAssets = parseE18(counterTerm?.total_assets)
+
+        // Per-vault aggregates for oppose (total_shares, share price, positions)
+        for (const cv of counterVaults) {
+          d.opposeTotalShares += parseE18(cv.total_shares)
+          d.opposeSharePrice  += parseE18(cv.current_share_price)
+          d.opposePositionCount += cv.position_count || 0
+          const cspc = cv.share_price_change_stats_daily?.[0]
+          if (cspc) {
+            const last = parseE18(cspc.last_share_price)
+            const first = parseE18(cspc.first_share_price)
+            if (first > 0) d.opposeSharePriceChange24h = ((last - first) / first) * 100
+          }
         }
       }
     }
   }
+
   return Array.from(triplesMap.values()).sort((a, b) => b.marketCap - a.marketCap)
 }
 
