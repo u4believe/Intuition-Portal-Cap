@@ -305,26 +305,26 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
               <StatCard label="Total Mkt Cap — Lin+Exp (TRUST)" value={fmt(side.totalMarketCap)} />
               <StatCard label="Total Assets — Lin+Exp (TRUST)" value={fmt(side.totalAssets)} />
               {/* Linear vault (vaults[0] — always present) */}
-              <StatCard label="Market Cap — Lin (TRUST)" value={fmt(side.linMarketCap)} />
-              <StatCard label="Total Assets — Lin (TRUST)" value={fmt(side.linTotalAssets)} />
-              <StatCard label="Total Shares — Lin" value={fmt(side.linTotalShares)} />
-              <StatCard label="Share Price — Lin (TRUST)" value={fmt(side.linSharePrice, 6)} />
-              <StatCard label="Positions — Lin" value={String(side.linPositionCount ?? 0)} />
+              <StatCard label="Market Cap — Linear (TRUST)" value={fmt(side.linMarketCap)} />
+              <StatCard label="Total Assets — Linear (TRUST)" value={fmt(side.linTotalAssets)} />
+              <StatCard label="Total Shares — Linear" value={fmt(side.linTotalShares)} />
+              <StatCard label="Share Price — Linear (TRUST)" value={fmt(side.linSharePrice, 6)} />
+              <StatCard label="Positions — Linear" value={String(side.linPositionCount ?? 0)} />
               {/* Exponential vault (vaults[1] — shown when present) */}
               {side.expMarketCap !== null && side.expMarketCap !== undefined && (
                 <>
-                  <StatCard label="Market Cap — Exp (TRUST)" value={fmt(side.expMarketCap)} />
-                  <StatCard label="Total Assets — Exp (TRUST)" value={fmt(side.expTotalAssets ?? 0)} />
-                  <StatCard label="Total Shares — Exp" value={fmt(side.expTotalShares ?? 0)} />
-                  <StatCard label="Share Price — Exp (TRUST)" value={fmt(side.expSharePrice ?? 0, 6)} />
-                  <StatCard label="Positions — Exp" value={String(side.expPositionCount ?? 0)} />
+                  <StatCard label="Market Cap — Exponential (TRUST)" value={fmt(side.expMarketCap)} />
+                  <StatCard label="Total Assets — Exponential (TRUST)" value={fmt(side.expTotalAssets ?? 0)} />
+                  <StatCard label="Total Shares — Exponential" value={fmt(side.expTotalShares ?? 0)} />
+                  <StatCard label="Share Price — Exponential (TRUST)" value={fmt(side.expSharePrice ?? 0, 6)} />
+                  <StatCard label="Positions — Exponential" value={String(side.expPositionCount ?? 0)} />
                   <StatCard
-                    label="24h Price Change — Exp"
+                    label="24h Price Change — Exponential"
                     value={`${side.sharePriceChange24h >= 0 ? '+' : ''}${side.sharePriceChange24h.toFixed(3)}%`}
                     accent={side.sharePriceChange24h >= 0 ? 'green' : 'red'}
                   />
                   {side.sharePriceStats && (
-                    <StatCard label="24h Change Count — Exp" value={String(side.sharePriceStats.changeCount)} />
+                    <StatCard label="24h Change Count — Exponential" value={String(side.sharePriceStats.changeCount)} />
                   )}
                 </>
               )}

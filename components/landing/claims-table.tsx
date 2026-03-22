@@ -162,7 +162,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                       <div className="flex justify-center"><SortHeader field="totalShares" label="Total Shares" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex justify-center"><SortHeader field="currentSharePrice" label="Share Price (Exp)" /></div>
+                      <div className="flex justify-center"><SortHeader field="currentSharePrice" label="Share Price" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center"><SortHeader field="positionCount" label="Positions" /></div>
@@ -258,7 +258,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                         <p className="font-medium text-slate-900 dark:text-slate-100">{fmt(claim.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Share Price (Exp)</p>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
                           {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
                         </p>
