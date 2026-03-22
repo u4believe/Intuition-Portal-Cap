@@ -121,9 +121,16 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
           {entries.map(([termId, pref]) => (
             <div key={termId} className="rounded-lg border border-slate-700 bg-slate-800/30 p-2.5">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="text-xs font-medium text-slate-200 truncate flex-1 leading-tight" title={pref.label}>
-                  {pref.label}
-                </p>
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  {pref.label.endsWith(' (Against)') && (
+                    <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700/50 leading-none">
+                      Against
+                    </span>
+                  )}
+                  <p className="text-xs font-medium text-slate-200 truncate leading-tight" title={pref.label}>
+                    {pref.label.endsWith(' (Against)') ? pref.label.slice(0, -10) : pref.label}
+                  </p>
+                </div>
                 <button
                   onClick={() => handleRemoveClaim(termId)}
                   className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5"

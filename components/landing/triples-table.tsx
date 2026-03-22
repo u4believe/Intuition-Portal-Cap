@@ -235,6 +235,9 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                     const price = getVal(triple, 'currentSharePrice') as number
                     const positions = getVal(triple, 'positionCount') as number
                     const noOppose = sideMode === 'oppose' && !triple.hasOppose
+                    const watchLabel = (sideMode === 'oppose' && triple.hasOppose) ? `${triple.label} (Against)` : triple.label
+                    const watchTermId = (sideMode === 'oppose' && triple.hasOppose && triple.opposeTermId) ? triple.opposeTermId : triple.termId
+                    const isWatchedNow = isWatched(watchLabel)
                     return (
                       <tr
                         key={`triple-${idx}`}
@@ -250,10 +253,10 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                         <td className="py-2.5 px-3 min-w-0 max-w-xs">
                           <Link href={`/vault/${triple.termId}`} className="flex items-center gap-2 hover:no-underline">
                             <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(triple.label, triple.termId) }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(watchLabel, watchTermId) }}
                               className="p-1 hover:scale-125 transition-transform flex-shrink-0 cursor-pointer"
                             >
-                              <Star className={`w-3.5 h-3.5 ${isWatched(triple.label) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'}`} />
+                              <Star className={`w-3.5 h-3.5 ${isWatchedNow ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'}`} />
                             </button>
                             {triple.image && (
                               <img src={triple.image} alt="" className="w-5 h-5 rounded-full flex-shrink-0 object-cover" />
@@ -302,14 +305,14 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
 
                         <td className="py-2.5 px-3 text-center">
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(triple.label, triple.termId) }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(watchLabel, watchTermId) }}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                              isWatched(triple.label)
+                              isWatchedNow
                                 ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white hover:from-yellow-500 hover:to-amber-600'
                                 : 'bg-primary hover:bg-primary/90 text-white'
                             }`}
                           >
-                            {isWatched(triple.label) ? 'Watching' : 'Watch'}
+                            {isWatchedNow ? 'Watching' : 'Watch'}
                           </button>
                         </td>
                       </tr>
@@ -326,6 +329,9 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                 const noOppose = sideMode === 'oppose' && !triple.hasOppose
                 const price = getVal(triple, 'currentSharePrice') as number
                 const positions = getVal(triple, 'positionCount') as number
+                const watchLabel = (sideMode === 'oppose' && triple.hasOppose) ? `${triple.label} (Against)` : triple.label
+                const watchTermId = (sideMode === 'oppose' && triple.hasOppose && triple.opposeTermId) ? triple.opposeTermId : triple.termId
+                const isWatchedNow = isWatched(watchLabel)
                 return (
                   <Link
                     key={`triple-mobile-${idx}`}
@@ -344,10 +350,10 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(triple.label, triple.termId) }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(watchLabel, watchTermId) }}
                             className="p-0.5 hover:scale-125 transition-transform flex-shrink-0 cursor-pointer"
                           >
-                            <Star className={`w-4 h-4 ${isWatched(triple.label) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600'}`} />
+                            <Star className={`w-4 h-4 ${isWatchedNow ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600'}`} />
                           </button>
                           {triple.image && (
                             <img src={triple.image} alt="" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
@@ -358,14 +364,14 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                           </div>
                         </div>
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(triple.label, triple.termId) }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWatchClick(watchLabel, watchTermId) }}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex-shrink-0 cursor-pointer ${
-                            isWatched(triple.label)
+                            isWatchedNow
                               ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'
                               : 'bg-primary text-white'
                           }`}
                         >
-                          {isWatched(triple.label) ? 'Watching' : 'Watch'}
+                          {isWatchedNow ? 'Watching' : 'Watch'}
                         </button>
                       </div>
 
