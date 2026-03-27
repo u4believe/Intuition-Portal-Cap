@@ -1,25 +1,25 @@
-// app/api/cron/events/route.ts
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
-export async function GET(req: Request) {
+// GET/POST handler for events cron
+export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    console.log("📡 Running events sync cron...");
+    // Example: Fetch pending events or perform scheduled tasks
+    console.log("Running events cron...");
 
-    // 👉 Example:
-    // fetch blockchain data
-    // update database
-    // poll APIs
+    // TODO: Add your scheduled task logic here
 
-    return Response.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return new Response("Error", { status: 500 });
+    return NextResponse.json({ success: true, message: "Events processed" });
+  } catch (error) {
+    console.error("Cron events error:", error);
+    return NextResponse.json({ success: false, error: "Cron failed" }, { status: 500 });
   }
+}
+
+export async function POST(req: NextRequest) {
+  return GET(req); // Allow POST as well
 }

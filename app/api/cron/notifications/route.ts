@@ -1,24 +1,26 @@
-// app/api/cron/notifications/route.ts
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
-export async function GET(req: Request) {
+// GET/POST handler for notifications cron
+export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    console.log("🔔 Running notifications cron...");
+    // Example: Fetch pending notifications from your DB
+    // Replace with your actual database logic
+    console.log("Running notifications cron...");
 
-    // 👉 Call your push notification logic
-    // Example:
-    // await sendNotificationsToUsers();
+    // TODO: Add your notification sending logic here
 
-    return Response.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return new Response("Error", { status: 500 });
+    return NextResponse.json({ success: true, message: "Notifications processed" });
+  } catch (error) {
+    console.error("Cron notifications error:", error);
+    return NextResponse.json({ success: false, error: "Cron failed" }, { status: 500 });
   }
+}
+
+export async function POST(req: NextRequest) {
+  return GET(req); // Allow POST as well
 }
