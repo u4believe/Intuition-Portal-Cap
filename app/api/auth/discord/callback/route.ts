@@ -1,19 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-function getBaseUrl(request: NextRequest): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL
-  }
-  const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
-  const proto = request.headers.get('x-forwarded-proto') || 'https'
-  if (host) return `${proto}://${host}`
-  const replitDomains = process.env.REPLIT_DOMAINS
-  if (replitDomains) {
-    return `https://${replitDomains.split(',')[0].trim()}`
-  }
-  return new URL(request.url).origin
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const code = searchParams.get('code')
@@ -26,13 +12,23 @@ export async function GET(request: NextRequest) {
   const clientId = process.env.DISCORD_CLIENT_ID
   const clientSecret = process.env.DISCORD_CLIENT_SECRET
 
+  console.log('[Discord OAuth Callback] DISCORD_CLIENT_ID present:', !!clientId)
+  console.log('[Discord OAuth Callback] DISCORD_CLIENT_SECRET present:', !!clientSecret)
+  console.log('[Discord OAuth Callback] NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL || 'NOT SET')
+
   if (!clientId || !clientSecret) {
+    console.error('[Discord OAuth Callback] Missing client credentials')
     return NextResponse.redirect(new URL('/auth/login?error=discord_not_configured', request.url))
   }
 
-  const baseUrl = getBaseUrl(request)
-  const redirectUri = `${baseUrl}/api/auth/discord/callback`
-  console.log('[Discord OAuth] Callback using redirect URI:', redirectUri)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!appUrl) {
+    console.error('[Discord OAuth Callback] Missing NEXT_PUBLIC_APP_URL')
+    return NextResponse.redirect(new URL('/auth/login?error=discord_not_configured', request.url))
+  }
+
+  const redirectUri = `${appUrl}/api/auth/discord/callback`
+  console.log('[Discord OAuth Callback] Using redirect URI:', redirectUri)
 
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -76,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     const encodedProfile = Buffer.from(JSON.stringify(profile)).toString('base64url')
-    const dest = new URL('/', baseUrl)
+    const dest = new URL('/', appUrl)
     dest.searchParams.set('discord_auth', encodedProfile)
 
     return NextResponse.redirect(dest)
