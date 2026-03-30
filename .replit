@@ -8,8 +8,6 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-NEXT_PUBLIC_SUPABASE_URL = "https://placeholder.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY = "placeholder"
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID = "placeholder"
 VAPID_PUBLIC_KEY = "BBzvhhej2AYuBRaiDZp0jnJIiG9aR0YGKNsAZldqSHsuS8wnAX35v8NIdjwBID8AtNFuC_lUHiDZNWLNTi189U8"
 VAPID_PRIVATE_KEY = "Mm4jn-B54YbepVnGU0k78-n2h48g979F7_UvPPC688c"
