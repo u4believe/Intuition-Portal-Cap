@@ -112,3 +112,15 @@ main().catch(error => {
   console.error('[Poller] Fatal error:', error)
   process.exit(1)
 })
+
+// === RENDER "WEB SERVICE" TRICK ===
+// Render requires Web Services to bind to a port within 60s, or the deploy fails.
+// This tiny dummy server listens on the PORT environment variable to satisfy Render.
+const http = require('http')
+const port = process.env.PORT || 10000
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' })
+  res.end('Notification Poller is running.\n')
+}).listen(port, () => {
+  console.log(`[Poller] Dummy web server listening on port ${port} to satisfy Render`)
+})
