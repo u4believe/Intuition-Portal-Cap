@@ -48,6 +48,7 @@ export interface PushSubscriptionRow {
     deposits?: AlertRangeConfig
     redemptions?: AlertRangeConfig
   }
+  receive_smart_alerts: boolean
   claim_alert_prefs: Record<string, ClaimAlertPref>
   created_at: Date
   updated_at: Date
@@ -60,6 +61,7 @@ export interface ClaimSnapshot {
   total_shares: number
   total_assets: number
   current_share_price: number
+  pct_change_24h?: number
 }
 
 export async function saveSubscription(
@@ -68,33 +70,36 @@ export async function saveSubscription(
   p256dh: string,
   auth: string,
   watchedClaims: string[] = [],
-  alertRanges: PushSubscriptionRow['alert_ranges'] | null = null
+  alertRanges: PushSubscriptionRow['alert_ranges'] | null = null,
+  receiveSmartAlerts: boolean = true
 ): Promise<boolean> {
   try {
     if (alertRanges !== null) {
       // Save with alert_ranges (merge with any existing value)
       await pool.query(
-        `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, alert_ranges, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, alert_ranges, receive_smart_alerts, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          ON CONFLICT (address, endpoint) DO UPDATE SET
            p256dh = $3,
            auth = $4,
            watched_claims = $5,
            alert_ranges = $6,
+           receive_smart_alerts = $7,
            updated_at = NOW()`,
-        [address, endpoint, p256dh, auth, watchedClaims, JSON.stringify(alertRanges)]
+        [address, endpoint, p256dh, auth, watchedClaims, JSON.stringify(alertRanges), receiveSmartAlerts]
       )
     } else {
       // Save without overwriting existing alert_ranges
       await pool.query(
-        `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())
+        `INSERT INTO push_subscriptions (address, endpoint, p256dh, auth, watched_claims, receive_smart_alerts, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
          ON CONFLICT (address, endpoint) DO UPDATE SET
            p256dh = $3,
            auth = $4,
            watched_claims = $5,
+           receive_smart_alerts = $6,
            updated_at = NOW()`,
-        [address, endpoint, p256dh, auth, watchedClaims]
+        [address, endpoint, p256dh, auth, watchedClaims, receiveSmartAlerts]
       )
     }
     console.log(`[Push Server] Saved subscription for ${address}, alertRanges=${alertRanges !== null ? 'included' : 'preserved'}`)

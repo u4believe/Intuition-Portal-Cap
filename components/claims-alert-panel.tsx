@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Star, RefreshCw } from 'lucide-react'
+import { X, Star, RefreshCw, Pencil } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { ClaimAlertPref } from '@/lib/push-notifications'
+import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
 type BooleanPrefKey = 'deposits' | 'redemptions' | 'marketCap' | 'positionCount' | 'sharesChange'
 
@@ -53,6 +54,7 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
   const { getClaimAlertPrefs, removeClaimAlertPref, upsertClaimAlertPref } = usePushNotifications()
   const [prefs, setPrefs] = useState<Record<string, ClaimAlertPref>>({})
   const [loading, setLoading] = useState(false)
+  const [editTermId, setEditTermId] = useState<string | null>(null)
 
   const fetchPrefs = useCallback(async () => {
     setLoading(true)
@@ -131,13 +133,22 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
                     {pref.label.endsWith(' (Against)') ? pref.label.slice(0, -10) : pref.label}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleRemoveClaim(termId)}
-                  className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5"
-                  title="Remove all alerts for this claim"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                  <button
+                    onClick={() => setEditTermId(termId)}
+                    className="text-slate-500 hover:text-cyan-400 transition-colors p-1"
+                    title="Edit alert ranges for this claim"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveClaim(termId)}
+                    className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                    title="Remove all alerts for this claim"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1">
                 {BADGE_CONFIG.map(({ key, label, activeClass }) => {
@@ -162,6 +173,21 @@ export default function ClaimAlertsPanel({ refreshTrigger }: ClaimAlertsPanelPro
             </div>
           ))}
         </div>
+      )}
+
+      {editTermId && prefs[editTermId] && (
+        <WatchPreferencesDialog
+          open={!!editTermId}
+          onOpenChange={open => { if (!open) setEditTermId(null) }}
+          claimLabel={prefs[editTermId].label}
+          termId={editTermId}
+          onConfirm={() => {
+            fetchPrefs() // Refresh after saving
+            setEditTermId(null)
+          }}
+          mode="edit"
+          initialPrefs={prefs[editTermId]}
+        />
       )}
     </div>
   )
