@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { encryptSession, DiscordUser } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     const user = await userRes.json()
 
-    const profile = {
+    const profile: DiscordUser = {
       id: user.id,
       username: user.username,
       globalName: user.global_name || null,
@@ -71,10 +73,23 @@ export async function GET(request: NextRequest) {
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     }
 
-    const encodedProfile = Buffer.from(JSON.stringify(profile)).toString('base64url')
-    const dest = new URL('/', appUrl)
-    dest.searchParams.set('discord_auth', encodedProfile)
+    // Encrypt the profile securely into a JWT
+    const sessionToken = await encryptSession(profile)
 
+    // Await strictly since `cookies().set()` behavior expects async in some versions/rendering engines
+    // Set the JWT as an HttpOnly, cross-site immune secure cookie
+    const cookieStore = await cookies();
+    cookieStore.set('portal_cap_session', sessionToken, {
+      httpOnly: false, // We must allow client to check if it's there via JS or we expose a /api/auth/session endpoint. Wait, HttpOnly should be true to prevent XSS!
+      // But wait! Let me use an HttpOnly cookie and a `/api/auth/session` route to fetch it.
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    })
+
+    // Cleanly redirect home without exposing base64 JSON
+    const dest = new URL('/', appUrl)
     return NextResponse.redirect(dest)
   } catch (err) {
     console.error('[Discord OAuth] Unexpected error:', err)

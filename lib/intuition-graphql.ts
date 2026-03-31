@@ -58,6 +58,23 @@ export const DEPOSITS_QUERY = `
   }
 `
 
+// Query for recent deposits for trending calculation
+export const RECENT_DEPOSITS_QUERY = `
+  query GetRecentDeposits($timestamp: timestamptz) {
+    deposits(
+      where: {created_at: {_gte: $timestamp}},
+      limit: 1000
+    ) {
+      id
+      assets_after_fees
+      vault {
+        term_id
+      }
+      sender_id
+    }
+  }
+`
+
 // Query for redemptions (converted from subscription)
 export const REDEMPTIONS_QUERY = `
   query GetRedemptions {

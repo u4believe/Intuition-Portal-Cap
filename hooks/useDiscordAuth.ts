@@ -11,8 +11,6 @@ export interface DiscordUser {
   expiresAt: number
 }
 
-const STORAGE_KEY = 'portal_cap_discord_auth'
-
 export function getDiscordAvatarUrl(id: string, avatarHash: string | null, size = 64): string {
   if (!avatarHash) {
     const defaultIndex = (parseInt(id.slice(-4), 16) || 0) % 6
@@ -27,46 +25,37 @@ export function useDiscordAuth() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Read query param directly from window — avoids useSearchParams Suspense requirement
-    const params = new URLSearchParams(window.location.search)
-    const encoded = params.get('discord_auth')
+    let mounted = true
 
-    if (encoded) {
+    async function verifySession() {
       try {
-        const profile: DiscordUser = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')))
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
-        setDiscordUser(profile)
-        // Clean the param from the URL without triggering navigation
-        const clean = new URL(window.location.href)
-        clean.searchParams.delete('discord_auth')
-        window.history.replaceState(null, '', clean.toString())
-        setIsLoading(false)
-        return
-      } catch (e) {
-        console.error('[Discord Auth] Failed to parse OAuth response:', e)
+        const res = await fetch('/api/auth/session')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.authenticated && data.user) {
+            if (data.user.expiresAt > Date.now()) {
+              if (mounted) setDiscordUser(data.user)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Discord Auth] Failed to verify session:', error)
+      } finally {
+        if (mounted) setIsLoading(false)
       }
     }
 
-    // Fall back to stored session
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const user: DiscordUser = JSON.parse(stored)
-        if (user.expiresAt > Date.now()) {
-          setDiscordUser(user)
-        } else {
-          localStorage.removeItem(STORAGE_KEY)
-        }
-      }
-    } catch (e) {
-      console.error('[Discord Auth] Failed to read stored session:', e)
-      localStorage.removeItem(STORAGE_KEY)
-    }
-    setIsLoading(false)
+    verifySession()
+
+    return () => { mounted = false }
   }, [])
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (e) {
+      console.error('[Discord Auth] Logout failed:', e)
+    }
     setDiscordUser(null)
   }, [])
 

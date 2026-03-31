@@ -11,21 +11,7 @@ export interface PortalCapAuth {
   timestamp: number
 }
 
-/**
- * Check if a Discord session is valid (not expired)
- */
-function getValidDiscordAuth(): { id: string; username: string } | null {
-  try {
-    const stored = localStorage.getItem('portal_cap_discord_auth')
-    if (!stored) return null
-    const data = JSON.parse(stored)
-    if (data.expiresAt > Date.now()) {
-      return { id: data.id, username: data.username }
-    }
-    localStorage.removeItem('portal_cap_discord_auth')
-  } catch {}
-  return null
-}
+// Removed synchronous getValidDiscordAuth since auth is now secure and asynchronous
 
 /**
  * Hook to check if user is authenticated (wallet or Discord)
@@ -38,37 +24,59 @@ export function useAuthCheck() {
   const { address } = useAccount()
 
   useEffect(() => {
-    // 1. Check wallet auth
-    const walletStored = localStorage.getItem('portal_cap_auth')
-    if (walletStored) {
-      try {
-        const authData = JSON.parse(walletStored) as PortalCapAuth
-        if (!address || authData.address.toLowerCase() === address.toLowerCase()) {
-          setAuth(authData)
-          setIsAuthenticated(true)
-          setAuthType('wallet')
-          setIsLoading(false)
-          return
+    let mounted = true
+    setIsLoading(true)
+
+    async function checkAuth() {
+      // 1. Check wallet auth
+      const walletStored = localStorage.getItem('portal_cap_auth')
+      if (walletStored) {
+        try {
+          const authData = JSON.parse(walletStored) as PortalCapAuth
+          if (!address || authData.address.toLowerCase() === address.toLowerCase()) {
+            if (mounted) {
+              setAuth(authData)
+              setIsAuthenticated(true)
+              setAuthType('wallet')
+              setIsLoading(false)
+            }
+            return
+          }
+          // Wallet address changed — clear stale auth
+          localStorage.removeItem('portal_cap_auth')
+        } catch {
+          localStorage.removeItem('portal_cap_auth')
         }
-        // Wallet address changed — clear stale auth
-        localStorage.removeItem('portal_cap_auth')
-      } catch {
-        localStorage.removeItem('portal_cap_auth')
+      }
+
+      // 2. Check secure Discord session via Server
+      try {
+        const res = await fetch('/api/auth/session')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.authenticated && data.user && data.user.expiresAt > Date.now()) {
+            if (mounted) {
+              setIsAuthenticated(true)
+              setAuthType('discord')
+              setIsLoading(false)
+            }
+            return
+          }
+        }
+      } catch (error) {
+        console.error('[Auth Check] Failed to verify discord session:', error)
+      }
+
+      if (mounted) {
+        setIsAuthenticated(false)
+        setAuthType(null)
+        setIsLoading(false)
       }
     }
 
-    // 2. Check Discord auth
-    const discordAuth = getValidDiscordAuth()
-    if (discordAuth) {
-      setIsAuthenticated(true)
-      setAuthType('discord')
-      setIsLoading(false)
-      return
-    }
+    checkAuth()
 
-    setIsAuthenticated(false)
-    setAuthType(null)
-    setIsLoading(false)
+    return () => { mounted = false }
   }, [address])
 
   return { isAuthenticated, authType, auth, isLoading }
@@ -93,8 +101,12 @@ export function useAuthProtected() {
 /**
  * Sign out — clears both wallet and Discord sessions
  */
-export function logout() {
+export async function logout() {
   localStorage.removeItem('portal_cap_auth')
-  localStorage.removeItem('portal_cap_discord_auth')
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' })
+  } catch (err) {
+    console.error('Failed to logout of Discord securely', err)
+  }
   window.location.href = '/auth/login'
 }
