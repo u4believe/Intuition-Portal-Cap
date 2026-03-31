@@ -111,8 +111,7 @@ function toNumber(val: string | number | null | undefined): number {
   if (val === null || val === undefined || val === '') return 0
   const n = typeof val === 'string' ? parseFloat(val) : val
   if (isNaN(n)) return 0
-  if (n > 1e15) return n / 1e18
-  return n
+  return n / 1e18 // Always divide by 1e18 because data is firmly in Wei
 }
 
 function pctChange(oldVal: number, newVal: number): number {
@@ -142,7 +141,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
     const depositsData = await queryIntuitionGraphQL(RECENT_DEPOSITS_QUERY, { since: sinceISO })
     ;(depositsData?.deposits || []).forEach((d: any) => {
       const raw = d.assets_after_fees ? parseFloat(d.assets_after_fees) : 0
-      const assets = raw > 1e15 ? raw / 1e18 : raw
+      const assets = raw / 1e18 // Always divide by 1e18 for exact TRUST figure
       events.push({
         id: String(d.id),
         type: 'deposit',
@@ -160,7 +159,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
     const redemptionsData = await queryIntuitionGraphQL(RECENT_REDEMPTIONS_QUERY, { since: sinceISO })
     ;(redemptionsData?.redemptions || []).forEach((r: any) => {
       const raw = r.assets ? parseFloat(r.assets) : 0
-      const assets = raw > 1e15 ? raw / 1e18 : raw
+      const assets = raw / 1e18 // Always divide by 1e18 for exact TRUST figure
       events.push({
         id: String(r.id),
         type: 'redemption',
@@ -267,9 +266,14 @@ export async function GET(req: NextRequest) {
           }
           const dailyStats = term.share_price_change_stats_daily?.[0]
           if (dailyStats && parseFloat(dailyStats.first_share_price || '0') > 0) {
-            const first = parseFloat(dailyStats.first_share_price)
-            const last = parseFloat(dailyStats.last_share_price)
-            snap.pct_change_24h = ((last - first) / first) * 100
+            const first = parseFloat(dailyStats.first_share_price) / 1e18
+            const last = parseFloat(dailyStats.last_share_price) / 1e18
+            // Avoid extreme hyper-inflation percentages from zero-floor bonding curve starts
+            if (first >= 0.001) {
+              snap.pct_change_24h = ((last - first) / first) * 100
+            } else {
+              snap.pct_change_24h = 0
+            }
           }
           currentClaimsMap.set(termId, snap)
           console.log(`  [Claim] termId="${termId}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count} vaults=${termVaults.length}`)
@@ -320,7 +324,13 @@ export async function GET(req: NextRequest) {
 
         const mktCapThreshold = pref.marketCapMin ?? 2
         const sharesThreshold = pref.sharesChangeMin ?? 2
-        const trendSuffix = current.pct_change_24h ? ` (24h: ${current.pct_change_24h > 0 ? '+' : ''}${current.pct_change_24h.toFixed(1)}%)` : ''
+        
+        let trendSuffix = ''
+        if (current.pct_change_24h) {
+          const val = current.pct_change_24h
+          const formatOptions = Math.abs(val) > 1000 ? { notation: "compact" as const } : { maximumFractionDigits: 1 }
+          trendSuffix = ` (24h: ${val > 0 ? '+' : ''}${new Intl.NumberFormat('en-US', formatOptions).format(val)}%)`
+        }
 
         if (pref.marketCap && marketCapChange >= mktCapThreshold) {
           const dir = current.market_cap > previous.market_cap ? '↑' : '↓'
