@@ -20,6 +20,7 @@ import LiveEvents from "./live-events"
 import ClaimsTable from "./claims-table"
 import TriplesTable from "./triples-table"
 import AtomsTable from "./atoms-table"
+import TrendingSection from "./trending-section"
 
 export default function LandingPage() {
   const [watchlistOpen, setWatchlistOpen] = useState(false)
@@ -345,6 +346,9 @@ export default function LandingPage() {
           <RecentEvents />
         </div>
       </section>
+
+      {/* Trending Section */}
+      <TrendingSection />
 
       {/* All Claims Table Section */}
       <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800/50 py-20">

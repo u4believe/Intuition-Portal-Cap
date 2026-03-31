@@ -24,6 +24,10 @@ const CLAIM_DATA_QUERY = `
         current_share_price
         total_shares
       }
+      share_price_change_stats_daily {
+        first_share_price
+        last_share_price
+      }
     }
   }
 `
@@ -87,6 +91,10 @@ interface TermData {
     position_count: number
     current_share_price: string
     total_shares: string
+  }>
+  share_price_change_stats_daily?: Array<{
+    first_share_price: string
+    last_share_price: string
   }>
 }
 
@@ -257,6 +265,12 @@ export async function GET(req: NextRequest) {
             position_count: termVaults.reduce((s, v) => s + (v.position_count || 0), 0),
             current_share_price: termVaults.reduce((s, v) => s + toNumber(v.current_share_price), 0),
           }
+          const dailyStats = term.share_price_change_stats_daily?.[0]
+          if (dailyStats && parseFloat(dailyStats.first_share_price || '0') > 0) {
+            const first = parseFloat(dailyStats.first_share_price)
+            const last = parseFloat(dailyStats.last_share_price)
+            snap.pct_change_24h = ((last - first) / first) * 100
+          }
           currentClaimsMap.set(termId, snap)
           console.log(`  [Claim] termId="${termId}" marketCap=${snap.market_cap.toFixed(4)} positions=${snap.position_count} vaults=${termVaults.length}`)
         }
@@ -306,17 +320,27 @@ export async function GET(req: NextRequest) {
 
         const mktCapThreshold = pref.marketCapMin ?? 2
         const sharesThreshold = pref.sharesChangeMin ?? 2
+        const trendSuffix = current.pct_change_24h ? ` (24h: ${current.pct_change_24h > 0 ? '+' : ''}${current.pct_change_24h.toFixed(1)}%)` : ''
+
         if (pref.marketCap && marketCapChange >= mktCapThreshold) {
           const dir = current.market_cap > previous.market_cap ? '↑' : '↓'
-          alerts.push(`${pref.label}: market cap ${dir}${marketCapChange.toFixed(1)}%`)
+          alerts.push(`${pref.label}: market cap ${dir}${marketCapChange.toFixed(1)}%${trendSuffix}`)
         }
         if (pref.positionCount && positionChange >= 1) {
           const dir = current.position_count > previous.position_count ? '+' : '-'
-          alerts.push(`${pref.label}: ${dir}${positionChange} position${positionChange > 1 ? 's' : ''}`)
+          alerts.push(`${pref.label}: ${dir}${positionChange} position${positionChange > 1 ? 's' : ''}${trendSuffix}`)
         }
         if (pref.sharesChange && sharesChange >= sharesThreshold) {
           const dir = current.total_shares > previous.total_shares ? '↑' : '↓'
-          alerts.push(`${pref.label}: shares ${dir}${sharesChange.toFixed(1)}%`)
+          alerts.push(`${pref.label}: shares ${dir}${sharesChange.toFixed(1)}%${trendSuffix}`)
+        }
+        
+        // Smart Alert: Trending / Viral Claim Detection
+        if (subscription.receive_smart_alerts !== false) {
+          const positionGrowth = previous.position_count > 0 ? (current.position_count - previous.position_count) / previous.position_count : 0
+          if (positionGrowth >= 0.20 && current.position_count >= 10) {
+            alerts.push(`🚀 Trending Now: ${pref.label} just surged in backers!`)
+          }
         }
       }
 
@@ -365,6 +389,18 @@ export async function GET(req: NextRequest) {
               `range=${redemptionCfg.min}-${redemptionCfg.max} match=${matches}`
             )
             if (matches) alerts.push(`Redemption: ${event.assets.toFixed(2)} TRUST on "${event.atomLabel}"`)
+          }
+        }
+
+        // Smart Alert: Whale Activity Detection
+        if (subscription.receive_smart_alerts !== false) {
+          const isWhale = event.assets >= 5000;
+          if (isWhale) {
+            if (event.type === 'deposit') {
+              alerts.push(`🐋 Whale Alert: Massive ${event.assets.toFixed(0)} TRUST deposit just backed "${event.atomLabel}"!`)
+            } else {
+              alerts.push(`⚠️ Massive Dump: A Whale just redeemed ${event.assets.toFixed(0)} TRUST from "${event.atomLabel}".`)
+            }
           }
         }
       }
