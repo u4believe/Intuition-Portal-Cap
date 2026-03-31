@@ -121,6 +121,6 @@ const port = process.env.PORT || 10000
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' })
   res.end('Notification Poller is running.\n')
-}).listen(port, () => {
-  console.log(`[Poller] Dummy web server listening on port ${port} to satisfy Render`)
+}).listen(port, '0.0.0.0', () => {
+  console.log(`[Poller] Dummy web server listening on 0.0.0.0:${port} to satisfy Render`)
 })
