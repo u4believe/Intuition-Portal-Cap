@@ -142,9 +142,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
   try {
     const depositsData = await queryIntuitionGraphQL(RECENT_DEPOSITS_QUERY, { since: sinceISO })
     ;(depositsData?.deposits || []).forEach((d: any) => {
-      // Use 'shares' to accurately represent the minted TRUST amount, not the ETH asset value.
-      const raw = d.shares ? parseFloat(d.shares) : (d.assets_after_fees ? parseFloat(d.assets_after_fees) : 0)
-      const assets = raw / 1e18 // Always divide by 1e18 for exact TRUST figure
+      const assets = toNumber(d.assets_after_fees)
       events.push({
         id: String(d.id),
         type: 'deposit',
@@ -161,9 +159,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
   try {
     const redemptionsData = await queryIntuitionGraphQL(RECENT_REDEMPTIONS_QUERY, { since: sinceISO })
     ;(redemptionsData?.redemptions || []).forEach((r: any) => {
-      // Use 'shares' to accurately represent the destroyed TRUST amount, not the ETH redeemed.
-      const raw = r.shares ? parseFloat(r.shares) : (r.assets ? parseFloat(r.assets) : 0)
-      const assets = raw / 1e18 // Always divide by 1e18 for exact TRUST figure
+      const assets = toNumber(r.assets)
       events.push({
         id: String(r.id),
         type: 'redemption',
