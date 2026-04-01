@@ -3,6 +3,10 @@
     {
       "path": "/api/check-notifications",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/trending",
+      "schedule": "0 * * * *"
     }
   ]
 }

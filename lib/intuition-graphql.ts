@@ -58,6 +58,39 @@ export const DEPOSITS_QUERY = `
   }
 `
 
+// Enriched query used by /api/trending — includes vault market_cap, position_count,
+// price stats, and full term data needed for the 6-condition scoring algorithm.
+export const TRENDING_DEPOSITS_QUERY = `
+  query GetTrendingDeposits($since: timestamptz) {
+    deposits(
+      where: { created_at: { _gte: $since } }
+      order_by: { created_at: desc }
+      limit: 5000
+    ) {
+      id
+      assets_after_fees
+      created_at
+      vault {
+        term_id
+        market_cap
+        position_count
+        share_price_change_stats_daily {
+          first_share_price
+          last_share_price
+        }
+        term {
+          atom { label image type }
+          triple {
+            subject { label type }
+            predicate { label type }
+            object { label type }
+          }
+        }
+      }
+    }
+  }
+`
+
 // Query for recent deposits for trending calculation
 export const RECENT_DEPOSITS_QUERY = `
   query GetRecentDeposits($timestamp: timestamptz) {

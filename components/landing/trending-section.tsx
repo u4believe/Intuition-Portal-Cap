@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { queryIntuitionGraphQL, ALL_CLAIMS_QUERY, RECENT_DEPOSITS_QUERY, convertWeiToEther } from "@/lib/intuition-graphql"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useEffect, useState, useCallback } from "react"
+import { Card } from "@/components/ui/card"
 import { TrendingUp, Rocket, Flame, ArrowUpRight, Star } from "lucide-react"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import WatchPreferencesDialog from "@/components/watch-preferences-dialog"
+
+const ONE_HOUR_MS = 60 * 60 * 1000
 
 export default function TrendingSection() {
   const [trendingAtom, setTrendingAtom] = useState<any>(null)
@@ -19,101 +20,27 @@ export default function TrendingSection() {
 
   const { syncWatchedClaimsToServer } = usePushNotifications()
 
-  useEffect(() => {
-    async function loadTrending() {
-      try {
-        const data = await queryIntuitionGraphQL(ALL_CLAIMS_QUERY, { limit: 200 })
-        const vaults = data?.vaults || []
-
-        // Fetch recent deposits over the last 24 hours
-        const oneDayAgo = new Date(Date.now() - 86400000).toISOString()
-        const depositData = await queryIntuitionGraphQL(RECENT_DEPOSITS_QUERY, { timestamp: oneDayAgo })
-        const recentDeposits = depositData?.deposits || []
-
-        // Group recent deposits by term_id to evaluate Volume and Crowd Adoption
-        const vaultStats: Record<string, { senders: Set<string>, volume: number }> = {}
-        for (const dep of recentDeposits) {
-          const termId = dep.vault?.term_id
-          if (!termId) continue
-          if (!vaultStats[termId]) {
-            vaultStats[termId] = { senders: new Set(), volume: 0 }
-          }
-          if (dep.sender_id) vaultStats[termId].senders.add(dep.sender_id)
-          vaultStats[termId].volume += convertWeiToEther(dep.assets_after_fees || "0")
-        }
-
-        let bestAtom: any = null
-        let bestAtomScore = -Infinity
-
-        let bestTriple: any = null
-        let bestTripleScore = -Infinity
-
-        for (const v of vaults) {
-          const stats = v.share_price_change_stats_daily?.[0]
-          if (!stats) continue
-
-          const first = parseFloat(stats.first_share_price || "0") / 1e18
-          const last = parseFloat(stats.last_share_price || "0") / 1e18
-          
-          // Must have at least a baseline market cap or shares to avoid spam vaults trending
-          if (convertWeiToEther(v.market_cap) < 1) continue
-
-          let pctChange = 0
-          if (first >= 0.001) {
-            pctChange = ((last - first) / first) * 100
-          } else {
-            continue // Skip vaults that are too new/small to have a meaningful 24h change
-          }
-
-          // Remember true pctChange on every vault processed just in case we need it for fallback
-          v.computedPctChange = pctChange
-
-          const vStats = vaultStats[v.term_id] || { senders: new Set(), volume: 0 }
-          const adoptionCount = vStats.senders.size
-
-          // Multi-Factor Momentum Score
-          // Price Momentum (30%), Volume Velocity (40%), Crowd Adoption (30%)
-          let momentumScore = (pctChange * 0.3) + (vStats.volume * 0.4) + (adoptionCount * 10 * 0.3)
-          
-          // Baseline Requirement: Must have at least 2 unique deposits AND > 1000 TRUST volume
-          const isStrictMatch = adoptionCount >= 2 && vStats.volume > 1000
-          if (isStrictMatch) {
-            momentumScore += 1000000 // Tremendous boost to guarantee strict matches trend over fallbacks
-          }
-
-          if (v.term?.atom) {
-            if (momentumScore > bestAtomScore) {
-              bestAtomScore = momentumScore
-              bestAtom = { ...v, pctChange, momentumScore }
-            }
-          } else if (v.term?.triple) {
-            if (momentumScore > bestTripleScore) {
-              bestTripleScore = momentumScore
-              bestTriple = { ...v, pctChange, momentumScore }
-            }
-          }
-        }
-
-        // If strict filtering caused both to be null, fallback to the top market cap vaults
-        if (!bestAtom) {
-          bestAtom = vaults.find((v: any) => v.term?.atom)
-          if (bestAtom) bestAtom.pctChange = bestAtom.computedPctChange || 0
-        }
-        if (!bestTriple) {
-          bestTriple = vaults.find((v: any) => v.term?.triple)
-          if (bestTriple) bestTriple.pctChange = bestTriple.computedPctChange || 0
-        }
-
-        setTrendingAtom(bestAtom)
-        setTrendingTriple(bestTriple)
-      } catch (e) {
-        console.error("Failed to load trending data:", e)
-      } finally {
-        setLoading(false)
-      }
+  const loadTrending = useCallback(async () => {
+    try {
+      const res = await fetch('/api/trending')
+      if (!res.ok) throw new Error(`Trending API returned ${res.status}`)
+      const { atom, triple } = await res.json()
+      setTrendingAtom(atom)
+      setTrendingTriple(triple)
+    } catch (e) {
+      console.error("Failed to load trending data:", e)
+    } finally {
+      setLoading(false)
     }
-    loadTrending()
   }, [])
+
+  useEffect(() => {
+    loadTrending()
+
+    // Refresh once per hour so the UI stays current without a full page reload
+    const interval = setInterval(loadTrending, ONE_HOUR_MS)
+    return () => clearInterval(interval)
+  }, [loadTrending])
 
   const handleWatch = (label: string, termId: string) => {
     setWatchItemName(label)
@@ -169,7 +96,7 @@ export default function TrendingSection() {
         <TrendingUp className="w-5 h-5 text-primary dark:text-cyan-400" />
         <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Trending on Intuition (24h)</h3>
       </div>
-      
+
       <div className="grid md:grid-cols-2 gap-6 w-full">
         {/* Trending Identity */}
         {trendingAtom && (
@@ -188,11 +115,11 @@ export default function TrendingSection() {
                     {formatLabel(trendingAtom)}
                   </h4>
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                   <div className={`flex items-center gap-1 text-lg md:text-xl font-black leading-none ${
-                    trendingAtom.pctChange < 0 
-                      ? 'text-red-500 dark:text-red-400' 
+                    trendingAtom.pctChange < 0
+                      ? 'text-red-500 dark:text-red-400'
                       : 'text-green-500 dark:text-green-400'
                   }`}>
                     <ArrowUpRight className={`w-4 h-4 md:w-5 md:h-5 stroke-[3] ${trendingAtom.pctChange < 0 ? 'rotate-90' : ''}`} />
@@ -230,11 +157,11 @@ export default function TrendingSection() {
                     {formatLabel(trendingTriple)}
                   </h4>
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                   <div className={`flex items-center gap-1 text-lg md:text-xl font-black leading-none ${
-                    trendingTriple.pctChange < 0 
-                      ? 'text-red-500 dark:text-red-400' 
+                    trendingTriple.pctChange < 0
+                      ? 'text-red-500 dark:text-red-400'
                       : 'text-green-500 dark:text-green-400'
                   }`}>
                     <ArrowUpRight className={`w-4 h-4 md:w-5 md:h-5 stroke-[3] ${trendingTriple.pctChange < 0 ? 'rotate-90' : ''}`} />
