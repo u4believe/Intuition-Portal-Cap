@@ -16,13 +16,13 @@ export async function queryIntuitionGraphQL(query: string, variables?: any) {
     const data = await response.json()
 
     if (data.errors) {
-      console.error('[v0] GraphQL errors:', data.errors)
+      console.error('[intuition] GraphQL errors:', data.errors)
       throw new Error(data.errors[0]?.message || 'GraphQL error')
     }
 
     return data.data
   } catch (error) {
-    console.error('[v0] GraphQL fetch error:', error)
+    console.error('[intuition] GraphQL fetch error:', error)
     throw error
   }
 }

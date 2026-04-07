@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "intuition": {
+      "source": "0xintuition/agent-skills",
+      "sourceType": "github",
+      "computedHash": "5afb8934fdc7487256d59bd7bafdc7b0a334310fcd90f45aca180c24e8c7a5e3"
+    }
+  }
+}

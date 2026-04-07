@@ -21,6 +21,7 @@ import ClaimsTable from "./claims-table"
 import TriplesTable from "./triples-table"
 import AtomsTable from "./atoms-table"
 import TrendingSection from "./trending-section"
+import ProtocolStatsBar from "./protocol-stats-bar"
 
 export default function LandingPage() {
   const [watchlistOpen, setWatchlistOpen] = useState(false)
@@ -160,10 +161,6 @@ export default function LandingPage() {
               )}
             </div>
 
-            <a href="#features" className="text-sm text-black dark:text-white hover:text-primary transition-colors">
-              Features
-            </a>
-            
             <Link href="/dashboard" className="text-sm text-black dark:text-white hover:text-primary transition-colors font-medium">
               Dashboard
             </Link>
@@ -346,6 +343,9 @@ export default function LandingPage() {
           <RecentEvents />
         </div>
       </section>
+
+      {/* Protocol Stats Bar */}
+      <ProtocolStatsBar />
 
       {/* Trending Section */}
       <TrendingSection />

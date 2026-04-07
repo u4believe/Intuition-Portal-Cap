@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
+// Fetches positions for a term via the root positions table.
+// curve_id lives on the vault, not the position row — this is the canonical pattern
+// from graphql-queries.md ("Positions by Account").
+const POSITIONS_QUERY = `
+  query GetTermPositions($termId: String!) {
+    positions(
+      where: { vault: { term: { id: { _eq: $termId } } } }
+      order_by: { shares: desc }
+    ) {
+      account_id
+      shares
+      total_deposit_assets_after_total_fees
+      total_redeem_assets_for_receiver
+      vault { curve_id }
+    }
+  }
+`
+
 const VAULT_QUERY = `
   query GetVault($id: String!) {
     terms(where: {id: {_eq: $id}}) {
@@ -33,6 +51,7 @@ const VAULT_QUERY = `
         predicate { label image }
         object { label image }
         counter_term {
+          id
           type
           total_market_cap
           total_assets
@@ -50,18 +69,6 @@ const VAULT_QUERY = `
             }
             deposits { id created_at shares }
             redemptions { id created_at shares }
-            positions {
-              account_id
-              shares
-              total_deposit_assets_after_total_fees
-              total_redeem_assets_for_receiver
-            }
-          }
-          positions {
-            account_id
-            shares
-            total_deposit_assets_after_total_fees
-            total_redeem_assets_for_receiver
           }
           deposits {
             id
@@ -77,15 +84,6 @@ const VAULT_QUERY = `
             total_shares
             receiver_id
           }
-        }
-        positions {
-          id
-          account_id
-          shares
-          total_deposit_assets_after_total_fees
-          total_redeem_assets_for_receiver
-          updated_at
-          curve_id
         }
       }
       vaults {
@@ -203,6 +201,18 @@ function buildSide(termData: any) {
       totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
       totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
     })),
+    linVaultPositions: (linVault?.positions || []).map((p: any) => ({
+      accountId: p.account_id,
+      shares: parseAmount(p.shares),
+      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    })),
+    expVaultPositions: expVault ? (expVault.positions || []).map((p: any) => ({
+      accountId: p.account_id,
+      shares: parseAmount(p.shares),
+      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    })) : [],
     termDeposits: (termData.deposits || []).map((d: any) => ({
       id: d.id,
       assets: parseAmount(d.assets_after_fees),
@@ -224,6 +234,17 @@ function buildSide(termData: any) {
       totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
     })),
   }
+}
+
+function mapPositions(rows: any[]) {
+  return rows.map((p: any) => ({
+    accountId: p.account_id,
+    shares: parseAmount(p.shares),
+    totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
+    totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
+    // curve_id lives on vault, not position — accessed via vault { curve_id }
+    curveId: p.vault?.curve_id != null ? Number(p.vault.curve_id) : null,
+  }))
 }
 
 export async function GET(request: Request) {
@@ -263,15 +284,17 @@ export async function GET(request: Request) {
       claim.image = claim.subjectImage
       claim.support = buildSide(term)
       claim.oppose = buildSide(triple.counter_term) || null
-      claim.triplePositions = (triple.positions || []).map((p: any) => ({
-        id: p.id,
-        accountId: p.account_id,
-        shares: parseAmount(p.shares),
-        totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
-        totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-        updatedAt: p.updated_at,
-        curveId: p.curve_id,
-      }))
+
+      // Fetch positions via root positions table — curve_id is on vault, not position row
+      const counterTermId = triple.counter_term?.id || null
+      const [supportPosData, opposePosData] = await Promise.all([
+        queryIntuitionGraphQL(POSITIONS_QUERY, { termId }),
+        counterTermId
+          ? queryIntuitionGraphQL(POSITIONS_QUERY, { termId: counterTermId })
+          : Promise.resolve(null),
+      ])
+      claim.triplePositions = mapPositions(supportPosData?.positions || [])
+      claim.opposePositions = mapPositions(opposePosData?.positions || [])
     } else {
       claim.label = atom?.label || "Unknown"
       claim.image = atom?.image && atom.image !== 'null' ? atom.image : null
