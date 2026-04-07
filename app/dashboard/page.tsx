@@ -10,7 +10,8 @@ import { logout } from '@/hooks/useAuth'
 import Link from 'next/link'
 import AlertsDialog from '@/components/alerts-dialog'
 import NotificationPreferencesPanel from '@/components/push-notifications/notification-preferences-panel'
-import { Bell, Star, ArrowRight, Trash2, ExternalLink, Eye } from 'lucide-react'
+import WalletPositionsLookup from '@/components/dashboard/wallet-positions-lookup'
+import { Bell, Star, ArrowRight, Trash2, Eye } from 'lucide-react'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
 type ClaimDetail = {
@@ -34,7 +35,7 @@ function parseClaimLabel(label: string): { subject?: string; predicate?: string;
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useAuthProtected()
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
-  const { isConnected } = useAccount()
+  const { isConnected, address: connectedAddress } = useAccount()
   const { discordUser } = useDiscordAuth()
   const [alertsOpen, setAlertsOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
@@ -167,6 +168,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Portfolio lookup */}
+          <WalletPositionsLookup defaultAddress={connectedAddress ?? ''} />
+
           <div className="grid lg:grid-cols-3 gap-6 items-start">
             {/* Watched claims list */}
             <div className="lg:col-span-2 space-y-4">
@@ -263,9 +267,11 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Notification settings panel */}
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
-              <NotificationPreferencesPanel onOpenSettings={() => setAlertsOpen(true)} />
+            {/* Right column: notifications */}
+            <div className="space-y-4">
+              <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+                <NotificationPreferencesPanel onOpenSettings={() => setAlertsOpen(true)} />
+              </div>
             </div>
           </div>
         </div>
@@ -277,7 +283,8 @@ export default function DashboardPage() {
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           claimLabel={editingClaim}
-          onConfirm={(_label: string, _termId: string) => setEditDialogOpen(false)}
+          termId={claimDetails[editingClaim]?.termId ?? ''}
+          onConfirm={() => setEditDialogOpen(false)}
         />
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Star, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Star } from 'lucide-react'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
@@ -346,6 +346,97 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
               </>
             )}
 
+            {/* Positions by Curve — source differs by type and side:
+                Atoms:           term.vaults[0/1].positions (linVaultPositions / expVaultPositions)
+                Claims support:  claim.triplePositions  — fetched via root positions query, vault.curve_id
+                Claims oppose:   claim.opposePositions  — same query for counter_term */}
+            {claim.type === 'Triple' ? (() => {
+              const src = sideMode === 'support'
+                ? (claim.triplePositions || [])
+                : (claim.opposePositions || [])
+              const linPos = src.filter((p: any) => p.curveId === 1)
+              const expPos = src.filter((p: any) => p.curveId === 2)
+              const otherPos = src.filter((p: any) => p.curveId !== 1 && p.curveId !== 2)
+              const PosTbl = ({ rows, label }: { rows: any[]; label: string }) => (
+                <>
+                  <SectionTitle>{label} ({rows.length})</SectionTitle>
+                  <TableWrap>
+                    <thead><tr>
+                      <Th>Wallet Address</Th>
+                      <Th center>Shares</Th>
+                      <Th center>Deposited (TRUST)</Th>
+                      <Th center>Redeemed (TRUST)</Th>
+                    </tr></thead>
+                    <tbody>
+                      {rows.length === 0
+                        ? <EmptyRow cols={4} msg={`No ${label.toLowerCase()}`} />
+                        : rows.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                            <Td mono><span className="select-all">{p.accountId}</span></Td>
+                            <Td center><span className="text-sky-600 dark:text-sky-400 font-semibold">{fmt(p.shares, 6)}</span></Td>
+                            <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
+                            <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </TableWrap>
+                </>
+              )
+              return (
+                <>
+                  <PosTbl rows={linPos} label="Positions — Linear Curve" />
+                  <PosTbl rows={expPos} label="Positions — Exponential Curve" />
+                  {otherPos.length > 0 && <PosTbl rows={otherPos} label="Positions — Other Curve" />}
+                </>
+              )
+            })() : (
+              <>
+                {/* Atom: vault-level positions per curve */}
+                <SectionTitle>Positions — Linear Curve ({side.linVaultPositions?.length ?? 0})</SectionTitle>
+                <TableWrap>
+                  <thead><tr>
+                    <Th>Wallet Address</Th>
+                    <Th center>Shares</Th>
+                    <Th center>Deposited (TRUST)</Th>
+                    <Th center>Redeemed (TRUST)</Th>
+                  </tr></thead>
+                  <tbody>
+                    {(side.linVaultPositions?.length ?? 0) === 0
+                      ? <EmptyRow cols={4} msg="No linear curve positions" />
+                      : side.linVaultPositions.map((p: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <Td mono><span className="select-all">{p.accountId}</span></Td>
+                          <Td center><span className="text-sky-600 dark:text-sky-400 font-semibold">{fmt(p.shares, 6)}</span></Td>
+                          <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
+                          <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </TableWrap>
+                <SectionTitle>Positions — Exponential Curve ({side.expVaultPositions?.length ?? 0})</SectionTitle>
+                <TableWrap>
+                  <thead><tr>
+                    <Th>Wallet Address</Th>
+                    <Th center>Shares</Th>
+                    <Th center>Deposited (TRUST)</Th>
+                    <Th center>Redeemed (TRUST)</Th>
+                  </tr></thead>
+                  <tbody>
+                    {(side.expVaultPositions?.length ?? 0) === 0
+                      ? <EmptyRow cols={4} msg="No exponential curve positions" />
+                      : side.expVaultPositions.map((p: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <Td mono><span className="select-all">{p.accountId}</span></Td>
+                          <Td center><span className="text-sky-600 dark:text-sky-400 font-semibold">{fmt(p.shares, 6)}</span></Td>
+                          <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
+                          <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </TableWrap>
+              </>
+            )}
+
             {/* Vault Deposits */}
             <SectionTitle>Vault Deposits ({side.vaultDeposits.length})</SectionTitle>
             <TableWrap>
@@ -387,31 +478,6 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                       <Td mono>{shortAddr(r.id)}</Td>
                       <Td center><span className="text-rose-600 dark:text-rose-400 font-semibold">{fmt(r.shares, 6)}</span></Td>
                       <Td center>{fmtDate(r.createdAt)}</Td>
-                    </tr>
-                  ))}
-              </tbody>
-            </TableWrap>
-
-            {/* Vault Positions */}
-            <SectionTitle>Vault Positions ({side.vaultPositions.length})</SectionTitle>
-            <TableWrap>
-              <thead>
-                <tr>
-                  <Th>Account</Th>
-                  <Th center>Shares</Th>
-                  <Th center>Deposited (TRUST)</Th>
-                  <Th center>Redeemed (TRUST)</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {side.vaultPositions.length === 0
-                  ? <EmptyRow cols={4} msg="No vault positions" />
-                  : side.vaultPositions.map((p: any, i: number) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <Td mono><span title={p.accountId}>{shortAddr(p.accountId)}</span></Td>
-                      <Td center>{fmt(p.shares, 6)}</Td>
-                      <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
-                      <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
                     </tr>
                   ))}
               </tbody>
@@ -482,7 +548,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                 <TableWrap>
                   <thead>
                     <tr>
-                      <Th>Account</Th>
+                      <Th>Wallet Address</Th>
                       <Th center>Shares</Th>
                       <Th center>Deposited (TRUST)</Th>
                       <Th center>Redeemed (TRUST)</Th>
@@ -491,8 +557,8 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                   <tbody>
                     {side.termPositions.map((p: any, i: number) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <Td mono><span title={p.accountId}>{shortAddr(p.accountId)}</span></Td>
-                        <Td center>{fmt(p.shares, 6)}</Td>
+                        <Td mono><span className="select-all">{p.accountId}</span></Td>
+                        <Td center><span className="text-sky-600 dark:text-sky-400 font-semibold">{fmt(p.shares, 6)}</span></Td>
                         <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
                         <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
                       </tr>
@@ -511,8 +577,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
             <TableWrap>
               <thead>
                 <tr>
-                  <Th>ID</Th>
-                  <Th>Account</Th>
+                  <Th>Wallet Address</Th>
                   <Th center>Shares</Th>
                   <Th center>Deposited (TRUST)</Th>
                   <Th center>Redeemed (TRUST)</Th>
@@ -521,9 +586,8 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
               <tbody>
                 {claim.atomPositions.map((p: any, i: number) => (
                   <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <Td mono>{shortAddr(p.id)}</Td>
-                    <Td mono><span title={p.accountId}>{shortAddr(p.accountId)}</span></Td>
-                    <Td center>{fmt(p.shares, 6)}</Td>
+                    <Td mono><span className="select-all">{p.accountId}</span></Td>
+                    <Td center><span className="text-sky-600 dark:text-sky-400 font-semibold">{fmt(p.shares, 6)}</span></Td>
                     <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
                     <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
                   </tr>
@@ -533,38 +597,6 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* Triple-level positions (always shown for triples) */}
-        {claim.type === 'Triple' && claim.triplePositions?.length > 0 && (
-          <>
-            <SectionTitle>Triple Positions ({claim.triplePositions.length})</SectionTitle>
-            <TableWrap>
-              <thead>
-                <tr>
-                  <Th>ID</Th>
-                  <Th>Account</Th>
-                  <Th center>Shares</Th>
-                  <Th center>Deposited (TRUST)</Th>
-                  <Th center>Redeemed (TRUST)</Th>
-                  <Th center>Curve</Th>
-                  <Th center>Updated</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {claim.triplePositions.map((p: any, i: number) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <Td mono>{shortAddr(p.id)}</Td>
-                    <Td mono><span title={p.accountId}>{shortAddr(p.accountId)}</span></Td>
-                    <Td center>{fmt(p.shares, 6)}</Td>
-                    <Td center><span className="text-emerald-600 dark:text-emerald-400">{fmt(p.totalDepositAssetsAfterTotalFees, 6)}</span></Td>
-                    <Td center><span className="text-orange-600 dark:text-orange-400">{fmt(p.totalRedeemAssetsForReceiver, 6)}</span></Td>
-                    <Td center>{p.curveId ?? '—'}</Td>
-                    <Td center>{fmtDate(p.updatedAt)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </TableWrap>
-          </>
-        )}
 
         <div className="h-8" />
       </div>
