@@ -5,7 +5,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { useAccount } from "wagmi"
 import { useDiscordAuth } from "@/hooks/useDiscordAuth"
-import { Star, Pencil, X, Bell } from "lucide-react"
+import { Star, Pencil, X, Bell, LayoutDashboard } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { TrendingUp, Zap, Lock, ArrowRight } from "lucide-react"
@@ -181,9 +181,16 @@ export default function LandingPage() {
               )}
             </div>
           </nav>
-          <div className="md:hidden flex gap-2 items-center">
+          <div className="md:hidden flex gap-1 items-center">
             {mounted && isSignedIn && (
               <>
+                <Link
+                  href="/dashboard"
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white"
+                  title="Dashboard"
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                </Link>
                 <button
                   onClick={() => { setWatchlistOpen(!watchlistOpen); setNotifOpen(false) }}
                   className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-black dark:text-white cursor-pointer"
