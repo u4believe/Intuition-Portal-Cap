@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Database, Users, Info } from 'lucide-react'
+import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Database, Users } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 
 interface PriceData {
   priceUsd: string
@@ -92,21 +93,10 @@ export default function ProtocolStatsBar() {
               <Database className="w-3 h-3 text-cyan-500 flex-shrink-0" />
               <span className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Total Staked</span>
 
-              {/* Info icon + tooltip */}
-              <div className="relative group">
-                <Info
-                  className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                  aria-label="What is Total Staked?"
-                />
-                {/* Tooltip — appears below the icon */}
-                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 w-56 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                  <div className="bg-slate-900 dark:bg-slate-950 text-white text-[11px] leading-relaxed rounded-lg px-3 py-2 shadow-xl border border-slate-700 dark:border-slate-600">
-                    This is the total amount of TRUST staked across all Claims and Identities on the Intuition Portal
-                  </div>
-                  {/* Arrow */}
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-950 border-l border-t border-slate-700 dark:border-slate-600 rotate-45" />
-                </div>
-              </div>
+              <InfoTooltip
+                text="This is the total amount of TRUST staked across all Claims and Identities on the Intuition Portal"
+                width="w-56"
+              />
 
               <span className="text-sm font-bold text-slate-900 dark:text-white font-mono tabular-nums">
                 {fmtTrust(stats.totalStakedTrust)}
