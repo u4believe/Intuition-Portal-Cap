@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search, Info } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
@@ -233,23 +234,13 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                     <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       <div className="flex items-center justify-center gap-1">
                         Lin 7d
-                        <span className="relative group">
-                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
-                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
-                            This is the change in percentage of the share price for the Linear Curve in last 7 days
-                          </span>
-                        </span>
+                        <InfoTooltip text="This is the change in percentage of the share price for the Linear Curve in last 7 days" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       <div className="flex items-center justify-center gap-1">
                         Exp 7d
-                        <span className="relative group">
-                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
-                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
-                            This is the change in percentage of the share price for the Exponential Curve in last 7 days
-                          </span>
-                        </span>
+                        <InfoTooltip text="This is the change in percentage of the share price for the Exponential Curve in last 7 days" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Watch</th>
@@ -453,7 +444,13 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                         </div>
                         {/* Lin / Exp 7d % change mobile */}
                         <div className="col-span-2">
-                          <p className="text-slate-400 dark:text-slate-500 mb-1">7d Change</p>
+                          <div className="flex items-center gap-1 mb-1">
+                            <p className="text-slate-400 dark:text-slate-500">7d Change</p>
+                            <InfoTooltip
+                              text="Change in share price over the last 7 days for the Linear (Lin) and Exponential (Exp) curves"
+                              width="w-52"
+                            />
+                          </div>
                           <div className="flex items-center gap-4">
                             {(() => {
                               const pct = isSupport ? (triple as any).lin7dChange : (triple as any).opposeLinChange
