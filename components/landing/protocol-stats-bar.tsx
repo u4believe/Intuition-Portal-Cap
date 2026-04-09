@@ -45,12 +45,14 @@ export default function ProtocolStatsBar() {
   const refresh = useCallback(async () => {
     setSpinning(true)
     try {
-      const [priceRes, statsRes] = await Promise.all([
-        fetch('/api/trust-price'),
-        fetch('/api/protocol-stats'),
+      const [priceResult, statsResult] = await Promise.allSettled([
+        fetch('/api/trust-price').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/protocol-stats').then(r => r.ok ? r.json() : null).catch(() => null),
       ])
-      if (priceRes.ok) setPriceData(await priceRes.json())
-      if (statsRes.ok) setStats(await statsRes.json())
+      if (priceResult.status === 'fulfilled' && priceResult.value) setPriceData(priceResult.value)
+      if (statsResult.status === 'fulfilled' && statsResult.value) setStats(statsResult.value)
+    } catch {
+      // Network errors fail silently — keep showing last known values
     } finally {
       setTimeout(() => setSpinning(false), 600)
     }
