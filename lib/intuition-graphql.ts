@@ -16,7 +16,7 @@ export async function queryIntuitionGraphQL(query: string, variables?: any) {
     const data = await response.json()
 
     if (data.errors) {
-      console.error('[intuition] GraphQL errors:', data.errors)
+      console.error('[intuition] GraphQL errors:', JSON.stringify(data.errors, null, 2))
       throw new Error(data.errors[0]?.message || 'GraphQL error')
     }
 

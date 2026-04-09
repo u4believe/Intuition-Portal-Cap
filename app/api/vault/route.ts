@@ -206,13 +206,13 @@ function buildSide(termData: any) {
       shares: parseAmount(p.shares),
       totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
       totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-    })),
+    })).sort((a: any, b: any) => b.shares - a.shares),
     expVaultPositions: expVault ? (expVault.positions || []).map((p: any) => ({
       accountId: p.account_id,
       shares: parseAmount(p.shares),
       totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
       totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-    })) : [],
+    })).sort((a: any, b: any) => b.shares - a.shares) : [],
     termDeposits: (termData.deposits || []).map((d: any) => ({
       id: d.id,
       assets: parseAmount(d.assets_after_fees),

@@ -32,7 +32,10 @@ const WALLET_POSITIONS_QUERY = `
     positions_aggregate(
       where: { account_id: { _ilike: $accountId }, shares: { _gt: "0" } }
     ) {
-      aggregate { count }
+      aggregate {
+        count
+        sum { shares }
+      }
     }
   }
 `
@@ -67,7 +70,9 @@ export async function GET(request: Request) {
     })
 
     const rawPositions: any[] = data?.positions || []
-    const total: number = data?.positions_aggregate?.aggregate?.count ?? rawPositions.length
+    const agg = data?.positions_aggregate?.aggregate
+    const total: number = agg?.count ?? rawPositions.length
+    const totalSharesRaw: number = parseAmount(agg?.sum?.shares)
 
     const positions = rawPositions.map((p: any) => {
       const vault = p.vault
@@ -95,7 +100,7 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json({ positions, total })
+    return NextResponse.json({ positions, total, totalShares: totalSharesRaw })
   } catch (error) {
     console.error('[wallet-positions] Error:', error)
     return NextResponse.json({ error: 'Failed to fetch positions' }, { status: 500 })
