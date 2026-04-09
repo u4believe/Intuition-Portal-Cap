@@ -1,97 +1,78 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
-const TRIPLES_FIELDS = `
-  market_cap
-  position_count
+// Fields fetched on the support term. term.vaults returns all curves (curve_id 1=Lin, 2=Exp).
+const TERM_VAULT_FIELDS = `
+  id
+  total_market_cap
   total_assets
-  total_shares
-  current_share_price
-  term {
-    id
-    total_market_cap
-    total_assets
-    vaults {
-      position_count
-      current_share_price
-      total_shares
-    }
-    triple {
-      subject { label image }
-      predicate { label }
-      object { label }
-      counter_term {
-        id
-        type
-        total_market_cap
-        total_assets
-        vaults {
-          total_shares
-          market_cap
-          total_assets
-          position_count
-          current_share_price
-          share_price_change_stats_daily {
-            difference
-            first_share_price
-            last_share_price
-            change_count
-          }
-        }
-      }
-    }
-    positions {
-      account_id
-      shares
-      total_deposit_assets_after_total_fees
-      total_redeem_assets_for_receiver
-    }
-    share_price_change_stats_daily {
-      difference
-      first_share_price
-      last_share_price
-      change_count
-    }
+  vaults {
+    curve_id
+    position_count
+    current_share_price
+    total_shares
+    market_cap
+  }
+  positions_aggregate {
+    aggregate { count(columns: account_id, distinct: true) }
+  }
+  share_price_change_stats_daily(order_by: { bucket: desc }, limit: 14) {
+    bucket
+    curve_id
+    first_share_price
+    last_share_price
   }
 `
 
+const TRIPLE_FIELDS = `
+  term_id
+  counter_term_id
+  subject { label image }
+  predicate { label }
+  object { label }
+  term {
+    ${TERM_VAULT_FIELDS}
+  }
+  counter_term {
+    ${TERM_VAULT_FIELDS}
+  }
+`
+
+// Browse: query triples directly, ordered by combined (Lin+Exp) market cap descending.
 const TRIPLES_BROWSE_QUERY = `
   query GetTriples($limit: Int, $offset: Int) {
-    vaults(
+    triples(
       limit: $limit
       offset: $offset
-      order_by: { market_cap: desc }
+      order_by: { term: { total_market_cap: desc_nulls_last } }
     ) {
-      ${TRIPLES_FIELDS}
+      ${TRIPLE_FIELDS}
     }
   }
 `
 
 const TRIPLES_SEARCH_QUERY = `
   query SearchTriples($search: String!, $limit: Int) {
-    vaults(
+    triples(
       where: {
-        term: {
-          triple: {
-            _or: [
-              { subject: { label: { _ilike: $search } } }
-              { predicate: { label: { _ilike: $search } } }
-              { object: { label: { _ilike: $search } } }
-            ]
-          }
-        }
+        _or: [
+          { subject: { label: { _ilike: $search } } }
+          { predicate: { label: { _ilike: $search } } }
+          { object: { label: { _ilike: $search } } }
+        ]
       }
       limit: $limit
-      order_by: { market_cap: desc }
+      order_by: { term: { total_market_cap: desc_nulls_last } }
     ) {
-      ${TRIPLES_FIELDS}
+      ${TRIPLE_FIELDS}
     }
   }
 `
 
+// Count triples (not vaults) to avoid 2× inflation from Lin+Exp vault rows.
 const TRIPLES_COUNT_QUERY = `
   query GetTriplesCount {
-    vaults_aggregate {
+    triples_aggregate {
       aggregate { count }
     }
   }
@@ -99,17 +80,13 @@ const TRIPLES_COUNT_QUERY = `
 
 const TRIPLES_SEARCH_COUNT_QUERY = `
   query SearchTriplesCount($search: String!) {
-    vaults_aggregate(
+    triples_aggregate(
       where: {
-        term: {
-          triple: {
-            _or: [
-              { subject: { label: { _ilike: $search } } }
-              { predicate: { label: { _ilike: $search } } }
-              { object: { label: { _ilike: $search } } }
-            ]
-          }
-        }
+        _or: [
+          { subject: { label: { _ilike: $search } } }
+          { predicate: { label: { _ilike: $search } } }
+          { object: { label: { _ilike: $search } } }
+        ]
       }
     ) {
       aggregate { count }
@@ -122,113 +99,115 @@ function parseE18(v: any): number {
   return parseFloat(v) / 1e18
 }
 
-function buildTriples(vaults: any[]) {
-  const triplesMap = new Map<string, any>()
+function computeTermStats(termVaults: any[], termDaily: any[], termObj?: any) {
+  // Buckets are desc-ordered (newest first): [0]=today, [last]=7 days ago
+  const linBuckets = termDaily.filter((s: any) => Number(s.curve_id) === 1)
+  const expBuckets = termDaily.filter((s: any) => Number(s.curve_id) === 2)
 
-  for (const vault of vaults) {
-    const triple = vault.term?.triple
-    if (!triple) continue
+  let lin7dChange: number | null = null
+  let exp7dChange: number | null = null
+  let sharePriceChange24h = 0
 
-    const subject = triple.subject?.label || "Unknown"
-    const predicate = triple.predicate?.label || "Unknown"
-    const object = triple.object?.label || "Unknown"
-    const key = `${subject} - ${predicate} - ${object}`
-
-    if (!triplesMap.has(key)) {
-      triplesMap.set(key, {
-        termId: vault.term?.id || "",
-        label: key,
-        subjectLabel: subject,
-        predicateLabel: predicate,
-        objectLabel: object,
-        image: triple.subject?.image && triple.subject.image !== "null" ? triple.subject.image : "",
-        // Support side (set from term-level aggregates — idempotent regardless of how many vault rows appear)
-        marketCap: 0,
-        totalAssets: 0,
-        totalShares: 0,
-        currentSharePrice: 0,
-        positionCount: 0,
-        sharePriceChange24h: 0,
-        positions: [],
-        // Oppose side (processed only once per triple — see counterTermProcessed guard below)
-        opposeTermId: '',
-        opposeMarketCap: 0,
-        opposeTotalAssets: 0,
-        opposeTotalShares: 0,
-        opposeSharePrice: 0,
-        opposePositionCount: 0,
-        opposeSharePriceChange24h: 0,
-        hasOppose: false,
-        counterTermProcessed: false,
-      })
-    }
-
-    const d = triplesMap.get(key)!
-
-    // ── Support side ──
-    // Use term-level aggregates (total_market_cap / total_assets) — these are the true
-    // Lin+Exp combined totals and are identical for every vault row of the same term.
-    // Assigning (not +=) makes this idempotent even when multiple vault rows appear.
-    if (vault.term?.total_market_cap) {
-      d.marketCap = parseE18(vault.term.total_market_cap)
-    }
-    if (vault.term?.total_assets) {
-      d.totalAssets = parseE18(vault.term.total_assets)
-    }
-
-    // Sum shares / share price / positions from the term.vaults sub-query.
-    // This sub-query always returns ALL vaults for the term, so the result is
-    // the correct Lin+Exp total and is safe to re-assign on each vault row.
-    const termVaults: any[] = vault.term?.vaults || []
-    if (termVaults.length > 0) {
-      d.totalShares      = termVaults.reduce((s: number, tv: any) => s + parseE18(tv.total_shares), 0)
-      d.positionCount    = termVaults.reduce((s: number, tv: any) => s + (tv.position_count || 0), 0)
-      d.currentSharePrice = termVaults.reduce((s: number, tv: any) => s + parseE18(tv.current_share_price), 0)
-    }
-
-    const spc = vault.term?.share_price_change_stats_daily?.[0]
-    if (spc) {
-      const last = parseE18(spc.last_share_price)
-      const first = parseE18(spc.first_share_price)
-      if (first > 0) d.sharePriceChange24h = ((last - first) / first) * 100
-    }
-
-    d.positions.push(...(vault.term?.positions || []))
-
-    // ── Oppose side ──
-    // Guard: only process counter_term data once per triple.
-    // Without this guard, each support vault row (Lin and Exp) would re-process
-    // the same counter_term data, doubling (or more) every oppose value.
-    if (!d.counterTermProcessed) {
-      const counterTerm = triple.counter_term
-      const counterVaults: any[] = counterTerm?.vaults || []
-
-      if (counterVaults.length > 0 || counterTerm?.total_market_cap) {
-        d.hasOppose = true
-        d.counterTermProcessed = true
-        d.opposeTermId = counterTerm?.id || ''
-
-        // Term-level totals for oppose (Lin+Exp combined, same as how support works)
-        d.opposeMarketCap  = parseE18(counterTerm?.total_market_cap)
-        d.opposeTotalAssets = parseE18(counterTerm?.total_assets)
-
-        // Per-vault aggregates for oppose (total_shares, share price, positions)
-        for (const cv of counterVaults) {
-          d.opposeTotalShares += parseE18(cv.total_shares)
-          d.opposeSharePrice  += parseE18(cv.current_share_price)
-          d.opposePositionCount += cv.position_count || 0
-          const cspc = cv.share_price_change_stats_daily?.[0]
-          if (cspc) {
-            const last = parseE18(cspc.last_share_price)
-            const first = parseE18(cspc.first_share_price)
-            if (first > 0) d.opposeSharePriceChange24h = ((last - first) / first) * 100
-          }
-        }
-      }
-    }
+  // 7d % change: oldest bucket open price → newest bucket close price
+  if (linBuckets.length >= 1) {
+    const open  = parseE18(linBuckets[linBuckets.length - 1].first_share_price)  // oldest
+    const close = parseE18(linBuckets[0].last_share_price)                        // newest
+    if (open > 0) lin7dChange = ((close - open) / open) * 100
+  }
+  if (expBuckets.length >= 1) {
+    const open  = parseE18(expBuckets[expBuckets.length - 1].first_share_price)  // oldest
+    const close = parseE18(expBuckets[0].last_share_price)                        // newest
+    if (open > 0) exp7dChange = ((close - open) / open) * 100
   }
 
-  return Array.from(triplesMap.values()).sort((a, b) => b.marketCap - a.marketCap)
+  // 24h change: most recent bucket (index 0), prefer Exp, fall back to Lin
+  const recentBucket = (expBuckets.length > 0 ? expBuckets : linBuckets)[0]
+  if (recentBucket) {
+    const last  = parseE18(recentBucket.last_share_price)
+    const first = parseE18(recentBucket.first_share_price)
+    if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
+  }
+
+  // Share price: use primary (Linear) vault only — share prices are per-unit, not additive
+  const linVault = termVaults.find((tv: any) => Number(tv.curve_id) === 1) ?? termVaults[0]
+  const currentSharePrice = parseE18(linVault?.current_share_price)
+  // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
+  const positionCount = termObj?.positions_aggregate?.aggregate?.count ?? 0
+
+  return {
+    totalShares: termVaults.reduce((s: number, tv: any) => s + parseE18(tv.total_shares), 0),
+    positionCount,
+    currentSharePrice,
+    sharePriceChange24h,
+    lin7dChange,
+    exp7dChange,
+    // Sparklines reversed to chronological order for display
+    linSparkline: [...linBuckets].reverse().map((s: any) => parseE18(s.last_share_price)),
+    expSparkline: [...expBuckets].reverse().map((s: any) => parseE18(s.last_share_price)),
+  }
+}
+
+// Each triple appears exactly once in the query result (no per-vault duplication).
+function buildTriples(triplesData: any[]) {
+  return triplesData.map(triple => {
+    const subject = triple.subject?.label || 'Unknown'
+    const predicate = triple.predicate?.label || 'Unknown'
+    const object = triple.object?.label || 'Unknown'
+
+    // Support side
+    const termVaults: any[] = triple.term?.vaults || []
+    const termDaily: any[] = triple.term?.share_price_change_stats_daily ?? []
+    const support = computeTermStats(termVaults, termDaily, triple.term)
+
+    // Oppose side (counter_term)
+    const counterTerm = triple.counter_term
+    const counterVaults: any[] = counterTerm?.vaults || []
+    const hasOppose = counterVaults.length > 0 || !!counterTerm?.total_market_cap
+
+    let opposeStats = {
+      totalShares: 0, positionCount: 0, currentSharePrice: 0,
+      sharePriceChange24h: 0,
+      lin7dChange: null as number | null, exp7dChange: null as number | null,
+      linSparkline: [] as number[], expSparkline: [] as number[],
+    }
+    if (hasOppose) {
+      const counterDaily: any[] = counterTerm?.share_price_change_stats_daily ?? []
+      opposeStats = computeTermStats(counterVaults, counterDaily, counterTerm)
+    }
+
+    return {
+      termId: triple.term_id || triple.term?.id || '',
+      label: `${subject} - ${predicate} - ${object}`,
+      subjectLabel: subject,
+      predicateLabel: predicate,
+      objectLabel: object,
+      image: triple.subject?.image && triple.subject.image !== 'null' ? triple.subject.image : '',
+      // Support side — term-level combined totals
+      marketCap: parseE18(triple.term?.total_market_cap),
+      totalAssets: parseE18(triple.term?.total_assets),
+      totalShares: support.totalShares,
+      currentSharePrice: support.currentSharePrice,
+      positionCount: support.positionCount,
+      sharePriceChange24h: support.sharePriceChange24h,
+      lin7dChange: support.lin7dChange,
+      exp7dChange: support.exp7dChange,
+      linSparkline: support.linSparkline,
+      expSparkline: support.expSparkline,
+      // Oppose side
+      hasOppose,
+      opposeTermId: triple.counter_term_id || counterTerm?.id || '',
+      opposeMarketCap: hasOppose ? parseE18(counterTerm?.total_market_cap) : 0,
+      opposeTotalAssets: hasOppose ? parseE18(counterTerm?.total_assets) : 0,
+      opposeTotalShares: opposeStats.totalShares,
+      opposeSharePrice: opposeStats.currentSharePrice,
+      opposePositionCount: opposeStats.positionCount,
+      opposeSharePriceChange24h: opposeStats.sharePriceChange24h,
+      opposeLinChange: opposeStats.lin7dChange,
+      opposeExpChange: opposeStats.exp7dChange,
+      opposeLinSparkline: opposeStats.linSparkline,
+      opposeExpSparkline: opposeStats.expSparkline,
+    }
+  }).sort((a, b) => b.marketCap - a.marketCap)
 }
 
 export async function GET(request: Request) {
@@ -239,7 +218,7 @@ export async function GET(request: Request) {
     const pageSize = search ? 200 : 100
     const offset = (page - 1) * pageSize
 
-    let vaultsData: any[]
+    let triplesData: any[]
     let totalCount = 0
 
     if (search) {
@@ -248,25 +227,25 @@ export async function GET(request: Request) {
         queryIntuitionGraphQL(TRIPLES_SEARCH_QUERY, vars),
         queryIntuitionGraphQL(TRIPLES_SEARCH_COUNT_QUERY, { search: `%${search}%` }),
       ])
-      vaultsData = data?.vaults || []
-      totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
+      triplesData = data?.triples || []
+      totalCount = countData?.triples_aggregate?.aggregate?.count || 0
     } else {
       const [data, countData] = await Promise.all([
         queryIntuitionGraphQL(TRIPLES_BROWSE_QUERY, { limit: pageSize, offset }),
         queryIntuitionGraphQL(TRIPLES_COUNT_QUERY, {}),
       ])
-      vaultsData = data?.vaults || []
-      totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
+      triplesData = data?.triples || []
+      totalCount = countData?.triples_aggregate?.aggregate?.count || 0
     }
 
-    const triples = buildTriples(vaultsData)
+    const triples = buildTriples(triplesData)
 
     return NextResponse.json({
       triples,
       pagination: { page, pageSize, total: totalCount, totalPages: Math.ceil(totalCount / pageSize) },
     })
   } catch (error) {
-    console.error("[v0] Error fetching triples:", error)
+    console.error("[top-triples] Error fetching triples:", error)
     return NextResponse.json({ triples: [], error: "Failed to fetch triples" }, { status: 500 })
   }
 }

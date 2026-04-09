@@ -93,7 +93,7 @@ export function useAllClaims(page: number = 1, search: string = '') {
 
 export function useTriples(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['triples', page, search],
+    queryKey: ['triples-v2', page, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) })
       if (search) params.set('search', search)
@@ -106,7 +106,7 @@ export function useTriples(page: number = 1, search: string = '') {
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
-    staleTime: search ? 60000 : 86400000,
+    staleTime: search ? 60000 : 300000, // 5 min for browse
   })
 }
 
@@ -125,7 +125,7 @@ export function useTopClaims() {
 
 export function useAtoms(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['atoms', page, search],
+    queryKey: ['atoms-v2', page, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) })
       if (search) params.set('search', search)
@@ -158,6 +158,8 @@ export function useAtoms(page: number = 1, search: string = '') {
           positionCount: atom.positionCount || 0,
           sharePriceChange24h: atom.sharePriceChange24h || 0,
           sharePriceStats: atom.sharePriceStats || null,
+          lin7dChange: atom.lin7dChange ?? null,
+          exp7dChange: atom.exp7dChange ?? null,
           vaultDeposits: atom.vaultDeposits || [],
           vaultRedemptions: atom.vaultRedemptions || [],
           vaultPositions: atom.vaultPositions || [],
@@ -168,6 +170,6 @@ export function useAtoms(page: number = 1, search: string = '') {
         pagination: data.pagination || { page: 1, pageSize: 100, total: 0, totalPages: 0 },
       }
     },
-    staleTime: search ? 60000 : 86400000,
+    staleTime: search ? 60000 : 300000, // 5 min for browse (was 24h — kept stale 7d data)
   })
 }

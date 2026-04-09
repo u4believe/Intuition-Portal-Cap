@@ -15,6 +15,13 @@ const CLAIMS_FIELDS = `
       predicate { label }
       object { label }
       counter_term { id }
+      positions {
+        account_id
+        shares
+        total_deposit_assets_after_total_fees
+        total_redeem_assets_for_receiver
+        curve_id
+      }
     }
     positions {
       account_id
@@ -142,6 +149,18 @@ function mapClaim(vault: any) {
       totalRedeemAssetsForReceiver: pos.total_redeem_assets_for_receiver
         ? parseFloat(pos.total_redeem_assets_for_receiver) / 1e18
         : 0,
+    })),
+    // Per-curve positions from triple.positions (which carries curve_id)
+    triplePositions: (triple?.positions || []).map((pos: any) => ({
+      accountId: pos.account_id,
+      shares: pos.shares ? parseFloat(pos.shares) / 1e18 : 0,
+      totalDepositAssetsAfterTotalFees: pos.total_deposit_assets_after_total_fees
+        ? parseFloat(pos.total_deposit_assets_after_total_fees) / 1e18
+        : 0,
+      totalRedeemAssetsForReceiver: pos.total_redeem_assets_for_receiver
+        ? parseFloat(pos.total_redeem_assets_for_receiver) / 1e18
+        : 0,
+      curveId: pos.curve_id ?? null,
     })),
   }
 }

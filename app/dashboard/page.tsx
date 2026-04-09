@@ -117,22 +117,22 @@ export default function DashboardPage() {
   if (!isAuthenticated) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-lg sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/50 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
             <img src="/logo.jpg" alt="Portal Cap Logo" className="h-10 w-auto rounded-full" />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/">
-              <Button variant="ghost" className="text-slate-400 hover:text-white">
+              <Button variant="ghost" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                 Home
               </Button>
             </Link>
             <Button
               variant="outline"
               onClick={logout}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent"
+              className="border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-transparent"
             >
               Logout
             </Button>
@@ -143,28 +143,28 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-10">
         <div className="space-y-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-slate-400 mt-1">Manage your watched claims and alert preferences</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your watched claims and alert preferences</p>
           </div>
 
           {/* Stat row */}
           <div className="grid sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-1">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Watched Claims</p>
-              <p className="text-3xl font-bold text-cyan-400">{watchedClaims.length}</p>
-              <p className="text-sm text-slate-400">Claims you're monitoring</p>
+              <p className="text-3xl font-bold text-cyan-500 dark:text-cyan-400">{watchedClaims.length}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Claims you're monitoring</p>
             </div>
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-1">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">With Market Data</p>
-              <p className="text-3xl font-bold text-purple-400">
+              <p className="text-3xl font-bold text-purple-500 dark:text-purple-400">
                 {Object.values(claimDetails).filter(d => d.marketCap).length}
               </p>
-              <p className="text-sm text-slate-400">Claims with live prices</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Claims with live prices</p>
             </div>
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-1">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notifications</p>
-              <p className="text-3xl font-bold text-green-400">On</p>
-              <p className="text-sm text-slate-400">Push alerts active</p>
+              <p className="text-3xl font-bold text-green-500 dark:text-green-400">On</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Push alerts active</p>
             </div>
           </div>
 
@@ -175,12 +175,12 @@ export default function DashboardPage() {
             {/* Watched claims list */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-400" />
                   Watched Claims
                 </h2>
                 <Link href="/#claims">
-                  <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent text-xs gap-1">
+                  <Button variant="outline" size="sm" className="border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-transparent text-xs gap-1">
                     <Eye className="w-3 h-3" />
                     Browse all claims
                   </Button>
@@ -190,17 +190,17 @@ export default function DashboardPage() {
               {!mounted || loadingDetails && watchedClaims.length > 0 ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 animate-pulse">
-                      <div className="h-4 bg-slate-800 rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-slate-800 rounded w-1/3" />
+                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 animate-pulse">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
                     </div>
                   ))}
                 </div>
               ) : watchedClaims.length === 0 ? (
-                <div className="bg-slate-900 border border-dashed border-slate-700 rounded-xl p-10 text-center space-y-3">
-                  <Star className="w-8 h-8 text-slate-600 mx-auto" />
-                  <p className="text-slate-400 font-medium">No watched claims yet</p>
-                  <p className="text-sm text-slate-500">Go to the home page, find a claim in the table, and click the star icon to watch it.</p>
+                <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-10 text-center space-y-3">
+                  <Star className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">No watched claims yet</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500">Go to the home page, find a claim in the table, and click the star icon to watch it.</p>
                   <Link href="/#claims">
                     <Button className="mt-2 bg-cyan-600 hover:bg-cyan-700 text-white gap-2">
                       Browse Claims <ArrowRight className="w-4 h-4" />
@@ -214,29 +214,29 @@ export default function DashboardPage() {
                     const parsed = detail || parseClaimLabel(label)
                     const isTriple = !!(parsed.subject && parsed.predicate && parsed.object)
                     return (
-                      <div key={label} className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors">
+                      <div key={label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             {isTriple ? (
-                              <p className="text-sm font-medium text-slate-200 leading-snug flex flex-wrap items-center gap-1">
-                                <span className="text-blue-400">{parsed.subject}</span>
-                                <ArrowRight className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                                <span className="text-orange-400">{parsed.predicate}</span>
-                                <ArrowRight className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                                <span className="text-teal-400">{parsed.object}</span>
+                              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-snug flex flex-wrap items-center gap-1">
+                                <span className="text-blue-600 dark:text-blue-400">{parsed.subject}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                                <span className="text-orange-600 dark:text-orange-400">{parsed.predicate}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                                <span className="text-teal-600 dark:text-teal-400">{parsed.object}</span>
                               </p>
                             ) : (
-                              <p className="text-sm font-medium text-slate-200 truncate">{label}</p>
+                              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{label}</p>
                             )}
                             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                               {detail?.marketCap && (
-                                <span className="text-xs text-cyan-400 font-medium">{detail.marketCap}</span>
+                                <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">{detail.marketCap}</span>
                               )}
                               {detail?.positions !== undefined && (
                                 <span className="text-xs text-slate-500">{detail.positions} position{detail.positions !== 1 ? 's' : ''}</span>
                               )}
                               {!detail?.marketCap && !loadingDetails && (
-                                <span className="text-xs text-slate-600 italic">Market data unavailable</span>
+                                <span className="text-xs text-slate-400 dark:text-slate-600 italic">Market data unavailable</span>
                               )}
                             </div>
                           </div>
@@ -244,14 +244,14 @@ export default function DashboardPage() {
                             <button
                               onClick={() => handleManageAlerts(label)}
                               title="Manage alerts"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-yellow-400 hover:bg-slate-800 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                               <Bell className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleUnwatch(label)}
                               title="Unwatch"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                       </div>
                     )
                   })}
-                  <p className="text-xs text-slate-600 text-center pt-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-600 text-center pt-1">
                     {watchedClaims.length} watched claim{watchedClaims.length !== 1 ? 's' : ''} · Click the bell icon to manage alert thresholds
                   </p>
                 </div>
@@ -269,7 +269,7 @@ export default function DashboardPage() {
 
             {/* Right column: notifications */}
             <div className="space-y-4">
-              <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
                 <NotificationPreferencesPanel onOpenSettings={() => setAlertsOpen(true)} />
               </div>
             </div>

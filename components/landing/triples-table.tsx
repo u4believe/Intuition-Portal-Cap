@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search, TrendingUp, TrendingDown } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search, Info } from 'lucide-react'
 import Link from 'next/link'
 import { useTriples } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
@@ -32,8 +31,6 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
   const isWatched = (claimLabel: string) => watchedClaims.includes(claimLabel)
 
   const isSupport = sideMode === 'support'
-  const accentBg = isSupport ? 'bg-emerald-500' : 'bg-rose-500'
-  const accentText = isSupport ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
   const accentBorder = isSupport ? 'border-l-emerald-400 dark:border-l-emerald-500' : 'border-l-rose-400 dark:border-l-rose-500'
 
   useEffect(() => {
@@ -113,6 +110,13 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
   const fmtPrice = (num: number | undefined) => {
     if (!num) return '0'
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  const fmt7d = (pct: number | null | undefined) => {
+    if (pct == null) return { text: '—', cls: 'text-slate-400 dark:text-slate-600' }
+    const sign = pct >= 0 ? '+' : ''
+    const cls = pct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
+    return { text: `${sign}${pct.toFixed(2)}%`, cls }
   }
 
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
@@ -226,6 +230,28 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                         <SortHeader field="positionCount" label="Total Positions" />
                       </div>
                     </th>
+                    <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-center gap-1">
+                        Lin 7d
+                        <span className="relative group">
+                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
+                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                            This is the change in percentage of the share price for the Linear Curve in last 7 days
+                          </span>
+                        </span>
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-center gap-1">
+                        Exp 7d
+                        <span className="relative group">
+                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
+                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                            This is the change in percentage of the share price for the Exponential Curve in last 7 days
+                          </span>
+                        </span>
+                      </div>
+                    </th>
                     <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Watch</th>
                   </tr>
                 </thead>
@@ -292,15 +318,43 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                         ))}
 
                         <td className="py-2.5 px-3 text-right">
-                          <Link href={`/vault/${triple.termId}`} className={`text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity ${accentText}`}>
+                          <Link href={`/vault/${triple.termId}`} className="text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity text-slate-800 dark:text-slate-200">
                             {fmtPrice(price)}
                           </Link>
                         </td>
 
                         <td className="py-2.5 px-3 text-right">
-                          <Link href={`/vault/${triple.termId}`} className={`text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity ${accentText}`}>
+                          <Link href={`/vault/${triple.termId}`} className="text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity text-slate-800 dark:text-slate-200">
                             {fmt(positions)}
                           </Link>
+                        </td>
+
+                        {/* Lin 7d % change */}
+                        <td className="py-2.5 px-3 text-center">
+                          {(() => {
+                            const pct = isSupport ? (triple as any).lin7dChange : (triple as any).opposeLinChange
+                            const { text, cls } = fmt7d(pct)
+                            return (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                                <span className="text-[9px] text-sky-500 font-semibold leading-none">Lin</span>
+                              </div>
+                            )
+                          })()}
+                        </td>
+
+                        {/* Exp 7d % change */}
+                        <td className="py-2.5 px-3 text-center">
+                          {(() => {
+                            const pct = isSupport ? (triple as any).exp7dChange : (triple as any).opposeExpChange
+                            const { text, cls } = fmt7d(pct)
+                            return (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                                <span className="text-[9px] text-violet-500 font-semibold leading-none">Exp</span>
+                              </div>
+                            )
+                          })()}
                         </td>
 
                         <td className="py-2.5 px-3 text-center">
@@ -391,11 +445,37 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                         </div>
                         <div>
                           <p className="text-slate-400 dark:text-slate-500 mb-0.5">Total Share Price</p>
-                          <p className={`font-bold tabular-nums ${accentText}`}>{fmtPrice(price)}</p>
+                          <p className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmtPrice(price)}</p>
                         </div>
                         <div>
                           <p className="text-slate-400 dark:text-slate-500 mb-0.5">Total Positions</p>
-                          <p className={`font-bold tabular-nums ${accentText}`}>{fmt(positions)}</p>
+                          <p className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmt(positions)}</p>
+                        </div>
+                        {/* Lin / Exp 7d % change mobile */}
+                        <div className="col-span-2">
+                          <p className="text-slate-400 dark:text-slate-500 mb-1">7d Change</p>
+                          <div className="flex items-center gap-4">
+                            {(() => {
+                              const pct = isSupport ? (triple as any).lin7dChange : (triple as any).opposeLinChange
+                              const { text, cls } = fmt7d(pct)
+                              return (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                                  <span className="text-[9px] text-sky-500 font-semibold">Lin</span>
+                                </div>
+                              )
+                            })()}
+                            {(() => {
+                              const pct = isSupport ? (triple as any).exp7dChange : (triple as any).opposeExpChange
+                              const { text, cls } = fmt7d(pct)
+                              return (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                                  <span className="text-[9px] text-violet-500 font-semibold">Exp</span>
+                                </div>
+                              )
+                            })()}
+                          </div>
                         </div>
                         <div className="flex items-end">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${

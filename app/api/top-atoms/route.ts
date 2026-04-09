@@ -1,94 +1,67 @@
 import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
-const ATOM_VAULT_FIELDS = `
-  market_cap
-  position_count
-  total_shares
-  total_assets
-  current_share_price
-  share_price_change_stats_daily {
-    difference
-    first_share_price
-    last_share_price
-    change_count
-  }
-  deposits {
-    id
-    created_at
-    shares
-  }
-  redemptions {
-    id
-    created_at
-    shares
-  }
-  positions {
-    account_id
-    shares
-    total_deposit_assets_after_total_fees
-    total_redeem_assets_for_receiver
-  }
+// Fields fetched on each atom entity. term.vaults returns all curves (curve_id 1=Lin, 2=Exp).
+const ATOM_FIELDS = `
+  term_id
+  label
+  image
+  emoji
+  type
+  data
+  created_at
+  creator { id label image }
   term {
     id
     total_market_cap
     total_assets
     vaults {
+      curve_id
       position_count
       current_share_price
       total_shares
+      market_cap
+      share_price_change_stats_daily(order_by: { bucket: desc }, limit: 7) {
+        bucket
+        first_share_price
+        last_share_price
+      }
     }
-    atom {
-      label
-      image
-      emoji
-      type
-      data
-      created_at
-      creator {
-        id
-        label
-        image
-      }
-      positions {
-        id
-        shares
-        account_id
-        total_deposit_assets_after_total_fees
-        total_redeem_assets_for_receiver
-      }
+    positions_aggregate {
+      aggregate { count(columns: account_id, distinct: true) }
     }
   }
 `
 
+// Browse: query atoms directly, ordered by combined (Lin+Exp) market cap descending.
 const ATOMS_BROWSE_QUERY = `
   query GetAtoms($limit: Int, $offset: Int) {
-    vaults(
+    atoms(
       limit: $limit
       offset: $offset
-      order_by: { market_cap: desc }
-      where: { term: { atom: { label: { _is_null: false } } } }
+      where: { label: { _is_null: false } }
+      order_by: { term: { total_market_cap: desc_nulls_last } }
     ) {
-      ${ATOM_VAULT_FIELDS}
+      ${ATOM_FIELDS}
     }
   }
 `
 
 const ATOMS_SEARCH_QUERY = `
   query SearchAtoms($search: String!, $limit: Int) {
-    vaults(
-      where: { term: { atom: { label: { _ilike: $search } } } }
+    atoms(
+      where: { label: { _ilike: $search } }
       limit: $limit
-      order_by: { market_cap: desc }
+      order_by: { term: { total_market_cap: desc_nulls_last } }
     ) {
-      ${ATOM_VAULT_FIELDS}
+      ${ATOM_FIELDS}
     }
   }
 `
 
 const ATOMS_COUNT_QUERY = `
   query GetAtomsCount {
-    atoms_aggregate {
+    atoms_aggregate(where: { label: { _is_null: false } }) {
       aggregate { count }
     }
   }
@@ -109,16 +82,45 @@ function parseAmount(val: string | number | null | undefined): number {
   return n / 1e18
 }
 
-function buildAtoms(vaults: any[]) {
-  const atomsMap = new Map<string, any>()
+// Each atom appears exactly once in the query result (no per-vault duplication).
+function buildAtoms(atomsData: any[]) {
+  return atomsData
+    .filter(atom => atom.label && atom.label !== 'Unknown')
+    .map(atom => {
+      const termVaults: any[] = atom.term?.vaults || []
 
-  for (const vault of vaults) {
-    const atom = vault.term?.atom
-    if (!atom || !atom.label || atom.label === 'Unknown') continue
-    const termId = vault.term?.id || ''
-    if (!atomsMap.has(termId)) {
-      atomsMap.set(termId, {
-        termId,
+      // Each vault already knows its curve — find Lin and Exp by curve_id on the vault.
+      // Daily stats are fetched per-vault (desc order: [0]=newest, [last]=oldest).
+      const linVault = termVaults.find((tv: any) => Number(tv.curve_id) === 1) ?? null
+      const expVault = termVaults.find((tv: any) => Number(tv.curve_id) === 2) ?? null
+      const linBuckets: any[] = linVault?.share_price_change_stats_daily ?? []
+      const expBuckets: any[] = expVault?.share_price_change_stats_daily ?? []
+
+      // 7d % change: oldest bucket open price → newest bucket close price
+      let lin7dChange: number | null = null
+      let exp7dChange: number | null = null
+      if (linBuckets.length >= 1) {
+        const open  = parseAmount(linBuckets[linBuckets.length - 1].first_share_price)  // oldest
+        const close = parseAmount(linBuckets[0].last_share_price)                        // newest
+        if (open > 0) lin7dChange = ((close - open) / open) * 100
+      }
+      if (expBuckets.length >= 1) {
+        const open  = parseAmount(expBuckets[expBuckets.length - 1].first_share_price)  // oldest
+        const close = parseAmount(expBuckets[0].last_share_price)                        // newest
+        if (open > 0) exp7dChange = ((close - open) / open) * 100
+      }
+
+      // 24h change: most recent bucket (index 0), prefer Exp, fall back to Lin
+      let sharePriceChange24h = 0
+      const recentBucket = (expBuckets.length > 0 ? expBuckets : linBuckets)[0]
+      if (recentBucket) {
+        const last  = parseAmount(recentBucket.last_share_price)
+        const first = parseAmount(recentBucket.first_share_price)
+        if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
+      }
+
+      return {
+        termId: atom.term_id || atom.term?.id || '',
         label: atom.label,
         image: atom.image && atom.image !== 'null' ? atom.image : '',
         emoji: atom.emoji || '',
@@ -128,75 +130,25 @@ function buildAtoms(vaults: any[]) {
         creatorId: atom.creator?.id || '',
         creatorLabel: atom.creator?.label || '',
         creatorImage: atom.creator?.image && atom.creator.image !== 'null' ? atom.creator.image : '',
-        marketCap: 0,
-        totalAssets: 0,
-        totalShares: 0,
-        currentSharePrice: 0,
-        positionCount: 0,
-        sharePriceChange24h: 0,
-        sharePriceStats: null as any,
-        vaultDeposits: [] as any[],
-        vaultRedemptions: [] as any[],
-        vaultPositions: [] as any[],
-        positions: (atom.positions || []).map((p: any) => ({
-          id: p.id,
-          accountId: p.account_id,
-          shares: parseAmount(p.shares),
-          totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
-          totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-        })),
-      })
-    }
-
-    const d = atomsMap.get(termId)!
-
-    // Use term-level aggregates (total_market_cap / total_assets) — true Lin+Exp combined totals.
-    // Assigning (not +=) is idempotent: the same value is returned for every vault row of this term.
-    if (vault.term?.total_market_cap) d.marketCap  = parseAmount(vault.term.total_market_cap)
-    if (vault.term?.total_assets)     d.totalAssets = parseAmount(vault.term.total_assets)
-
-    // Sum shares / share price / positions from term.vaults sub-query.
-    // This sub-query always returns ALL vaults for the term (Lin + Exp), so re-assigning
-    // on each vault row is safe and always gives the correct total.
-    const termVaults: any[] = vault.term?.vaults || []
-    if (termVaults.length > 0) {
-      d.totalShares       = termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.total_shares), 0)
-      d.positionCount     = termVaults.reduce((s: number, tv: any) => s + (tv.position_count || 0), 0)
-      d.currentSharePrice = termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.current_share_price), 0)
-    }
-
-    const spc = vault.share_price_change_stats_daily?.[0]
-    if (spc) {
-      const last = parseAmount(spc.last_share_price)
-      const first = parseAmount(spc.first_share_price)
-      if (first > 0) d.sharePriceChange24h = ((last - first) / first) * 100
-      d.sharePriceStats = {
-        difference: parseAmount(spc.difference),
-        firstSharePrice: parseAmount(spc.first_share_price),
-        lastSharePrice: parseAmount(spc.last_share_price),
-        changeCount: spc.change_count || 0,
+        // Term-level combined totals (Lin + Exp)
+        marketCap: parseAmount(atom.term?.total_market_cap),
+        totalAssets: parseAmount(atom.term?.total_assets),
+        // Share price: use primary (Linear) vault only — share prices are per-unit, not additive
+        currentSharePrice: parseAmount((linVault ?? termVaults[0])?.current_share_price),
+        // Shares: sum vault shares (each vault's shares track that curve's pool)
+        totalShares: termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.total_shares), 0),
+        // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
+        positionCount: atom.term?.positions_aggregate?.aggregate?.count ?? 0,
+        // Price change metrics
+        sharePriceChange24h,
+        lin7dChange,
+        exp7dChange,
+        // Sparklines reversed to chronological order for display
+        linSparkline: [...linBuckets].reverse().map((s: any) => parseAmount(s.last_share_price)),
+        expSparkline: [...expBuckets].reverse().map((s: any) => parseAmount(s.last_share_price)),
       }
-    }
-
-    d.vaultDeposits.push(...(vault.deposits || []).map((dep: any) => ({
-      id: dep.id,
-      shares: parseAmount(dep.shares),
-      createdAt: dep.created_at,
-    })))
-    d.vaultRedemptions.push(...(vault.redemptions || []).map((r: any) => ({
-      id: r.id,
-      shares: parseAmount(r.shares),
-      createdAt: r.created_at,
-    })))
-    d.vaultPositions.push(...(vault.positions || []).map((p: any) => ({
-      accountId: p.account_id,
-      shares: parseAmount(p.shares),
-      totalDepositAssetsAfterTotalFees: parseAmount(p.total_deposit_assets_after_total_fees),
-      totalRedeemAssetsForReceiver: parseAmount(p.total_redeem_assets_for_receiver),
-    })))
-  }
-
-  return Array.from(atomsMap.values()).sort((a, b) => b.marketCap - a.marketCap)
+    })
+    .sort((a, b) => b.marketCap - a.marketCap)
 }
 
 export async function GET(request: Request) {
@@ -207,7 +159,7 @@ export async function GET(request: Request) {
     const pageSize = search ? 200 : 100
     const offset = (page - 1) * pageSize
 
-    let vaultsData: any[]
+    let atomsData: any[]
     let totalCount = 0
 
     if (search) {
@@ -215,25 +167,25 @@ export async function GET(request: Request) {
         queryIntuitionGraphQL(ATOMS_SEARCH_QUERY, { search: `%${search}%`, limit: pageSize }),
         queryIntuitionGraphQL(ATOMS_SEARCH_COUNT_QUERY, { search: `%${search}%` }),
       ])
-      vaultsData = data?.vaults || []
+      atomsData = data?.atoms || []
       totalCount = countData?.atoms_aggregate?.aggregate?.count || 0
     } else {
       const [data, countData] = await Promise.all([
         queryIntuitionGraphQL(ATOMS_BROWSE_QUERY, { limit: pageSize, offset }),
         queryIntuitionGraphQL(ATOMS_COUNT_QUERY, {}),
       ])
-      vaultsData = data?.vaults || []
+      atomsData = data?.atoms || []
       totalCount = countData?.atoms_aggregate?.aggregate?.count || 0
     }
 
-    const atoms = buildAtoms(vaultsData)
+    const atoms = buildAtoms(atomsData)
 
     return NextResponse.json({
       atoms,
       pagination: { page, pageSize, total: totalCount, totalPages: Math.ceil(totalCount / pageSize) },
     })
   } catch (error) {
-    console.error("[v0] Error fetching atoms:", error)
+    console.error("[top-atoms] Error fetching atoms:", error)
     return NextResponse.json({ atoms: [], error: "Failed to fetch atoms" }, { status: 500 })
   }
 }

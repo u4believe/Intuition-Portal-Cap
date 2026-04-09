@@ -6,7 +6,6 @@ import { ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react"
 import { useAllClaims } from "@/hooks/useIntuitionData"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
-import { Button } from "@/components/ui/button"
 import WatchPreferencesDialog from "@/components/watch-preferences-dialog"
 
 interface ClaimsModalProps {
@@ -18,7 +17,8 @@ type SortField = "label" | "positionCount" | "lastSharePrice" | "marketCap"
 type SortOrder = "asc" | "desc"
 
 export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
-  const { data: claims = [], isLoading: loading } = useAllClaims()
+  const { data: claimsResult, isLoading: loading } = useAllClaims()
+  const claims = claimsResult?.claims ?? []
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
   const [sortField, setSortField] = useState<SortField>("marketCap")
@@ -197,26 +197,61 @@ export default function ClaimsModal({ open, onOpenChange }: ClaimsModalProps) {
             )}
           </div>
 
-          {/* Expanded Holders Section */}
-          {expandedClaim && (
-            <div className="border-t border-slate-700 pt-4">
-              <h4 className="text-sm font-semibold text-white mb-3">
-                Top Holders - {expandedClaim}
-              </h4>
-              <div className="bg-slate-800/30 rounded-lg p-4 max-h-[200px] overflow-y-auto space-y-2">
-                {sortedClaims.find((c) => c.label === expandedClaim)?.holders?.length ? (
-                  sortedClaims.find((c) => c.label === expandedClaim)?.holders?.map((holder: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/50 rounded text-sm">
-                      <span className="text-slate-300 font-mono">{holder.accountId?.slice(0, 6)}...{holder.accountId?.slice(-4)}</span>
-                      <span className="text-cyan-400 font-semibold">{holder.shares.toFixed(2)} shares</span>
+          {/* Expanded Positions Section */}
+          {expandedClaim && (() => {
+            const claim = sortedClaims.find((c) => c.label === expandedClaim)
+            const allPositions: any[] = claim?.triplePositions ?? claim?.positions ?? []
+            const hasTriplePositions = !!(claim?.triplePositions?.length)
+            const linPositions = hasTriplePositions
+              ? allPositions.filter((p: any) => p.curveId === 1 || p.curveId === null || p.curveId === undefined)
+              : allPositions
+            const expPositions = hasTriplePositions
+              ? allPositions.filter((p: any) => p.curveId === 2)
+              : []
+
+            const PositionRow = ({ p }: { p: any }) => (
+              <div className="flex items-center justify-between p-2 bg-slate-900/50 rounded text-sm gap-3">
+                <span className="text-slate-300 font-mono text-xs truncate select-all" title={p.accountId}>
+                  {p.accountId?.slice(0, 10)}…{p.accountId?.slice(-8)}
+                </span>
+                <span className="text-cyan-400 font-semibold whitespace-nowrap">{Number(p.shares).toFixed(4)} shares</span>
+              </div>
+            )
+
+            return (
+              <div className="border-t border-slate-700 pt-4 space-y-3">
+                {/* Linear Curve Positions */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                    Linear Curve — {linPositions.length} position{linPositions.length !== 1 ? 's' : ''}
+                  </h4>
+                  <div className="bg-slate-800/30 rounded-lg p-3 max-h-[150px] overflow-y-auto space-y-1.5">
+                    {linPositions.length > 0 ? (
+                      linPositions.map((p: any, idx: number) => <PositionRow key={idx} p={p} />)
+                    ) : (
+                      <div className="text-slate-500 text-xs">No linear curve positions</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Exponential Curve Positions */}
+                {hasTriplePositions && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                      Exponential Curve — {expPositions.length} position{expPositions.length !== 1 ? 's' : ''}
+                    </h4>
+                    <div className="bg-slate-800/30 rounded-lg p-3 max-h-[150px] overflow-y-auto space-y-1.5">
+                      {expPositions.length > 0 ? (
+                        expPositions.map((p: any, idx: number) => <PositionRow key={idx} p={p} />)
+                      ) : (
+                        <div className="text-slate-500 text-xs">No exponential curve positions</div>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-slate-400 text-sm">No holders data available</div>
+                  </div>
                 )}
               </div>
-            </div>
-          )}
+            )
+          })()}
         </DialogContent>
       </Dialog>
 

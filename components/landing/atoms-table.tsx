@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search } from 'lucide-react'
+import { Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Search, Info } from 'lucide-react'
 import Link from 'next/link'
 import { useAtoms } from '@/hooks/useIntuitionData'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
 type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
@@ -94,6 +93,13 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
     return num.toLocaleString('en-US', { maximumFractionDigits: 0 })
   }
 
+  const fmt7d = (pct: number | null | undefined) => {
+    if (pct == null) return { text: '—', cls: 'text-slate-400 dark:text-slate-600' }
+    const sign = pct >= 0 ? '+' : ''
+    const cls = pct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
+    return { text: `${sign}${pct.toFixed(2)}%`, cls }
+  }
+
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <button
       onClick={() => handleSort(field)}
@@ -177,6 +183,28 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <SortHeader field="positionCount" label="Total Positions" />
                       </div>
                     </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-center gap-1">
+                        Lin 7d
+                        <span className="relative group">
+                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
+                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                            This is the change in percentage of the share price for the Linear Curve in last 7 days
+                          </span>
+                        </span>
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-center gap-1">
+                        Exp 7d
+                        <span className="relative group">
+                          <Info className="w-3 h-3 text-slate-400 cursor-pointer" />
+                          <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-lg bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-white font-normal leading-snug opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                            This is the change in percentage of the share price for the Exponential Curve in last 7 days
+                          </span>
+                        </span>
+                      </div>
+                    </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">Watch</div>
                     </th>
@@ -252,6 +280,24 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
                           {formatNumber(atom.positionCount)}
                         </Link>
+                      </td>
+                      {/* Lin 7d % change */}
+                      <td className="py-2.5 px-2 text-center">
+                        {(() => { const { text, cls } = fmt7d((atom as any).lin7dChange); return (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                            <span className="text-[9px] text-sky-500 font-semibold leading-none">Lin</span>
+                          </div>
+                        )})()}
+                      </td>
+                      {/* Exp 7d % change */}
+                      <td className="py-2.5 px-2 text-center">
+                        {(() => { const { text, cls } = fmt7d((atom as any).exp7dChange); return (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                            <span className="text-[9px] text-violet-500 font-semibold leading-none">Exp</span>
+                          </div>
+                        )})()}
                       </td>
                       <td className="py-2.5 px-2 text-center">
                         <div className="flex justify-center">
@@ -363,6 +409,23 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                       <div>
                         <p className="text-slate-500 dark:text-slate-400">Total Positions</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.positionCount)}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-slate-500 dark:text-slate-400 mb-1">7d Change</p>
+                        <div className="flex items-center gap-4">
+                          {(() => { const { text, cls } = fmt7d((atom as any).lin7dChange); return (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                              <span className="text-[9px] text-sky-500 font-semibold">Lin</span>
+                            </div>
+                          )})()}
+                          {(() => { const { text, cls } = fmt7d((atom as any).exp7dChange); return (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-xs font-semibold tabular-nums ${cls}`}>{text}</span>
+                              <span className="text-[9px] text-violet-500 font-semibold">Exp</span>
+                            </div>
+                          )})()}
+                        </div>
                       </div>
                     </div>
                   </div>
