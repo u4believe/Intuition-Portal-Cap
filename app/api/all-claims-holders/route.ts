@@ -15,19 +15,6 @@ const CLAIMS_FIELDS = `
       predicate { label }
       object { label }
       counter_term { id }
-      positions {
-        account_id
-        shares
-        total_deposit_assets_after_total_fees
-        total_redeem_assets_for_receiver
-        curve_id
-      }
-    }
-    positions {
-      account_id
-      shares
-      total_deposit_assets_after_total_fees
-      total_redeem_assets_for_receiver
     }
     vaults {
       curve_id
@@ -35,19 +22,19 @@ const CLAIMS_FIELDS = `
     }
     share_price_change_stats_daily(order_by: { bucket: desc }, limit: 1) {
       bucket
-      difference
       first_share_price
       last_share_price
-      change_count
     }
   }
 `
 
+// Only fetch triple vaults (claims) — atom vaults dominate market_cap and would return 0 results without this filter
 const CLAIMS_BROWSE_QUERY = `
   query GetAllClaims($limit: Int, $offset: Int) {
     vaults(
       limit: $limit
       offset: $offset
+      where: { term: { triple: { subject: { label: { _is_null: false } } } } }
       order_by: { market_cap: desc }
     ) {
       ${CLAIMS_FIELDS}
@@ -77,9 +64,10 @@ const CLAIMS_SEARCH_QUERY = `
   }
 `
 
+// Use triples_aggregate for accurate claim count (not all vaults)
 const CLAIMS_COUNT_QUERY = `
   query GetClaimsCount {
-    vaults_aggregate {
+    triples_aggregate {
       aggregate { count }
     }
   }
@@ -111,7 +99,6 @@ function mapClaim(vault: any) {
   const predicate = triple?.predicate?.label || "Unknown"
   const object = triple?.object?.label || "Unknown"
   const marketCap = vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
-  // term.total_market_cap = sum across Exponential + Linear vaults (this vault's market_cap is Exponential only)
   const totalMarketCap = vault.term?.total_market_cap ? parseFloat(vault.term.total_market_cap) / 1e18 : marketCap
   const totalAssets = vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
   const totalShares = vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
@@ -131,6 +118,7 @@ function mapClaim(vault: any) {
     const first = parseFloat(spc.first_share_price || "0") / 1e18
     if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
   }
+
   return {
     termId: vault.term?.id || "",
     opposeTermId: triple?.counter_term?.id || "",
@@ -143,7 +131,6 @@ function mapClaim(vault: any) {
     predicateType: "",
     objectLabel: object,
     objectType: "",
-    // marketCap = Exponential vault only; totalMarketCap = Exponential + Linear combined
     marketCap,
     totalMarketCap,
     totalAssets,
@@ -155,28 +142,8 @@ function mapClaim(vault: any) {
     latestActivity,
     deposits: [],
     redemptions: [],
-    positions: (vault.term?.positions || []).map((pos: any) => ({
-      accountId: pos.account_id,
-      shares: pos.shares ? parseFloat(pos.shares) / 1e18 : 0,
-      totalDepositAssetsAfterTotalFees: pos.total_deposit_assets_after_total_fees
-        ? parseFloat(pos.total_deposit_assets_after_total_fees) / 1e18
-        : 0,
-      totalRedeemAssetsForReceiver: pos.total_redeem_assets_for_receiver
-        ? parseFloat(pos.total_redeem_assets_for_receiver) / 1e18
-        : 0,
-    })),
-    // Per-curve positions from triple.positions (which carries curve_id)
-    triplePositions: (triple?.positions || []).map((pos: any) => ({
-      accountId: pos.account_id,
-      shares: pos.shares ? parseFloat(pos.shares) / 1e18 : 0,
-      totalDepositAssetsAfterTotalFees: pos.total_deposit_assets_after_total_fees
-        ? parseFloat(pos.total_deposit_assets_after_total_fees) / 1e18
-        : 0,
-      totalRedeemAssetsForReceiver: pos.total_redeem_assets_for_receiver
-        ? parseFloat(pos.total_redeem_assets_for_receiver) / 1e18
-        : 0,
-      curveId: pos.curve_id ?? null,
-    })),
+    positions: [],
+    triplePositions: [],
   }
 }
 
@@ -205,7 +172,7 @@ export async function GET(request: Request) {
         queryIntuitionGraphQL(CLAIMS_COUNT_QUERY, {}),
       ])
       vaultsData = data?.vaults || []
-      totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
+      totalCount = countData?.triples_aggregate?.aggregate?.count || 0
     }
 
     const claims = vaultsData
@@ -223,7 +190,7 @@ export async function GET(request: Request) {
       pagination: { page, pageSize, total: totalCount, totalPages: Math.ceil(totalCount / pageSize) },
     })
   } catch (error) {
-    console.error("[v0] Error fetching claims:", error)
+    console.error("[all-claims-holders] Error fetching claims:", error)
     return NextResponse.json({ claims: [] })
   }
 }
