@@ -21,8 +21,6 @@ const ATOM_FIELDS = `
       current_share_price
       total_shares
       market_cap
-      deposits(order_by: { created_at: desc }, limit: 1) { created_at }
-      redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
       share_price_change_stats_daily(order_by: { bucket: desc }, limit: 7) {
         bucket
         first_share_price
@@ -124,15 +122,11 @@ function buildAtoms(atomsData: any[]) {
       const sharePriceLin = parseAmount((linVault ?? termVaults[0])?.current_share_price)
       const sharePriceExp = parseAmount(expVault?.current_share_price)
 
-      // Latest deposit or redemption timestamp across all vaults of this term
-      const latestActivity = termVaults.reduce((latest: string | null, vault: any) => {
-        const dates = [
-          vault.deposits?.[0]?.created_at,
-          vault.redemptions?.[0]?.created_at,
-        ].filter(Boolean) as string[]
-        for (const d of dates) { if (!latest || d > latest) latest = d }
-        return latest
-      }, null as string | null)
+      // Latest activity: use the most recent share-price bucket across all vaults as a proxy
+      const latestBuckets = [linBuckets[0]?.bucket, expBuckets[0]?.bucket].filter(Boolean) as string[]
+      const latestActivity = latestBuckets.length > 0
+        ? latestBuckets.reduce((a, b) => (a > b ? a : b))
+        : null
 
       return {
         termId: atom.term_id || atom.term?.id || '',
