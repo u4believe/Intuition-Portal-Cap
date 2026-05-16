@@ -12,6 +12,8 @@ const TERM_VAULT_FIELDS = `
     current_share_price
     total_shares
     market_cap
+    deposits(order_by: { created_at: desc }, limit: 1) { created_at }
+    redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
   }
   positions_aggregate {
     aggregate { count(columns: account_id, distinct: true) }
@@ -128,19 +130,34 @@ function computeTermStats(termVaults: any[], termDaily: any[], termObj?: any) {
     if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
   }
 
-  // Share price: use primary (Linear) vault only — share prices are per-unit, not additive
-  const linVault = termVaults.find((tv: any) => Number(tv.curve_id) === 1) ?? termVaults[0]
-  const currentSharePrice = parseE18(linVault?.current_share_price)
+  // Share prices per curve — not additive, per-unit prices
+  const linVault = termVaults.find((tv: any) => Number(tv.curve_id) === 1) ?? null
+  const expVault = termVaults.find((tv: any) => Number(tv.curve_id) === 2) ?? null
+  const sharePriceLin = parseE18((linVault ?? termVaults[0])?.current_share_price)
+  const sharePriceExp = parseE18(expVault?.current_share_price)
   // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
   const positionCount = termObj?.positions_aggregate?.aggregate?.count ?? 0
+
+  // Latest deposit or redemption timestamp across all vaults of this term
+  const latestActivity = termVaults.reduce((latest: string | null, vault: any) => {
+    const dates = [
+      vault.deposits?.[0]?.created_at,
+      vault.redemptions?.[0]?.created_at,
+    ].filter(Boolean) as string[]
+    for (const d of dates) { if (!latest || d > latest) latest = d }
+    return latest
+  }, null as string | null)
 
   return {
     totalShares: termVaults.reduce((s: number, tv: any) => s + parseE18(tv.total_shares), 0),
     positionCount,
-    currentSharePrice,
+    currentSharePrice: sharePriceLin,
+    sharePriceLin,
+    sharePriceExp,
     sharePriceChange24h,
     lin7dChange,
     exp7dChange,
+    latestActivity,
     // Sparklines reversed to chronological order for display
     linSparkline: [...linBuckets].reverse().map((s: any) => parseE18(s.last_share_price)),
     expSparkline: [...expBuckets].reverse().map((s: any) => parseE18(s.last_share_price)),
@@ -186,11 +203,14 @@ function buildTriples(triplesData: any[]) {
       marketCap: parseE18(triple.term?.total_market_cap),
       totalAssets: parseE18(triple.term?.total_assets),
       totalShares: support.totalShares,
-      currentSharePrice: support.currentSharePrice,
+      currentSharePrice: support.sharePriceLin,
+      sharePriceLin: support.sharePriceLin,
+      sharePriceExp: support.sharePriceExp,
       positionCount: support.positionCount,
       sharePriceChange24h: support.sharePriceChange24h,
       lin7dChange: support.lin7dChange,
       exp7dChange: support.exp7dChange,
+      latestActivity: support.latestActivity,
       linSparkline: support.linSparkline,
       expSparkline: support.expSparkline,
       // Oppose side
@@ -199,7 +219,9 @@ function buildTriples(triplesData: any[]) {
       opposeMarketCap: hasOppose ? parseE18(counterTerm?.total_market_cap) : 0,
       opposeTotalAssets: hasOppose ? parseE18(counterTerm?.total_assets) : 0,
       opposeTotalShares: opposeStats.totalShares,
-      opposeSharePrice: opposeStats.currentSharePrice,
+      opposeSharePrice: opposeStats.sharePriceLin,
+      opposeSharePriceLin: opposeStats.sharePriceLin,
+      opposeSharePriceExp: opposeStats.sharePriceExp,
       opposePositionCount: opposeStats.positionCount,
       opposeSharePriceChange24h: opposeStats.sharePriceChange24h,
       opposeLinChange: opposeStats.lin7dChange,
@@ -207,7 +229,12 @@ function buildTriples(triplesData: any[]) {
       opposeLinSparkline: opposeStats.linSparkline,
       opposeExpSparkline: opposeStats.expSparkline,
     }
-  }).sort((a, b) => b.marketCap - a.marketCap)
+  }).sort((a, b) => {
+    if (a.latestActivity && b.latestActivity) return b.latestActivity.localeCompare(a.latestActivity)
+    if (a.latestActivity) return -1
+    if (b.latestActivity) return 1
+    return b.marketCap - a.marketCap
+  })
 }
 
 export async function GET(request: Request) {

@@ -29,6 +29,12 @@ const CLAIMS_FIELDS = `
       total_deposit_assets_after_total_fees
       total_redeem_assets_for_receiver
     }
+    vaults {
+      curve_id
+      current_share_price
+      deposits(order_by: { created_at: desc }, limit: 1) { created_at }
+      redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
+    }
     share_price_change_stats_daily {
       difference
       first_share_price
@@ -110,7 +116,19 @@ function mapClaim(vault: any) {
   const totalMarketCap = vault.term?.total_market_cap ? parseFloat(vault.term.total_market_cap) / 1e18 : marketCap
   const totalAssets = vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
   const totalShares = vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
-  const currentSharePrice = vault.current_share_price ? parseFloat(vault.current_share_price) / 1e18 : 0
+
+  const termVaults: any[] = vault.term?.vaults || []
+  const linVault = termVaults.find((tv: any) => Number(tv.curve_id) === 1) ?? null
+  const expVault = termVaults.find((tv: any) => Number(tv.curve_id) === 2) ?? null
+  const sharePriceLin = linVault?.current_share_price ? parseFloat(linVault.current_share_price) / 1e18 : 0
+  const sharePriceExp = expVault?.current_share_price ? parseFloat(expVault.current_share_price) / 1e18 : 0
+
+  const latestActivity = termVaults.reduce((latest: string | null, tv: any) => {
+    const dates = [tv.deposits?.[0]?.created_at, tv.redemptions?.[0]?.created_at].filter(Boolean) as string[]
+    for (const d of dates) { if (!latest || d > latest) latest = d }
+    return latest
+  }, null as string | null)
+
   let sharePriceChange24h = 0
   const spc = vault.term?.share_price_change_stats_daily?.[0]
   if (spc) {
@@ -135,9 +153,11 @@ function mapClaim(vault: any) {
     totalMarketCap,
     totalAssets,
     totalShares,
-    currentSharePrice,
+    sharePriceLin,
+    sharePriceExp,
     positionCount: vault.position_count || 0,
     sharePriceChange24h,
+    latestActivity,
     deposits: [],
     redemptions: [],
     positions: (vault.term?.positions || []).map((pos: any) => ({
@@ -193,7 +213,15 @@ export async function GET(request: Request) {
       totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
     }
 
-    const claims = vaultsData.filter((v: any) => v.term?.triple).map(mapClaim)
+    const claims = vaultsData
+      .filter((v: any) => v.term?.triple)
+      .map(mapClaim)
+      .sort((a: any, b: any) => {
+        if (a.latestActivity && b.latestActivity) return b.latestActivity.localeCompare(a.latestActivity)
+        if (a.latestActivity) return -1
+        if (b.latestActivity) return 1
+        return b.totalMarketCap - a.totalMarketCap
+      })
 
     return NextResponse.json({
       claims,

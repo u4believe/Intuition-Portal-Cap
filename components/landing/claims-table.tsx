@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Button } from '@/components/ui/button'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
-type SortField = 'label' | 'positionCount' | 'totalMarketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
+type SortField = 'label' | 'positionCount' | 'totalMarketCap' | 'totalAssets' | 'totalShares' | 'sharePriceLin' | 'sharePriceExp' | 'latestActivity'
 type SortOrder = 'asc' | 'desc'
 
 export default function ClaimsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
@@ -18,7 +18,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { removeClaimAlertPref, getClaimAlertPrefs } = usePushNotifications()
 
-  const [sortField, setSortField] = useState<SortField>('totalMarketCap')
+  const [sortField, setSortField] = useState<SortField>('latestActivity')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [tableSearch, setTableSearch] = useState('')
 
@@ -63,7 +63,10 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
   }
 
   const sortedClaims = [...claims].sort((a, b) => {
-    let aVal: any = a[sortField], bVal: any = b[sortField]
+    let aVal: any = (a as any)[sortField], bVal: any = (b as any)[sortField]
+    if (aVal == null && bVal == null) return 0
+    if (aVal == null) return sortOrder === 'asc' ? -1 : 1
+    if (bVal == null) return sortOrder === 'asc' ? 1 : -1
     if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = (bVal as string).toLowerCase() }
     if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
     if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
@@ -162,7 +165,10 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                       <div className="flex justify-center"><SortHeader field="totalShares" label="Total Shares" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex justify-center"><SortHeader field="currentSharePrice" label="Share Price" /></div>
+                      <div className="flex justify-center"><SortHeader field="sharePriceLin" label="Share Price Lin" /></div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center"><SortHeader field="sharePriceExp" label="Share Price Exp" /></div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center"><SortHeader field="positionCount" label="Positions" /></div>
@@ -204,7 +210,12 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
-                          {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                          {((claim as any).sharePriceLin ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${claim.termId}`} className="hover:text-primary transition-colors">
+                          {((claim as any).sharePriceExp ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-700 dark:text-slate-300 text-sm">
@@ -258,9 +269,15 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
                         <p className="font-medium text-slate-900 dark:text-slate-100">{fmt(claim.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Share Price</p>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price Lin</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {claim.currentSharePrice ? claim.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0'}
+                          {((claim as any).sharePriceLin ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price Exp</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                          {((claim as any).sharePriceExp ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
                         </p>
                       </div>
                       <div>
