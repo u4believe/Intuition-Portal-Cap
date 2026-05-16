@@ -27,20 +27,18 @@ const ATOM_FIELDS = `
         last_share_price
       }
     }
-    positions_aggregate {
-      aggregate { count(columns: account_id, distinct: true) }
-    }
   }
 `
 
-// Browse: query atoms directly, ordered by combined (Lin+Exp) market cap descending.
+// Browse: order by created_at desc — atom-level field, no cross-table join, fast on 175k+ rows.
+// Ordering by term.total_market_cap requires a join across all atoms and times out.
 const ATOMS_BROWSE_QUERY = `
   query GetAtoms($limit: Int, $offset: Int) {
     atoms(
       limit: $limit
       offset: $offset
       where: { label: { _is_null: false } }
-      order_by: { term: { total_market_cap: desc_nulls_last } }
+      order_by: { created_at: desc }
     ) {
       ${ATOM_FIELDS}
     }
@@ -148,8 +146,8 @@ function buildAtoms(atomsData: any[]) {
         sharePriceExp,
         // Shares: sum vault shares (each vault's shares track that curve's pool)
         totalShares: termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.total_shares), 0),
-        // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
-        positionCount: atom.term?.positions_aggregate?.aggregate?.count ?? 0,
+        // Positions: sum of per-vault position_count (positions_aggregate DISTINCT is too slow)
+        positionCount: termVaults.reduce((s: number, tv: any) => s + (tv.position_count ?? 0), 0),
         // Price change metrics
         sharePriceChange24h,
         lin7dChange,
