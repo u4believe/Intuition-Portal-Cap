@@ -20,7 +20,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
   const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
-  const [sortField, setSortField] = useState<SortField>('latestActivity')
+  const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)

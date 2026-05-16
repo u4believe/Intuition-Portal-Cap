@@ -18,7 +18,7 @@ export default function ClaimsTable({ targetPage, highlightTermId, onClearHighli
   const { claims = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { removeClaimAlertPref, getClaimAlertPrefs } = usePushNotifications()
 
-  const [sortField, setSortField] = useState<SortField>('latestActivity')
+  const [sortField, setSortField] = useState<SortField>('totalMarketCap')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [tableSearch, setTableSearch] = useState('')
 
