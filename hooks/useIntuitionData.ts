@@ -76,7 +76,7 @@ function isUnknownEntry(item: any): boolean {
 
 export function useAllClaims(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['allClaims-v3', page, search],
+    queryKey: ['allClaims-v4', page, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) })
       if (search) params.set('search', search)
@@ -95,7 +95,7 @@ export function useAllClaims(page: number = 1, search: string = '') {
 
 export function useTriples(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['triples-v2', page, search],
+    queryKey: ['triples-v3', page, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) })
       if (search) params.set('search', search)
@@ -127,7 +127,7 @@ export function useTopClaims() {
 
 export function useAtoms(page: number = 1, search: string = '') {
   return useQuery({
-    queryKey: ['atoms-v3', page, search],
+    queryKey: ['atoms-v4', page, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) })
       if (search) params.set('search', search)
