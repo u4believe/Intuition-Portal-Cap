@@ -46,16 +46,16 @@ export default function DashboardClient({ userId, email }: DashboardClientProps)
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bell className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold">Signal App</h1>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            <Bell className="w-5 h-5 text-primary shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold whitespace-nowrap">Signal App</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{email}</span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-[200px]">{email}</span>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="shrink-0">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         </div>
