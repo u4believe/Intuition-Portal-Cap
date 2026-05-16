@@ -9,7 +9,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'sharePriceLin' | 'sharePriceExp' | 'latestActivity'
 type SortOrder = 'asc' | 'desc'
 type SideMode = 'support' | 'oppose'
 
@@ -22,7 +22,7 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
   const { triples = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
-  const [sortField, setSortField] = useState<SortField>('marketCap')
+  const [sortField, setSortField] = useState<SortField>('latestActivity')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
@@ -81,7 +81,8 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
       if (field === 'marketCap') return triple.opposeMarketCap ?? 0
       if (field === 'totalAssets') return triple.opposeTotalAssets ?? 0
       if (field === 'totalShares') return triple.opposeTotalShares ?? 0
-      if (field === 'currentSharePrice') return triple.opposeSharePrice ?? 0
+      if (field === 'sharePriceLin') return triple.opposeSharePriceLin ?? 0
+      if (field === 'sharePriceExp') return triple.opposeSharePriceExp ?? 0
       if (field === 'positionCount') return triple.opposePositionCount ?? 0
     }
     return triple[field]
@@ -91,6 +92,9 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
     .sort((a, b) => {
       let aValue: any = getVal(a, sortField)
       let bValue: any = getVal(b, sortField)
+      if (aValue == null && bValue == null) return 0
+      if (aValue == null) return sortOrder === 'asc' ? -1 : 1
+      if (bValue == null) return sortOrder === 'asc' ? 1 : -1
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase()
         bValue = (bValue as string).toLowerCase()
@@ -223,7 +227,12 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                     </th>
                     <th className="text-right py-3 px-3 text-xs font-semibold">
                       <div className="flex justify-end">
-                        <SortHeader field="currentSharePrice" label="Total Share Price" />
+                        <SortHeader field="sharePriceLin" label="Share Price Lin" />
+                      </div>
+                    </th>
+                    <th className="text-right py-3 px-3 text-xs font-semibold">
+                      <div className="flex justify-end">
+                        <SortHeader field="sharePriceExp" label="Share Price Exp" />
                       </div>
                     </th>
                     <th className="text-right py-3 px-3 text-xs font-semibold">
@@ -249,12 +258,13 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
                   {sortedTriples.map((triple, idx) => {
                     const isHighlighted = !!highlightTermId && triple.termId === highlightTermId
-                    const price = getVal(triple, 'currentSharePrice') as number
                     const positions = getVal(triple, 'positionCount') as number
                     const noOppose = sideMode === 'oppose' && !triple.hasOppose
                     const watchLabel = (sideMode === 'oppose' && triple.hasOppose) ? `${triple.label} (Against)` : triple.label
                     const watchTermId = (sideMode === 'oppose' && triple.hasOppose && triple.opposeTermId) ? triple.opposeTermId : triple.termId
                     const isWatchedNow = isWatched(watchLabel)
+                    const sharePriceLin = getVal(triple, 'sharePriceLin') as number
+                    const sharePriceExp = getVal(triple, 'sharePriceExp') as number
                     return (
                       <tr
                         key={`triple-${idx}`}
@@ -310,7 +320,13 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
 
                         <td className="py-2.5 px-3 text-right">
                           <Link href={`/vault/${triple.termId}`} className="text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity text-slate-800 dark:text-slate-200">
-                            {fmtPrice(price)}
+                            {fmtPrice(sharePriceLin)}
+                          </Link>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-right">
+                          <Link href={`/vault/${triple.termId}`} className="text-sm font-semibold tabular-nums hover:opacity-80 transition-opacity text-slate-800 dark:text-slate-200">
+                            {fmtPrice(sharePriceExp)}
                           </Link>
                         </td>
 
@@ -372,7 +388,8 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
               {sortedTriples.map((triple, idx) => {
                 const isHighlightedMobile = !!highlightTermId && triple.termId === highlightTermId
                 const noOppose = sideMode === 'oppose' && !triple.hasOppose
-                const price = getVal(triple, 'currentSharePrice') as number
+                const mobilePriceLin = getVal(triple, 'sharePriceLin') as number
+                const mobilePriceExp = getVal(triple, 'sharePriceExp') as number
                 const positions = getVal(triple, 'positionCount') as number
                 const watchLabel = (sideMode === 'oppose' && triple.hasOppose) ? `${triple.label} (Against)` : triple.label
                 const watchTermId = (sideMode === 'oppose' && triple.hasOppose && triple.opposeTermId) ? triple.opposeTermId : triple.termId
@@ -435,8 +452,12 @@ export default function TriplesTable({ targetPage, highlightTermId, onClearHighl
                           <p className="font-semibold text-slate-800 dark:text-slate-200 tabular-nums">{fmt(getVal(triple, 'totalShares') as number)}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400 dark:text-slate-500 mb-0.5">Total Share Price</p>
-                          <p className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmtPrice(price)}</p>
+                          <p className="text-slate-400 dark:text-slate-500 mb-0.5">Share Price Lin</p>
+                          <p className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmtPrice(mobilePriceLin)}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 dark:text-slate-500 mb-0.5">Share Price Exp</p>
+                          <p className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmtPrice(mobilePriceExp)}</p>
                         </div>
                         <div>
                           <p className="text-slate-400 dark:text-slate-500 mb-0.5">Total Positions</p>

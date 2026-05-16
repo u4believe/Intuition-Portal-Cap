@@ -9,7 +9,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 
-type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'currentSharePrice'
+type SortField = 'label' | 'positionCount' | 'marketCap' | 'totalAssets' | 'totalShares' | 'sharePriceLin' | 'sharePriceExp' | 'latestActivity'
 type SortOrder = 'asc' | 'desc'
 
 export default function AtomsTable({ targetPage, highlightTermId, onClearHighlight }: { targetPage?: number | null, highlightTermId?: string | null, onClearHighlight?: () => void }) {
@@ -20,7 +20,7 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
   const { atoms = [], pagination = { page: 1, pageSize: 100, total: 0, totalPages: 0 } } = result
   const { getWatchedClaims, addWatchedClaim, removeWatchedClaim } = useUserPreferences()
   const { syncWatchedClaimsToServer, removeClaimAlertPref } = usePushNotifications()
-  const [sortField, setSortField] = useState<SortField>('marketCap')
+  const [sortField, setSortField] = useState<SortField>('latestActivity')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [watchDialogOpen, setWatchDialogOpen] = useState(false)
   const [selectedClaimForWatch, setSelectedClaimForWatch] = useState<string | null>(null)
@@ -73,8 +73,12 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
 
   const sortedAtoms = [...atoms]
     .sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: any = (a as any)[sortField]
+      let bValue: any = (b as any)[sortField]
+
+      if (aValue == null && bValue == null) return 0
+      if (aValue == null) return sortOrder === 'asc' ? -1 : 1
+      if (bValue == null) return sortOrder === 'asc' ? 1 : -1
 
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase()
@@ -176,7 +180,12 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex justify-center">
-                        <SortHeader field="currentSharePrice" label="Total Share Price" />
+                        <SortHeader field="sharePriceLin" label="Share Price Lin" />
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-center">
+                        <SortHeader field="sharePriceExp" label="Share Price Exp" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
@@ -264,7 +273,12 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
                         <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
-                          {atom.currentSharePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          {((atom as any).sharePriceLin ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                        </Link>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-slate-900 dark:text-slate-100 font-medium text-sm">
+                        <Link href={`/vault/${atom.termId}`} className="hover:text-primary transition-colors">
+                          {((atom as any).sharePriceExp ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
                         </Link>
                       </td>
                       <td className="py-2.5 px-2 text-center text-slate-700 dark:text-slate-300 text-sm">
@@ -388,9 +402,15 @@ export default function AtomsTable({ targetPage, highlightTermId, onClearHighlig
                         <p className="font-medium text-slate-900 dark:text-slate-100">{formatNumber(atom.totalAssets)}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 dark:text-slate-400">Total Share Price</p>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price Lin</p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {atom.currentSharePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {((atom as any).sharePriceLin ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">Share Price Exp</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                          {((atom as any).sharePriceExp ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
                         </p>
                       </div>
                       <div>

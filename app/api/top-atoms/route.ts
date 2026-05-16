@@ -21,6 +21,8 @@ const ATOM_FIELDS = `
       current_share_price
       total_shares
       market_cap
+      deposits(order_by: { created_at: desc }, limit: 1) { created_at }
+      redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
       share_price_change_stats_daily(order_by: { bucket: desc }, limit: 7) {
         bucket
         first_share_price
@@ -119,6 +121,19 @@ function buildAtoms(atomsData: any[]) {
         if (first > 0) sharePriceChange24h = ((last - first) / first) * 100
       }
 
+      const sharePriceLin = parseAmount((linVault ?? termVaults[0])?.current_share_price)
+      const sharePriceExp = parseAmount(expVault?.current_share_price)
+
+      // Latest deposit or redemption timestamp across all vaults of this term
+      const latestActivity = termVaults.reduce((latest: string | null, vault: any) => {
+        const dates = [
+          vault.deposits?.[0]?.created_at,
+          vault.redemptions?.[0]?.created_at,
+        ].filter(Boolean) as string[]
+        for (const d of dates) { if (!latest || d > latest) latest = d }
+        return latest
+      }, null as string | null)
+
       return {
         termId: atom.term_id || atom.term?.id || '',
         label: atom.label,
@@ -133,8 +148,10 @@ function buildAtoms(atomsData: any[]) {
         // Term-level combined totals (Lin + Exp)
         marketCap: parseAmount(atom.term?.total_market_cap),
         totalAssets: parseAmount(atom.term?.total_assets),
-        // Share price: use primary (Linear) vault only — share prices are per-unit, not additive
-        currentSharePrice: parseAmount((linVault ?? termVaults[0])?.current_share_price),
+        // Share prices per curve — not additive
+        currentSharePrice: sharePriceLin,
+        sharePriceLin,
+        sharePriceExp,
         // Shares: sum vault shares (each vault's shares track that curve's pool)
         totalShares: termVaults.reduce((s: number, tv: any) => s + parseAmount(tv.total_shares), 0),
         // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
@@ -143,12 +160,18 @@ function buildAtoms(atomsData: any[]) {
         sharePriceChange24h,
         lin7dChange,
         exp7dChange,
+        latestActivity,
         // Sparklines reversed to chronological order for display
         linSparkline: [...linBuckets].reverse().map((s: any) => parseAmount(s.last_share_price)),
         expSparkline: [...expBuckets].reverse().map((s: any) => parseAmount(s.last_share_price)),
       }
     })
-    .sort((a, b) => b.marketCap - a.marketCap)
+    .sort((a, b) => {
+      if (a.latestActivity && b.latestActivity) return b.latestActivity.localeCompare(a.latestActivity)
+      if (a.latestActivity) return -1
+      if (b.latestActivity) return 1
+      return b.marketCap - a.marketCap
+    })
 }
 
 export async function GET(request: Request) {

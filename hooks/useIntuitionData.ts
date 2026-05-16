@@ -25,10 +25,12 @@ export interface Claim {
   marketCap: number
   totalMarketCap: number
   totalShares: number
-  currentSharePrice: number
+  sharePriceLin: number
+  sharePriceExp: number
   totalAssets: number
   positionCount: number
   sharePriceChange24h: number
+  latestActivity: string | null
   deposits: Array<{
     id: string
     createdAt: string
@@ -154,9 +156,12 @@ export function useAtoms(page: number = 1, search: string = '') {
           marketCap: atom.marketCap || 0,
           totalShares: atom.totalShares || 0,
           currentSharePrice: atom.currentSharePrice || 0,
+          sharePriceLin: atom.sharePriceLin || 0,
+          sharePriceExp: atom.sharePriceExp || 0,
           totalAssets: atom.totalAssets || 0,
           positionCount: atom.positionCount || 0,
           sharePriceChange24h: atom.sharePriceChange24h || 0,
+          latestActivity: atom.latestActivity || null,
           sharePriceStats: atom.sharePriceStats || null,
           lin7dChange: atom.lin7dChange ?? null,
           exp7dChange: atom.exp7dChange ?? null,
