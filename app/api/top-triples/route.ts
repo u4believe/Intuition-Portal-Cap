@@ -12,8 +12,6 @@ const TERM_VAULT_FIELDS = `
     current_share_price
     total_shares
     market_cap
-    deposits(order_by: { created_at: desc }, limit: 1) { created_at }
-    redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
   }
   positions_aggregate {
     aggregate { count(columns: account_id, distinct: true) }
@@ -138,15 +136,11 @@ function computeTermStats(termVaults: any[], termDaily: any[], termObj?: any) {
   // Positions: distinct wallet count across all curves (avoids double-counting Lin+Exp holders)
   const positionCount = termObj?.positions_aggregate?.aggregate?.count ?? 0
 
-  // Latest deposit or redemption timestamp across all vaults of this term
-  const latestActivity = termVaults.reduce((latest: string | null, vault: any) => {
-    const dates = [
-      vault.deposits?.[0]?.created_at,
-      vault.redemptions?.[0]?.created_at,
-    ].filter(Boolean) as string[]
-    for (const d of dates) { if (!latest || d > latest) latest = d }
-    return latest
-  }, null as string | null)
+  // Latest activity: most recent share-price bucket across all curves as a proxy for vault activity
+  const allBuckets = termDaily.map((s: any) => s.bucket).filter(Boolean) as string[]
+  const latestActivity = allBuckets.length > 0
+    ? allBuckets.reduce((a, b) => (a > b ? a : b))
+    : null
 
   return {
     totalShares: termVaults.reduce((s: number, tv: any) => s + parseE18(tv.total_shares), 0),

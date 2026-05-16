@@ -32,10 +32,9 @@ const CLAIMS_FIELDS = `
     vaults {
       curve_id
       current_share_price
-      deposits(order_by: { created_at: desc }, limit: 1) { created_at }
-      redemptions(order_by: { created_at: desc }, limit: 1) { created_at }
     }
-    share_price_change_stats_daily {
+    share_price_change_stats_daily(order_by: { bucket: desc }, limit: 1) {
+      bucket
       difference
       first_share_price
       last_share_price
@@ -123,11 +122,7 @@ function mapClaim(vault: any) {
   const sharePriceLin = linVault?.current_share_price ? parseFloat(linVault.current_share_price) / 1e18 : 0
   const sharePriceExp = expVault?.current_share_price ? parseFloat(expVault.current_share_price) / 1e18 : 0
 
-  const latestActivity = termVaults.reduce((latest: string | null, tv: any) => {
-    const dates = [tv.deposits?.[0]?.created_at, tv.redemptions?.[0]?.created_at].filter(Boolean) as string[]
-    for (const d of dates) { if (!latest || d > latest) latest = d }
-    return latest
-  }, null as string | null)
+  const latestActivity = vault.term?.share_price_change_stats_daily?.[0]?.bucket ?? null
 
   let sharePriceChange24h = 0
   const spc = vault.term?.share_price_change_stats_daily?.[0]
