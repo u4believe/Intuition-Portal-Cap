@@ -72,7 +72,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 overflow-x-hidden transition-colors">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900 transition-colors">
       <PushNotificationBanner />
       {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 dark:backdrop-blur-md backdrop-blur-lg sticky top-0 z-50">
@@ -293,10 +293,10 @@ export default function LandingPage() {
       </div>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      <section className="max-w-7xl mx-auto px-4 py-12 md:py-24 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
         <div className="space-y-6">
           <div className="space-y-4">
-            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight">
+            <h2 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight">
               Monitor Claims in{" "}
               <span className="bg-gradient-to-r from-primary to-primary/80 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 Real-Time
@@ -361,10 +361,10 @@ export default function LandingPage() {
       <section id="claims" className="w-full bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 border-t border-slate-200 dark:border-slate-800/50 py-20">
         <div className="w-full px-0 space-y-8">
           {/* Tab Toggle Buttons */}
-          <div className="flex justify-center gap-4 px-4">
+          <div className="flex gap-2 px-4 max-w-lg mx-auto w-full">
             <button
               onClick={() => setActiveTab('vaults')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all cursor-pointer text-sm sm:text-base ${
                 activeTab === 'vaults'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
@@ -374,7 +374,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => setActiveTab('claims')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all cursor-pointer text-sm sm:text-base ${
                 activeTab === 'claims'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
@@ -384,7 +384,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => setActiveTab('atoms')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all cursor-pointer ${
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all cursor-pointer text-sm sm:text-base ${
                 activeTab === 'atoms'
                   ? 'bg-primary text-white shadow-lg'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'

@@ -128,8 +128,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: clip;
+  }
   body {
     @apply bg-background text-foreground;
+    min-width: 0;
+  }
+  /* Allow flex/grid children to shrink below their content size on mobile */
+  .flex > *, .grid > * {
+    min-width: 0;
   }
 }
 
