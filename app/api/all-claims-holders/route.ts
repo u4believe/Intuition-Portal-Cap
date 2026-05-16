@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { queryIntuitionGraphQL } from "@/lib/intuition-graphql"
 
 const CLAIMS_FIELDS = `
-  market_cap
   position_count
   total_assets
   total_shares
@@ -11,14 +10,16 @@ const CLAIMS_FIELDS = `
     id
     total_market_cap
     triple {
+      term_id
+      counter_term_id
       subject { label image }
       predicate { label }
       object { label }
-      counter_term { id }
     }
     vaults {
       curve_id
       current_share_price
+      market_cap
     }
     share_price_change_stats_daily(order_by: { bucket: desc }, limit: 1) {
       bucket
@@ -28,14 +29,18 @@ const CLAIMS_FIELDS = `
   }
 `
 
-// Only fetch triple vaults (claims) — atom vaults dominate market_cap and would return 0 results without this filter
+// Filter to Lin vaults only (curve_id=1) so each triple appears once.
+// Atom vaults dominate market_cap without the triple filter — zero claims would load.
 const CLAIMS_BROWSE_QUERY = `
   query GetAllClaims($limit: Int, $offset: Int) {
     vaults(
       limit: $limit
       offset: $offset
-      where: { term: { triple: { subject: { label: { _is_null: false } } } } }
-      order_by: { market_cap: desc }
+      where: {
+        term: { triple: { subject: { label: { _is_null: false } } } }
+        curve_id: { _eq: 1 }
+      }
+      order_by: { market_cap: desc_nulls_last }
     ) {
       ${CLAIMS_FIELDS}
     }
@@ -55,16 +60,16 @@ const CLAIMS_SEARCH_QUERY = `
             ]
           }
         }
+        curve_id: { _eq: 1 }
       }
       limit: $limit
-      order_by: { market_cap: desc }
+      order_by: { market_cap: desc_nulls_last }
     ) {
       ${CLAIMS_FIELDS}
     }
   }
 `
 
-// Use triples_aggregate for accurate claim count (not all vaults)
 const CLAIMS_COUNT_QUERY = `
   query GetClaimsCount {
     triples_aggregate {
@@ -75,17 +80,13 @@ const CLAIMS_COUNT_QUERY = `
 
 const CLAIMS_SEARCH_COUNT_QUERY = `
   query SearchClaimsCount($search: String!) {
-    vaults_aggregate(
+    triples_aggregate(
       where: {
-        term: {
-          triple: {
-            _or: [
-              { subject: { label: { _ilike: $search } } }
-              { predicate: { label: { _ilike: $search } } }
-              { object: { label: { _ilike: $search } } }
-            ]
-          }
-        }
+        _or: [
+          { subject: { label: { _ilike: $search } } }
+          { predicate: { label: { _ilike: $search } } }
+          { object: { label: { _ilike: $search } } }
+        ]
       }
     ) {
       aggregate { count }
@@ -98,8 +99,7 @@ function mapClaim(vault: any) {
   const subject = triple?.subject?.label || "Unknown"
   const predicate = triple?.predicate?.label || "Unknown"
   const object = triple?.object?.label || "Unknown"
-  const marketCap = vault.market_cap ? parseFloat(vault.market_cap) / 1e18 : 0
-  const totalMarketCap = vault.term?.total_market_cap ? parseFloat(vault.term.total_market_cap) / 1e18 : marketCap
+  const totalMarketCap = vault.term?.total_market_cap ? parseFloat(vault.term.total_market_cap) / 1e18 : 0
   const totalAssets = vault.total_assets ? parseFloat(vault.total_assets) / 1e18 : 0
   const totalShares = vault.total_shares ? parseFloat(vault.total_shares) / 1e18 : 0
 
@@ -108,6 +108,7 @@ function mapClaim(vault: any) {
   const expVault = termVaults.find((tv: any) => Number(tv.curve_id) === 2) ?? null
   const sharePriceLin = linVault?.current_share_price ? parseFloat(linVault.current_share_price) / 1e18 : 0
   const sharePriceExp = expVault?.current_share_price ? parseFloat(expVault.current_share_price) / 1e18 : 0
+  const marketCap = linVault?.market_cap ? parseFloat(linVault.market_cap) / 1e18 : 0
 
   const latestActivity = vault.term?.share_price_change_stats_daily?.[0]?.bucket ?? null
 
@@ -120,8 +121,8 @@ function mapClaim(vault: any) {
   }
 
   return {
-    termId: vault.term?.id || "",
-    opposeTermId: triple?.counter_term?.id || "",
+    termId: triple?.term_id || vault.term?.id || "",
+    opposeTermId: triple?.counter_term_id || "",
     label: `${subject} - ${predicate} - ${object}`,
     type: "Triple",
     image: triple?.subject?.image && triple.subject.image !== "null" ? triple.subject.image : null,
@@ -165,7 +166,7 @@ export async function GET(request: Request) {
         queryIntuitionGraphQL(CLAIMS_SEARCH_COUNT_QUERY, { search: `%${search}%` }),
       ])
       vaultsData = data?.vaults || []
-      totalCount = countData?.vaults_aggregate?.aggregate?.count || 0
+      totalCount = countData?.triples_aggregate?.aggregate?.count || 0
     } else {
       const [data, countData] = await Promise.all([
         queryIntuitionGraphQL(CLAIMS_BROWSE_QUERY, { limit: pageSize, offset }),
@@ -191,6 +192,6 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("[all-claims-holders] Error fetching claims:", error)
-    return NextResponse.json({ claims: [] })
+    return NextResponse.json({ claims: [], error: "Failed to fetch claims" }, { status: 500 })
   }
 }
