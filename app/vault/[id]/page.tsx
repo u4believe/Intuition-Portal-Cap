@@ -450,7 +450,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
               <tbody>
                 {side.vaultDeposits.length === 0
                   ? <EmptyRow cols={3} msg="No vault deposits" />
-                  : side.vaultDeposits.map((d: any, i: number) => (
+                  : [...side.vaultDeposits].sort((a: any, b: any) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).map((d: any, i: number) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                       <Td mono>{shortAddr(d.id)}</Td>
                       <Td center><span className="text-emerald-600 dark:text-emerald-400 font-semibold">{fmt(d.shares, 6)}</span></Td>
@@ -473,7 +473,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
               <tbody>
                 {side.vaultRedemptions.length === 0
                   ? <EmptyRow cols={3} msg="No vault redemptions" />
-                  : side.vaultRedemptions.map((r: any, i: number) => (
+                  : [...side.vaultRedemptions].sort((a: any, b: any) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).map((r: any, i: number) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                       <Td mono>{shortAddr(r.id)}</Td>
                       <Td center><span className="text-rose-600 dark:text-rose-400 font-semibold">{fmt(r.shares, 6)}</span></Td>
@@ -498,7 +498,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                     </tr>
                   </thead>
                   <tbody>
-                    {side.termDeposits.map((d: any, i: number) => (
+                    {[...side.termDeposits].sort((a: any, b: any) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).map((d: any, i: number) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <Td mono>{shortAddr(d.id)}</Td>
                         <Td mono>{shortAddr(d.senderId)}</Td>
@@ -527,7 +527,7 @@ export default function VaultDetailsPage({ params }: { params: Promise<{ id: str
                     </tr>
                   </thead>
                   <tbody>
-                    {side.termRedemptions.map((r: any, i: number) => (
+                    {[...side.termRedemptions].sort((a: any, b: any) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).map((r: any, i: number) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <Td mono>{shortAddr(r.id)}</Td>
                         <Td mono>{shortAddr(r.receiverId)}</Td>
