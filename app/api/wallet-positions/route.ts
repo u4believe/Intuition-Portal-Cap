@@ -15,6 +15,8 @@ const WALLET_POSITIONS_QUERY = `
     ) {
       shares
       account_id
+      total_deposit_assets_after_total_fees
+      total_redeem_assets_for_receiver
       vault {
         term_id
         curve_id
@@ -84,6 +86,15 @@ export async function GET(request: Request) {
         ? `${triple.subject?.label || '?'} — ${triple.predicate?.label || '?'} — ${triple.object?.label || '?'}`
         : atom?.label || 'Unknown'
 
+      const shares = parseAmount(p.shares)
+      const sharePrice = parseAmount(vault?.current_share_price)
+      const totalDeposited = parseAmount(p.total_deposit_assets_after_total_fees)
+      const totalRedeemed = parseAmount(p.total_redeem_assets_for_receiver)
+      const currentValue = shares * sharePrice
+      const netCost = totalDeposited - totalRedeemed
+      const pnl = currentValue - netCost
+      const pnlPct = netCost > 0 ? (pnl / netCost) * 100 : 0
+
       return {
         termId: vault?.term_id || '',
         type: isTriple ? 'Claim' : 'Identity',
@@ -91,8 +102,13 @@ export async function GET(request: Request) {
         image: atom?.image && atom.image !== 'null' ? atom.image : null,
         curve: curveLabel(vault?.curve_id),
         curveId: vault?.curve_id != null ? Number(vault.curve_id) : null,
-        shares: parseAmount(p.shares),
-        sharePrice: parseAmount(vault?.current_share_price),
+        shares,
+        sharePrice,
+        totalDeposited,
+        totalRedeemed,
+        currentValue,
+        pnl,
+        pnlPct,
         // Triple components for display
         subject: triple?.subject?.label || null,
         predicate: triple?.predicate?.label || null,
@@ -100,7 +116,12 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json({ positions, total, totalShares: totalSharesRaw })
+    const totalValue = positions.reduce((sum, p) => sum + p.currentValue, 0)
+    const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0)
+    const totalCost = positions.reduce((sum, p) => sum + (p.totalDeposited - p.totalRedeemed), 0)
+    const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
+
+    return NextResponse.json({ positions, total, totalShares: totalSharesRaw, totalValue, totalPnl, totalPnlPct })
   } catch (error) {
     console.error('[wallet-positions] Error:', error)
     return NextResponse.json({ error: 'Failed to fetch positions' }, { status: 500 })
