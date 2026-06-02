@@ -42,6 +42,29 @@ const WALLET_POSITIONS_QUERY = `
   }
 `
 
+// Fetches per-term realized PnL from redemption events.
+// The indexer computes cost_basis via average-cost method per redemption event.
+// Multiple redemption events can exist per term_id+curve_id — we sum them.
+const ACCOUNT_PNL_REALIZED_QUERY = `
+  query GetAccountPnlRealized($accountId: String!, $startTime: String!, $endTime: String!) {
+    getAccountPnlRealized(input: {
+      account_id: $accountId,
+      start_time: $startTime,
+      end_time: $endTime
+    }) {
+      count
+      data {
+        term_id
+        curve_id
+        realized_pnl
+        cost_basis
+        shares_redeemed
+        assets_out
+      }
+    }
+  }
+`
+
 function parseAmount(val: string | number | null | undefined): number {
   if (val === null || val === undefined || val === '') return 0
   const n = typeof val === 'string' ? parseFloat(val) : val
@@ -66,10 +89,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'address parameter required' }, { status: 400 })
     }
 
-    const data = await queryIntuitionGraphQL(WALLET_POSITIONS_QUERY, {
-      accountId: address,
-      limit: 200,
-    })
+    const [positionsResult, realizedResult] = await Promise.allSettled([
+      queryIntuitionGraphQL(WALLET_POSITIONS_QUERY, { accountId: address, limit: 200 }),
+      queryIntuitionGraphQL(ACCOUNT_PNL_REALIZED_QUERY, {
+        accountId: address,
+        startTime: '2020-01-01T00:00:00Z',
+        endTime: '2030-12-31T00:00:00Z',
+      }),
+    ])
+
+    if (positionsResult.status === 'rejected') {
+      throw positionsResult.reason
+    }
+    const data = positionsResult.value
+
+    // Build a map of term_id+curve_id → aggregated realized PnL, summing all redemption events.
+    // null entries mean the realized endpoint failed — we fall back to null per-position.
+    const realizedMap = new Map<string, { realizedPnl: number; costBasis: number }>()
+    if (realizedResult.status === 'fulfilled') {
+      const entries: any[] = realizedResult.value?.getAccountPnlRealized?.data || []
+      for (const entry of entries) {
+        const key = `${entry.term_id}_${entry.curve_id}`
+        const existing = realizedMap.get(key) ?? { realizedPnl: 0, costBasis: 0 }
+        existing.realizedPnl += parseAmount(entry.realized_pnl)
+        existing.costBasis += parseAmount(entry.cost_basis)
+        realizedMap.set(key, existing)
+      }
+    }
 
     const rawPositions: any[] = data?.positions || []
     const agg = data?.positions_aggregate?.aggregate
@@ -91,9 +137,19 @@ export async function GET(request: Request) {
       const totalDeposited = parseAmount(p.total_deposit_assets_after_total_fees)
       const totalRedeemed = parseAmount(p.total_redeem_assets_for_receiver)
       const currentValue = shares * sharePrice
+      // netCost = capital still at risk after accounting for any partial redemptions
       const netCost = totalDeposited - totalRedeemed
-      const pnl = currentValue - netCost
-      const pnlPct = netCost > 0 ? (pnl / netCost) * 100 : 0
+      const unrealizedPnl = currentValue - netCost
+      const unrealizedPnlPct = netCost > 0 ? (unrealizedPnl / netCost) * 100 : 0
+
+      // Join realized PnL by term_id + curve_id; null if no redemptions have been made
+      const realizedKey = `${vault?.term_id}_${vault?.curve_id}`
+      const realized = realizedMap.size > 0 ? (realizedMap.get(realizedKey) ?? null) : null
+      const realizedPnl = realized?.realizedPnl ?? null
+      const realizedPnlPct =
+        realized && realized.costBasis > 0
+          ? (realized.realizedPnl / realized.costBasis) * 100
+          : null
 
       return {
         termId: vault?.term_id || '',
@@ -107,8 +163,10 @@ export async function GET(request: Request) {
         totalDeposited,
         totalRedeemed,
         currentValue,
-        pnl,
-        pnlPct,
+        unrealizedPnl,
+        unrealizedPnlPct,
+        realizedPnl,
+        realizedPnlPct,
         // Triple components for display
         subject: triple?.subject?.label || null,
         predicate: triple?.predicate?.label || null,
@@ -117,11 +175,30 @@ export async function GET(request: Request) {
     })
 
     const totalValue = positions.reduce((sum, p) => sum + p.currentValue, 0)
-    const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0)
-    const totalCost = positions.reduce((sum, p) => sum + (p.totalDeposited - p.totalRedeemed), 0)
-    const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
+    const totalNetCost = positions.reduce((sum, p) => sum + (p.totalDeposited - p.totalRedeemed), 0)
+    const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0)
+    const totalUnrealizedPnlPct = totalNetCost > 0 ? (totalUnrealizedPnl / totalNetCost) * 100 : 0
 
-    return NextResponse.json({ positions, total, totalShares: totalSharesRaw, totalValue, totalPnl, totalPnlPct })
+    // Sum all realized PnL across all terms (not just active positions — includes fully exited ones)
+    let totalRealizedPnl = 0
+    let totalRealizedCostBasis = 0
+    for (const r of realizedMap.values()) {
+      totalRealizedPnl += r.realizedPnl
+      totalRealizedCostBasis += r.costBasis
+    }
+    const totalRealizedPnlPct =
+      totalRealizedCostBasis > 0 ? (totalRealizedPnl / totalRealizedCostBasis) * 100 : 0
+
+    return NextResponse.json({
+      positions,
+      total,
+      totalShares: totalSharesRaw,
+      totalValue,
+      totalUnrealizedPnl,
+      totalUnrealizedPnlPct,
+      totalRealizedPnl,
+      totalRealizedPnlPct,
+    })
   } catch (error) {
     console.error('[wallet-positions] Error:', error)
     return NextResponse.json({ error: 'Failed to fetch positions' }, { status: 500 })
