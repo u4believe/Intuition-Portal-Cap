@@ -14,6 +14,11 @@ interface Position {
   curveId: number | null
   shares: number
   sharePrice: number
+  totalDeposited: number
+  totalRedeemed: number
+  currentValue: number
+  pnl: number
+  pnlPct: number
   createdAt: string
   subject: string | null
   predicate: string | null
@@ -63,6 +68,9 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
   const [positions, setPositions] = useState<Position[]>([])
   const [total, setTotal] = useState(0)
   const [allPositionShares, setAllPositionShares] = useState(0)
+  const [portfolioValue, setPortfolioValue] = useState(0)
+  const [portfolioPnl, setPortfolioPnl] = useState(0)
+  const [portfolioPnlPct, setPortfolioPnlPct] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
@@ -84,6 +92,9 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
       setPositions(data.positions || [])
       setTotal(data.total || 0)
       setAllPositionShares(data.totalShares || 0)
+      setPortfolioValue(data.totalValue || 0)
+      setPortfolioPnl(data.totalPnl || 0)
+      setPortfolioPnlPct(data.totalPnlPct || 0)
       setSearched(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to fetch positions')
@@ -150,6 +161,28 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
       {/* Results */}
       {searched && !isLoading && (
         <>
+          {/* Portfolio summary */}
+          {total > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-4 py-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Value</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-white tabular-nums">{fmt(portfolioValue)} <span className="text-xs font-normal text-slate-400">TRUST</span></p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-4 py-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Unrealized PnL</p>
+                <p className={`text-base font-semibold tabular-nums ${portfolioPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {portfolioPnl >= 0 ? '+' : ''}{fmt(portfolioPnl)} <span className="text-xs font-normal opacity-70">TRUST</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-4 py-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">PnL %</p>
+                <p className={`text-base font-semibold tabular-nums ${portfolioPnlPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {portfolioPnlPct >= 0 ? '+' : ''}{portfolioPnlPct.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Summary bar */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -232,6 +265,8 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
                     <th className="text-center px-3 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Curve</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-sky-600 dark:text-sky-400">Shares</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Share Price</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Value (TRUST)</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">PnL (TRUST)</th>
                     <th className="text-center px-3 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">View</th>
                   </tr>
                 </thead>
@@ -269,6 +304,19 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-slate-600 dark:text-slate-300 tabular-nums text-xs">{fmt(p.sharePrice)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-slate-600 dark:text-slate-300 tabular-nums text-xs">{fmt(p.currentValue)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className={`tabular-nums text-xs font-semibold ${p.pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                            {p.pnl >= 0 ? '+' : ''}{fmt(p.pnl)}
+                          </span>
+                          <span className={`tabular-nums text-xs ${p.pnlPct >= 0 ? 'text-emerald-500/70 dark:text-emerald-500/60' : 'text-red-400/70 dark:text-red-400/60'}`}>
+                            {p.pnlPct >= 0 ? '+' : ''}{p.pnlPct.toFixed(1)}%
+                          </span>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-center">
                         {p.termId && (
