@@ -1,37 +1,38 @@
 import { NextResponse } from 'next/server'
 import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
 
-// Based on "Account to Positions to Atoms/Triples" pattern in graphql-queries.md.
-// Uses _ilike (case-insensitive) instead of _eq because Hasura string comparison
-// is case-sensitive and the indexer may store account_id in a different case than
-// what the wallet client provides (checksummed vs lowercase).
-// shares: { _gt: "0" } skips dust/redeemed positions as shown in graphql-queries.md.
+// Uses positions_with_value (not positions) because it provides pre-computed
+// redeemable_assets — the amount received after exit fees — which is what the
+// Intuition Portal uses as the basis for unrealized PnL.
+// unrealizedPnl = redeemable_assets - netCost  (after-fees, matches Portal)
+// theoretical_value = shares × current_share_price  (mark-to-market, for display)
 const WALLET_POSITIONS_QUERY = `
   query GetPositions($accountId: String!, $limit: Int!) {
-    positions(
+    positions_with_value(
       where: { account_id: { _ilike: $accountId }, shares: { _gt: "0" } }
       limit: $limit
       order_by: { shares: desc }
     ) {
       shares
-      account_id
+      term_id
+      curve_id
       total_deposit_assets_after_total_fees
       total_redeem_assets_for_receiver
+      theoretical_value
+      redeemable_assets
       vault {
-        term_id
-        curve_id
         current_share_price
-        term {
-          atom { term_id label image }
-          triple {
-            subject { label }
-            predicate { label }
-            object { label }
-          }
+      }
+      term {
+        atom { term_id label image }
+        triple {
+          subject { label }
+          predicate { label }
+          object { label }
         }
       }
     }
-    positions_aggregate(
+    positions_with_value_aggregate(
       where: { account_id: { _ilike: $accountId }, shares: { _gt: "0" } }
     ) {
       aggregate {
@@ -117,14 +118,13 @@ export async function GET(request: Request) {
       }
     }
 
-    const rawPositions: any[] = data?.positions || []
-    const agg = data?.positions_aggregate?.aggregate
+    const rawPositions: any[] = data?.positions_with_value || []
+    const agg = data?.positions_with_value_aggregate?.aggregate
     const total: number = agg?.count ?? rawPositions.length
     const totalSharesRaw: number = parseAmount(agg?.sum?.shares)
 
     const positions = rawPositions.map((p: any) => {
-      const vault = p.vault
-      const term = vault?.term
+      const term = p.term
       const atom = term?.atom
       const triple = term?.triple
       const isTriple = !!triple
@@ -133,17 +133,21 @@ export async function GET(request: Request) {
         : atom?.label || 'Unknown'
 
       const shares = parseAmount(p.shares)
-      const sharePrice = parseAmount(vault?.current_share_price)
+      const sharePrice = parseAmount(p.vault?.current_share_price)
       const totalDeposited = parseAmount(p.total_deposit_assets_after_total_fees)
       const totalRedeemed = parseAmount(p.total_redeem_assets_for_receiver)
-      const currentValue = shares * sharePrice
+      // theoretical_value = shares × share_price (mark-to-market, shown as "Value")
+      const currentValue = parseAmount(p.theoretical_value) || shares * sharePrice
+      // redeemable_assets = what you'd receive after exit fees if you exited now (Portal's formula)
+      const redeemableValue = parseAmount(p.redeemable_assets)
       // netCost = capital still at risk after accounting for any partial redemptions
       const netCost = totalDeposited - totalRedeemed
-      const unrealizedPnl = currentValue - netCost
+      // unrealizedPnl matches Portal: uses redeemable (after-fees) not mark-to-market
+      const unrealizedPnl = redeemableValue - netCost
       const unrealizedPnlPct = netCost > 0 ? (unrealizedPnl / netCost) * 100 : 0
 
       // Join realized PnL by term_id + curve_id; null if no redemptions have been made
-      const realizedKey = `${vault?.term_id}_${vault?.curve_id}`
+      const realizedKey = `${p.term_id}_${p.curve_id}`
       const realized = realizedMap.size > 0 ? (realizedMap.get(realizedKey) ?? null) : null
       const realizedPnl = realized?.realizedPnl ?? null
       const realizedPnlPct =
@@ -152,17 +156,18 @@ export async function GET(request: Request) {
           : null
 
       return {
-        termId: vault?.term_id || '',
+        termId: p.term_id || '',
         type: isTriple ? 'Claim' : 'Identity',
         label,
         image: atom?.image && atom.image !== 'null' ? atom.image : null,
-        curve: curveLabel(vault?.curve_id),
-        curveId: vault?.curve_id != null ? Number(vault.curve_id) : null,
+        curve: curveLabel(p.curve_id),
+        curveId: p.curve_id != null ? Number(p.curve_id) : null,
         shares,
         sharePrice,
         totalDeposited,
         totalRedeemed,
         currentValue,
+        redeemableValue,
         unrealizedPnl,
         unrealizedPnlPct,
         realizedPnl,
