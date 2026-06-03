@@ -17,6 +17,7 @@ interface Position {
   totalDeposited: number
   totalRedeemed: number
   currentValue: number
+  redeemableValue: number
   unrealizedPnl: number
   unrealizedPnlPct: number
   realizedPnl: number | null
