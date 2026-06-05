@@ -290,7 +290,6 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Share Price</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Value (TRUST)</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Unrealized PnL</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Realized PnL</th>
                     <th className="text-center px-3 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">View</th>
                   </tr>
                 </thead>
@@ -341,22 +340,6 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
                             {p.unrealizedPnlPct >= 0 ? '+' : ''}{p.unrealizedPnlPct.toFixed(1)}%
                           </span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {p.realizedPnl !== null ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className={`tabular-nums text-xs font-semibold ${p.realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                              {p.realizedPnl >= 0 ? '+' : ''}{fmt(p.realizedPnl)}
-                            </span>
-                            {p.realizedPnlPct !== null && (
-                              <span className={`tabular-nums text-xs ${p.realizedPnlPct >= 0 ? 'text-emerald-500/70 dark:text-emerald-500/60' : 'text-red-400/70 dark:text-red-400/60'}`}>
-                                {p.realizedPnlPct >= 0 ? '+' : ''}{p.realizedPnlPct.toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-600 text-xs">—</span>
-                        )}
                       </td>
                       <td className="px-3 py-3 text-center">
                         {p.termId && (
