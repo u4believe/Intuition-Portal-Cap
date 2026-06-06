@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Search, Wallet, ExternalLink, TrendingUp } from 'lucide-react'
+import { Search, Wallet, ExternalLink, TrendingUp, Pencil, X, Check, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Position {
@@ -27,12 +27,23 @@ interface Position {
   object: string | null
 }
 
+interface SavedAddress {
+  address: string
+  name: string
+}
+
+const STORAGE_KEY = 'intuition-wallet-address-book'
+
 function fmt(n: number) {
   if (!n && n !== 0) return '0'
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
   if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K'
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+}
+
+function truncateAddr(addr: string) {
+  return addr.length > 13 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
 }
 
 function CurveBadge({ curve }: { curve: string }) {
@@ -67,6 +78,7 @@ interface Props {
 
 export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
   const [inputValue, setInputValue] = useState(defaultAddress)
+  const [activeAddress, setActiveAddress] = useState('')
   const [positions, setPositions] = useState<Position[]>([])
   const [total, setTotal] = useState(0)
   const [allPositionShares, setAllPositionShares] = useState(0)
@@ -81,11 +93,69 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
   const [filterType, setFilterType] = useState<'All' | 'Claim' | 'Identity'>('All')
   const [filterCurve, setFilterCurve] = useState<'All' | 'Linear' | 'Exponential'>('All')
 
+  // Address book
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [editingAddress, setEditingAddress] = useState<string | null>(null)
+  const [nameInput, setNameInput] = useState('')
+  const [showSaveInput, setShowSaveInput] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) setSavedAddresses(JSON.parse(stored))
+    } catch {}
+  }, [])
+
+  const persist = (list: SavedAddress[]) => {
+    setSavedAddresses(list)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch {}
+  }
+
+  const getNameFor = (addr: string) =>
+    savedAddresses.find(s => s.address.toLowerCase() === addr.toLowerCase())?.name ?? null
+
+  const commitName = (addr: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const idx = savedAddresses.findIndex(s => s.address.toLowerCase() === addr.toLowerCase())
+    const updated = [...savedAddresses]
+    if (idx >= 0) updated[idx] = { address: addr, name: trimmed }
+    else updated.push({ address: addr, name: trimmed })
+    persist(updated)
+    setEditingAddress(null)
+    setShowSaveInput(false)
+    setNameInput('')
+  }
+
+  const removeAddress = (addr: string) => {
+    persist(savedAddresses.filter(s => s.address.toLowerCase() !== addr.toLowerCase()))
+    if (editingAddress?.toLowerCase() === addr.toLowerCase()) setEditingAddress(null)
+  }
+
+  const startEditing = (addr: string, currentName: string) => {
+    setEditingAddress(addr)
+    setNameInput(currentName)
+    setShowSaveInput(false)
+    setTimeout(() => nameInputRef.current?.focus(), 0)
+  }
+
+  const startSaving = () => {
+    setShowSaveInput(true)
+    setNameInput('')
+    setEditingAddress(null)
+    setTimeout(() => nameInputRef.current?.focus(), 0)
+  }
+
   const DISPLAY_LIMIT = 100
 
   const handleSearch = async (addr?: string) => {
     const target = (addr ?? inputValue).trim()
     if (!target) return
+    setActiveAddress(target)
+    setInputValue(target)
+    setShowSaveInput(false)
+    setEditingAddress(null)
     setIsLoading(true)
     setError(null)
     setSearched(false)
@@ -115,9 +185,9 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
     return true
   })
 
-  // Cap display to top 100; stats still reflect full dataset
   const displayedPositions = filtered.slice(0, DISPLAY_LIMIT)
   const isCapped = filtered.length > DISPLAY_LIMIT
+  const currentName = activeAddress ? getNameFor(activeAddress) : null
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-5">
@@ -131,6 +201,76 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
           </p>
         </div>
       </div>
+
+      {/* Saved addresses */}
+      {savedAddresses.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Saved</p>
+          <div className="flex flex-wrap gap-2">
+            {savedAddresses.map(s => (
+              <div
+                key={s.address}
+                className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-2.5 pr-1 py-1"
+              >
+                {editingAddress === s.address ? (
+                  <>
+                    <input
+                      ref={nameInputRef}
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitName(s.address, nameInput)
+                        if (e.key === 'Escape') setEditingAddress(null)
+                      }}
+                      className="w-28 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                    <button
+                      onClick={() => commitName(s.address, nameInput)}
+                      className="p-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setEditingAddress(null)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleSearch(s.address)}
+                      className="flex items-center gap-1.5 cursor-pointer group"
+                    >
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
+                        {s.name}
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+                        {truncateAddr(s.address)}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => startEditing(s.address, s.name)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                      title="Rename"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => removeAddress(s.address)}
+                      className="p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer"
+                      title="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Address input */}
       <div className="flex gap-2">
@@ -156,6 +296,91 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
         <p className="text-xs text-slate-500 -mt-2">
           Using your connected wallet address
         </p>
+      )}
+
+      {/* Name label for searched address */}
+      {searched && activeAddress && (
+        <div className="-mt-2">
+          {editingAddress === activeAddress ? (
+            <div className="flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <input
+                ref={nameInputRef}
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitName(activeAddress, nameInput)
+                  if (e.key === 'Escape') setEditingAddress(null)
+                }}
+                placeholder="Enter a name…"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 w-48"
+              />
+              <button
+                onClick={() => commitName(activeAddress, nameInput)}
+                className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" /> Save
+              </button>
+              <button
+                onClick={() => setEditingAddress(null)}
+                className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : currentName ? (
+            <div className="flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{currentName}</span>
+              <button
+                onClick={() => startEditing(activeAddress, currentName)}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+              >
+                <Pencil className="w-3 h-3" /> Rename
+              </button>
+              <button
+                onClick={() => removeAddress(activeAddress)}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer"
+              >
+                <X className="w-3 h-3" /> Remove
+              </button>
+            </div>
+          ) : showSaveInput ? (
+            <div className="flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <input
+                ref={nameInputRef}
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitName(activeAddress, nameInput)
+                  if (e.key === 'Escape') setShowSaveInput(false)
+                }}
+                placeholder="Enter a name…"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 w-48"
+              />
+              <button
+                onClick={() => commitName(activeAddress, nameInput)}
+                className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" /> Save
+              </button>
+              <button
+                onClick={() => setShowSaveInput(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={startSaving}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 cursor-pointer transition-colors"
+            >
+              <Tag className="w-3 h-3" /> Name this address
+            </button>
+          )}
+        </div>
       )}
 
       {error && (
@@ -195,10 +420,10 @@ export default function WalletPositionsLookup({ defaultAddress = '' }: Props) {
               <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-4 py-3">
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total PnL</p>
                 {(() => {
-                  const total = portfolioUnrealizedPnl + portfolioRealizedPnl
+                  const totalPnl = portfolioUnrealizedPnl + portfolioRealizedPnl
                   return (
-                    <p className={`text-base font-semibold tabular-nums ${total >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                      {total >= 0 ? '+' : ''}{fmt(total)} <span className="text-xs font-normal opacity-70">TRUST</span>
+                    <p className={`text-base font-semibold tabular-nums ${totalPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)} <span className="text-xs font-normal opacity-70">TRUST</span>
                     </p>
                   )
                 })()}
