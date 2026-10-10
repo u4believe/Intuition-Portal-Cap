@@ -55,4 +55,25 @@ export async function register() {
   // Run once immediately, then on interval
   await poll()
   setInterval(poll, INTERVAL_MS)
+
+  // Premium renewals — idempotent, so overlapping with Vercel Cron is harmless.
+  const BILLING_INTERVAL_MS = 15 * 60_000
+  let billingRunning = false
+  const pollBilling = async () => {
+    if (billingRunning || !CRON_SECRET) return
+    billingRunning = true
+    try {
+      const res = await fetch(`${BASE_URL}/api/cron/billing`, {
+        headers: { Authorization: `Bearer ${CRON_SECRET}` },
+        signal: AbortSignal.timeout(120_000),
+      })
+      if (!res.ok) console.warn(`[Self-Poller] Billing cron returned ${res.status}`)
+    } catch (err: any) {
+      console.warn('[Self-Poller] Billing cron error:', err?.message)
+    } finally {
+      billingRunning = false
+    }
+  }
+  await pollBilling()
+  setInterval(pollBilling, BILLING_INTERVAL_MS)
 }

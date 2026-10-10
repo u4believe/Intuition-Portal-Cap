@@ -10,6 +10,7 @@ export type SubscriptionStatus =
   | 'active'
   | 'incomplete'
   | 'past_due'
+  | 'lapsed'
   | 'canceled'
   | 'expired'
 
@@ -21,6 +22,8 @@ export interface SubscriptionInfo {
   amountDisplay: string
   status: SubscriptionStatus
   currentPeriodEnd: string | null
+  /** currentPeriodEnd plus the grace window while a failed renewal is retried */
+  accessEndsAt: string | null
   nextChargeAt: string | null
   lastFailureCode: string | null
 }

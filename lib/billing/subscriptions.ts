@@ -13,9 +13,21 @@ import {
   type BillingInterval,
   type PlanId,
 } from './plans'
-import { createCharge, SweepError } from './sweep'
+import { createCharge, getCharge, SweepError } from './sweep'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+
+/** Premium stays on this long after a renewal fails, while we retry. */
+export const RENEWAL_GRACE_DAYS = 3
+/** Delay before each renewal retry; once exhausted the subscription lapses. */
+export const RENEWAL_RETRY_DELAYS_HOURS = [24, 72, 120]
+/** Refusals that no retry can fix — the payer must authorize a new mandate. */
+const PERMANENT_FAILURES = new Set(['mandate_revoked', 'mandate_not_active', 'mandate_expired', 'amount_over_cap'])
+/** A charge still pending after this long is checked with GET /v1/charges/:id. */
+const PENDING_RECONCILE_AFTER_MINUTES = 30
+const RENEWAL_BATCH_SIZE = 50
+// Arbitrary constant: pg advisory lock id so overlapping cron runs don't race.
+const RENEWAL_LOCK_ID = 74_210_001
 
 export type SubscriptionStatus =
   | 'pending'
@@ -23,6 +35,7 @@ export type SubscriptionStatus =
   | 'active'
   | 'incomplete'
   | 'past_due'
+  | 'lapsed'
   | 'canceled'
   | 'expired'
 
@@ -40,13 +53,22 @@ export interface SubscriptionRow {
   current_period_end: Date | null
   next_charge_at: Date | null
   last_failure_code: string | null
+  renewal_attempts: number
   created_at: Date
   updated_at: Date
 }
 
+/** End of access: the paid period, plus a grace window while a renewal is retried. */
+export function accessEndsAt(sub: SubscriptionRow | null): Date | null {
+  if (!sub?.current_period_end) return null
+  if (sub.status !== 'past_due') return sub.current_period_end
+  return new Date(sub.current_period_end.getTime() + RENEWAL_GRACE_DAYS * 24 * 60 * 60 * 1000)
+}
+
 /** Premium access follows the paid period, not the mandate status. */
 export function hasPremiumAccess(sub: SubscriptionRow | null): boolean {
-  return !!sub?.current_period_end && sub.current_period_end.getTime() > Date.now()
+  const endsAt = accessEndsAt(sub)
+  return !!endsAt && endsAt.getTime() > Date.now()
 }
 
 /** A subscription that is (or is about to be) collecting — don't sell a second one. */
@@ -87,6 +109,7 @@ export async function savePendingSubscription(input: {
        chain_ids = '[]'::jsonb,
        next_charge_at = NULL,
        last_failure_code = NULL,
+       renewal_attempts = 0,
        updated_at = NOW()`,
     [
       input.userRef,
@@ -107,15 +130,60 @@ function chargeDescription(sub: SubscriptionRow, periodStart: Date, periodEnd: D
 }
 
 /**
- * Requests payment for one billing period. Safe to call repeatedly for the
- * same period: the idempotency key is mandate + period start.
+ * Records a failed charge (synchronous refusal or charge.failed).
+ * First charge → incomplete. Renewal → past_due with the next retry
+ * scheduled, or lapsed once retries run out or the failure is permanent.
  */
-export async function chargeForPeriod(sub: SubscriptionRow, periodStart: Date): Promise<void> {
+async function recordChargeFailure(userRef: string, failureCode: string): Promise<void> {
+  const sub = await getSubscription(userRef)
+  if (!sub || sub.status === 'canceled' || sub.status === 'expired') return
+
+  if (!sub.current_period_end) {
+    await pool.query(
+      `UPDATE billing_subscriptions
+          SET status = 'incomplete', next_charge_at = NULL, last_failure_code = $2, updated_at = NOW()
+        WHERE user_ref = $1`,
+      [userRef, failureCode]
+    )
+    return
+  }
+
+  const attempts = sub.renewal_attempts + 1
+  const delayHours = RENEWAL_RETRY_DELAYS_HOURS[attempts - 1]
+  const lapse = PERMANENT_FAILURES.has(failureCode) || delayHours === undefined
+  await pool.query(
+    `UPDATE billing_subscriptions
+        SET status = $2, renewal_attempts = $3, next_charge_at = $4, last_failure_code = $5, updated_at = NOW()
+      WHERE user_ref = $1`,
+    [
+      userRef,
+      lapse ? 'lapsed' : 'past_due',
+      attempts,
+      lapse ? null : new Date(Date.now() + delayHours * 60 * 60 * 1000),
+      failureCode,
+    ]
+  )
+  console.warn(
+    `[Billing] Renewal failed for ${userRef} (${failureCode}, attempt ${attempts})` +
+      (lapse ? ' — subscription lapsed' : ` — retrying in ${delayHours}h`)
+  )
+}
+
+// Refusals that mean "try again shortly", not "this payment failed".
+const TRANSIENT_REFUSALS = new Set(['charge_conflict', 'idempotency_key_in_flight'])
+
+/**
+ * Requests payment for one billing period. Safe to call repeatedly: the
+ * idempotency key is mandate + period start (+ retry number), and Sweep
+ * replays the original response for a repeated key — which is also why a
+ * retry after a failure needs a fresh key.
+ */
+export async function chargeForPeriod(sub: SubscriptionRow, periodStart: Date, attempt = 0): Promise<void> {
   if (!sub.mandate_id) throw new Error(`No mandate for ${sub.user_ref}`)
 
   const periodEnd = addInterval(periodStart, sub.billing_interval)
   const amount = Number(sub.amount)
-  const idempotencyKey = `${sub.mandate_id}:${periodStart.toISOString()}`
+  const idempotencyKey = `${sub.mandate_id}:${periodStart.toISOString()}${attempt > 0 ? `:retry${attempt}` : ''}`
 
   try {
     const charge = await createCharge({
@@ -134,14 +202,12 @@ export async function chargeForPeriod(sub: SubscriptionRow, periodStart: Date): 
   } catch (err) {
     // Synchronous refusals (revoked, expired, over cap) — record and stop.
     if (err instanceof SweepError && err.status >= 400 && err.status < 500 && err.code) {
-      await pool.query(
-        `UPDATE billing_subscriptions
-            SET status = CASE WHEN current_period_end IS NOT NULL THEN 'past_due' ELSE 'incomplete' END,
-                last_failure_code = $2, updated_at = NOW()
-          WHERE user_ref = $1`,
-        [sub.user_ref, err.code]
-      )
+      if (TRANSIENT_REFUSALS.has(err.code)) {
+        console.warn(`[Billing] Charge for ${sub.user_ref} deferred: ${err.code}`)
+        return
+      }
       console.warn(`[Billing] Charge refused for ${sub.user_ref}: ${err.code} — ${err.message}`)
+      await recordChargeFailure(sub.user_ref, err.code)
       return
     }
     throw err
@@ -246,6 +312,7 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
                 current_period_end = GREATEST(COALESCE(current_period_end, $3), $3),
                 next_charge_at = CASE WHEN status IN ('canceled', 'expired') THEN NULL ELSE $3 END,
                 last_failure_code = NULL,
+                renewal_attempts = 0,
                 updated_at = NOW()
           WHERE user_ref = $1`,
         [userRef, charge.period_start, charge.period_end]
@@ -256,17 +323,17 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
     case 'charge.failed': {
       const chargeId = pick(data, 'charge_id', 'charge', 'id')
       const failureCode = pick(data, 'failure_code') ?? 'unknown'
-      await pool.query(
-        `UPDATE billing_charges SET status = 'failed', failure_code = $2, updated_at = NOW() WHERE id = $1`,
+      const { rows } = await pool.query<{ status: string }>(
+        `UPDATE billing_charges c SET status = 'failed', failure_code = $2, updated_at = NOW()
+           FROM billing_charges prev
+          WHERE c.id = $1 AND prev.id = c.id
+          RETURNING prev.status`,
         [chargeId, failureCode]
       )
-      await pool.query(
-        `UPDATE billing_subscriptions
-            SET status = CASE WHEN current_period_end IS NOT NULL THEN 'past_due' ELSE 'incomplete' END,
-                last_failure_code = $2, updated_at = NOW()
-          WHERE user_ref = $1 AND status NOT IN ('canceled', 'expired')`,
-        [userRef, failureCode]
-      )
+      if (!rows[0]) throw new Error(`charge.failed for unknown charge ${chargeId}`)
+      // Already counted (webhook after reconciliation, or the reverse).
+      if (rows[0].status === 'failed') return
+      await recordChargeFailure(userRef, failureCode)
       return
     }
 
@@ -314,6 +381,107 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
   }
 }
 
+// ─── Renewals (run from /api/cron/billing) ───────────────────────────────────
+
+export interface RenewalRunResult {
+  skipped?: 'already_running'
+  reconciled: number
+  charged: number
+  errors: number
+}
+
+/**
+ * Charges every subscription whose next_charge_at has passed and settles
+ * charges whose webhook never arrived. Idempotent and overlap-safe.
+ */
+export async function runRenewals(): Promise<RenewalRunResult> {
+  const client = await pool.connect()
+  try {
+    const { rows: lock } = await client.query<{ locked: boolean }>(
+      'SELECT pg_try_advisory_lock($1) AS locked',
+      [RENEWAL_LOCK_ID]
+    )
+    if (!lock[0]?.locked) return { skipped: 'already_running', reconciled: 0, charged: 0, errors: 0 }
+    try {
+      const reconciled = await reconcilePendingCharges()
+      const { charged, errors } = await chargeDueSubscriptions()
+      return { reconciled, charged, errors }
+    } finally {
+      await client.query('SELECT pg_advisory_unlock($1)', [RENEWAL_LOCK_ID])
+    }
+  } finally {
+    client.release()
+  }
+}
+
+async function chargeDueSubscriptions(): Promise<{ charged: number; errors: number }> {
+  // A charge already in flight blocks the next one; reconciliation clears it.
+  const { rows: due } = await pool.query<SubscriptionRow>(
+    `SELECT s.* FROM billing_subscriptions s
+      WHERE s.status IN ('active', 'past_due')
+        AND s.next_charge_at <= NOW()
+        AND s.mandate_id IS NOT NULL
+        AND s.current_period_end IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM billing_charges c WHERE c.user_ref = s.user_ref AND c.status = 'pending'
+        )
+      ORDER BY s.next_charge_at
+      LIMIT $1`,
+    [RENEWAL_BATCH_SIZE]
+  )
+
+  let charged = 0
+  let errors = 0
+  for (const sub of due) {
+    try {
+      // The new period starts where the paid one ended, even when a retry
+      // collects it late — the billing date doesn't drift.
+      await chargeForPeriod(sub, sub.current_period_end!, sub.renewal_attempts)
+      charged++
+    } catch (err) {
+      errors++
+      console.error(`[Billing] Renewal charge errored for ${sub.user_ref}:`, err)
+    }
+  }
+  return { charged, errors }
+}
+
+async function reconcilePendingCharges(): Promise<number> {
+  const { rows } = await pool.query<{ id: string; user_ref: string; mandate_id: string }>(
+    `SELECT id, user_ref, mandate_id FROM billing_charges
+      WHERE status = 'pending' AND created_at < NOW() - make_interval(mins => $1)
+      ORDER BY created_at
+      LIMIT $2`,
+    [PENDING_RECONCILE_AFTER_MINUTES, RENEWAL_BATCH_SIZE]
+  )
+
+  let reconciled = 0
+  for (const row of rows) {
+    try {
+      const charge = await getCharge(row.id)
+      if (charge.status !== 'succeeded' && charge.status !== 'failed') continue
+      // Apply the outcome exactly as the missing webhook would have.
+      await handleSweepEvent({
+        event_id: `reconcile:${row.id}`,
+        event_type: `charge.${charge.status}`,
+        created_at: new Date().toISOString(),
+        external_ref: row.user_ref,
+        data: {
+          charge_id: row.id,
+          mandate_id: row.mandate_id,
+          failure_code: charge.failure_code,
+          source_chain: charge.source_chain,
+          tx_hash: charge.tx_hash,
+        },
+      })
+      reconciled++
+    } catch (err) {
+      console.error(`[Billing] Could not reconcile charge ${row.id}:`, err)
+    }
+  }
+  return reconciled
+}
+
 export function formatSubscription(sub: SubscriptionRow | null) {
   if (!sub) return { subscription: null, isPremium: false }
   return {
@@ -326,6 +494,7 @@ export function formatSubscription(sub: SubscriptionRow | null) {
       amountDisplay: formatUsdc(Number(sub.amount)),
       status: sub.status,
       currentPeriodEnd: sub.current_period_end?.toISOString() ?? null,
+      accessEndsAt: accessEndsAt(sub)?.toISOString() ?? null,
       nextChargeAt: sub.next_charge_at?.toISOString() ?? null,
       lastFailureCode: sub.last_failure_code,
     },

@@ -112,6 +112,19 @@ export async function createCharge(input: {
   return data
 }
 
+export interface SweepChargeDetail extends SweepCharge {
+  failure_code?: string | null
+  source_chain?: string | null
+  tx_hash?: string | null
+}
+
+export async function getCharge(chargeId: string): Promise<SweepChargeDetail> {
+  const { data } = await sweepRequest<SweepChargeDetail>(`/v1/charges/${encodeURIComponent(chargeId)}`, {
+    method: 'GET',
+  })
+  return data
+}
+
 export async function revokeMandate(mandateId: string): Promise<void> {
   await sweepRequest(`/v1/mandates/${encodeURIComponent(mandateId)}`, { method: 'DELETE' })
 }

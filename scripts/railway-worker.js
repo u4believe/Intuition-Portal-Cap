@@ -21,6 +21,7 @@ const webpush = require('web-push')
 
 const POLL_INTERVAL_EVENTS_MS = 10 * 1000    // 10 seconds — live deposit/redemption events
 const POLL_INTERVAL_SNAPSHOTS_MS = 30 * 1000 // 30 seconds — watched-claim snapshot comparisons
+const POLL_INTERVAL_BILLING_MS = 15 * 60 * 1000 // 15 minutes — Premium renewals (runs in the web app)
 const GRAPHQL_URL = 'https://mainnet.intuition.sh/v1/graphql'
 
 // ── Startup validation ────────────────────────────────────────────────────────
@@ -40,6 +41,28 @@ webpush.setVapidDetails(
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 )
+
+// ── Premium renewals ──────────────────────────────────────────────────────────
+// Billing logic lives in the Next.js app (lib/billing); the worker only
+// triggers it. Optional: set APP_URL + CRON_SECRET to enable.
+let billingRunning = false
+async function triggerBillingRenewals() {
+  if (billingRunning) return
+  billingRunning = true
+  try {
+    const res = await fetch(`${process.env.APP_URL.replace(/\/$/, '')}/api/cron/billing`, {
+      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      signal: AbortSignal.timeout(120000),
+    })
+    const body = await res.json().catch(() => null)
+    if (!res.ok) console.warn(`[Worker] Billing cron returned ${res.status}`)
+    else if (body && (body.charged || body.reconciled || body.errors)) console.log('[Worker] Billing:', body)
+  } catch (e) {
+    console.warn('[Worker] Billing cron error:', e.message)
+  } finally {
+    billingRunning = false
+  }
+}
 
 // ── GraphQL ───────────────────────────────────────────────────────────────────
 async function queryGraphQL(query, variables) {
@@ -443,6 +466,14 @@ async function main() {
 
   setInterval(checkEvents, POLL_INTERVAL_EVENTS_MS)
   setInterval(checkSnapshots, POLL_INTERVAL_SNAPSHOTS_MS)
+
+  if (process.env.APP_URL && process.env.CRON_SECRET) {
+    console.log(`[Worker] Billing renewals: every ${POLL_INTERVAL_BILLING_MS / 60000} min via ${process.env.APP_URL}`)
+    triggerBillingRenewals()
+    setInterval(triggerBillingRenewals, POLL_INTERVAL_BILLING_MS)
+  } else {
+    console.warn('[Worker] APP_URL / CRON_SECRET not set — Premium renewals will not be triggered')
+  }
 
   console.log('[Worker] Running.')
 }
