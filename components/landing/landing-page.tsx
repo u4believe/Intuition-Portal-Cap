@@ -165,6 +165,10 @@ export default function LandingPage() {
               Dashboard
             </Link>
 
+            <Link href="/pricing" className="text-sm font-medium bg-gradient-to-r from-cyan-500 to-purple-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+              Premium
+            </Link>
+
             <div className="flex items-center gap-2">
               <ThemeToggle />
               {mounted && isSignedIn ? (

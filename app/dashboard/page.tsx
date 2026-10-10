@@ -129,6 +129,11 @@ export default function DashboardPage() {
                 Home
               </Button>
             </Link>
+            <Link href="/pricing">
+              <Button variant="ghost" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300">
+                Premium
+              </Button>
+            </Link>
             <Button
               variant="outline"
               onClick={logout}
