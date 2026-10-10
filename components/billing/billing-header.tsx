@@ -12,9 +12,14 @@ export default function BillingHeader() {
           <img src="/logo.jpg" alt="Portal Cap Logo" className="h-10 w-auto rounded-full" />
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/">
+          <Link href="/" className="hidden sm:block">
             <Button variant="ghost" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
               Home
+            </Button>
+          </Link>
+          <Link href="/analyst">
+            <Button variant="ghost" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300">
+              AI Analyst
             </Button>
           </Link>
           <Link href="/dashboard">

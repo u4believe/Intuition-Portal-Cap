@@ -142,8 +142,8 @@ export default function PricingPage() {
                 ))}
               </ul>
               {mounted && isPremium ? (
-                <Link href="/dashboard" className="mt-8">
-                  <Button className="w-full" variant="outline">You’re on Premium — go to dashboard</Button>
+                <Link href="/analyst" className="mt-8">
+                  <Button className="w-full" variant="outline">You’re on Premium — open the AI Analyst</Button>
                 </Link>
               ) : (
                 <Link href={mounted && !authLoading && !isAuthenticated ? '/auth/login' : checkoutHref} className="mt-8">

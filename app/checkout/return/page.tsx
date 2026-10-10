@@ -77,7 +77,7 @@ export default function CheckoutReturnPage() {
                   ? `Payment received. Your plan renews on ${new Date(subscription.nextChargeAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.`
                   : 'Payment received. Premium is now active on your account.'
               }
-              action={<Link href="/dashboard"><Button>Go to dashboard</Button></Link>}
+              action={<Link href="/analyst"><Button>Try the AI Analyst</Button></Link>}
             />
           ) : view === 'collecting' ? (
             <Status

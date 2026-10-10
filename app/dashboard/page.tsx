@@ -129,6 +129,11 @@ export default function DashboardPage() {
                 Home
               </Button>
             </Link>
+            <Link href="/analyst">
+              <Button variant="ghost" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                AI Analyst
+              </Button>
+            </Link>
             <Link href="/pricing">
               <Button variant="ghost" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300">
                 Premium
