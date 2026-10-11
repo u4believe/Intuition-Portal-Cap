@@ -14,7 +14,10 @@ export class SweepError extends Error {
   constructor(
     message: string,
     public status: number,
-    public code?: string
+    public code?: string,
+    /** Set on mandate_exists: the payer's live mandate, and its link while still pending. */
+    public mandateId?: string,
+    public authorizationUrl?: string
   ) {
     super(message)
     this.name = 'SweepError'
@@ -61,7 +64,13 @@ async function sweepRequest<T>(
   const json: any = await res.json().catch(() => null)
   if (!res.ok) {
     const err = json?.error
-    throw new SweepError(err?.message || `Sweep API returned ${res.status}`, res.status, err?.code)
+    throw new SweepError(
+      err?.message || `Sweep API returned ${res.status}`,
+      res.status,
+      err?.code,
+      err?.mandate_id,
+      err?.authorization_url
+    )
   }
   // Responses are documented flat; tolerate a { data } envelope as well.
   return { status: res.status, data: (json?.data ?? json) as T }

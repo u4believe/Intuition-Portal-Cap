@@ -192,7 +192,7 @@ function CheckoutContent() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Our payment provider emails a receipt for every charge. Leave blank to skip receipts.
+            Prefilled on the next step, where you confirm it with a 6-digit code. Receipts for every charge go there.
           </p>
         </div>
 
@@ -296,12 +296,12 @@ function CheckoutContent() {
           ) : (
             <>
               <Lock className="w-4 h-4" />
-              Authorize with MetaMask
+              Subscribe with USDC
             </>
           )}
         </Button>
         <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
-          You’ll sign on Sweep Console’s secure page and return here. Funds go straight from your wallet to ours —
+          You’ll confirm your email and sign one permission in MetaMask on Sweep Console’s page, then return here. Funds go straight from your wallet to ours —
           no one else holds them.
         </p>
       </aside>

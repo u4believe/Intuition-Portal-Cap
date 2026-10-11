@@ -22,7 +22,16 @@ export const RENEWAL_GRACE_DAYS = 3
 /** Delay before each renewal retry; once exhausted the subscription lapses. */
 export const RENEWAL_RETRY_DELAYS_HOURS = [24, 72, 120]
 /** Refusals that no retry can fix — the payer must authorize a new mandate. */
-const PERMANENT_FAILURES = new Set(['mandate_revoked', 'mandate_not_active', 'mandate_expired', 'amount_over_cap'])
+const PERMANENT_FAILURES = new Set([
+  'mandate_revoked',
+  'mandate_not_active',
+  'mandate_expired',
+  'amount_over_cap',
+  'grant_disabled', // payer disabled the permission in their wallet
+])
+/** Failures that are our configuration problem, not the payer's: retry without penalty. */
+const MERCHANT_FAILURES = new Set(['no_payout_wallet', 'rail_not_enabled'])
+const MERCHANT_RETRY_MINUTES = 60
 /** A charge still pending after this long is checked with GET /v1/charges/:id. */
 const PENDING_RECONCILE_AFTER_MINUTES = 30
 const RENEWAL_BATCH_SIZE = 50
@@ -138,6 +147,19 @@ async function recordChargeFailure(userRef: string, failureCode: string): Promis
   const sub = await getSubscription(userRef)
   if (!sub || sub.status === 'canceled' || sub.status === 'expired') return
 
+  if (MERCHANT_FAILURES.has(failureCode)) {
+    // Fix it in the Sweep dashboard; the payer keeps their status and we retry.
+    console.error(`[Billing] Charge for ${userRef} blocked by merchant setup: ${failureCode} — retrying in ${MERCHANT_RETRY_MINUTES} min`)
+    await pool.query(
+      `UPDATE billing_subscriptions
+          SET next_charge_at = CASE WHEN current_period_end IS NULL THEN next_charge_at ELSE NOW() + make_interval(mins => $2) END,
+              last_failure_code = $3, updated_at = NOW()
+        WHERE user_ref = $1`,
+      [userRef, MERCHANT_RETRY_MINUTES, failureCode]
+    )
+    return
+  }
+
   if (!sub.current_period_end) {
     await pool.query(
       `UPDATE billing_subscriptions
@@ -202,7 +224,8 @@ export async function chargeForPeriod(sub: SubscriptionRow, periodStart: Date, a
   } catch (err) {
     // Synchronous refusals (revoked, expired, over cap) — record and stop.
     if (err instanceof SweepError && err.status >= 400 && err.status < 500 && err.code) {
-      if (TRANSIENT_REFUSALS.has(err.code)) {
+      if (TRANSIENT_REFUSALS.has(err.code) || MERCHANT_FAILURES.has(err.code)) {
+        if (MERCHANT_FAILURES.has(err.code)) await recordChargeFailure(sub.user_ref, err.code)
         console.warn(`[Billing] Charge for ${sub.user_ref} deferred: ${err.code}`)
         return
       }
@@ -246,6 +269,19 @@ export async function finishWebhookEvent(eventId: string): Promise<void> {
   await pool.query('UPDATE billing_webhook_events SET processed_at = NOW() WHERE event_id = $1', [eventId])
 }
 
+/** The charge an event refers to; falls back to the payer's only pending charge. */
+async function resolveChargeId(userRef: string, chargeId: string | undefined): Promise<string | undefined> {
+  if (chargeId) {
+    const { rowCount } = await pool.query('SELECT 1 FROM billing_charges WHERE id = $1', [chargeId])
+    if (rowCount) return chargeId
+  }
+  const { rows } = await pool.query<{ id: string }>(
+    `SELECT id FROM billing_charges WHERE user_ref = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 2`,
+    [userRef]
+  )
+  return rows.length === 1 ? rows[0].id : chargeId
+}
+
 export async function handleSweepEvent(event: SweepEvent): Promise<void> {
   const userRef = event.external_ref
   if (!userRef) {
@@ -273,28 +309,31 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
         // Re-subscribing during a paid period: next charge starts when it ends.
         await pool.query(
           `UPDATE billing_subscriptions
-              SET status = 'active', chain_ids = $2, next_charge_at = current_period_end, updated_at = NOW()
+              SET status = 'active', chain_ids = $2, next_charge_at = current_period_end,
+                  email = COALESCE($3, email), updated_at = NOW()
             WHERE user_ref = $1`,
-          [userRef, JSON.stringify(chainIds)]
+          [userRef, JSON.stringify(chainIds), pick(data, 'verified_email') ?? null]
         )
         return
       }
-      await pool.query(
-        `UPDATE billing_subscriptions
-            SET status = 'authorized', chain_ids = $2, updated_at = NOW()
-          WHERE user_ref = $1`,
-        [userRef, JSON.stringify(chainIds)]
-      )
       // Anchor the first period on the event, not the clock: a retried delivery
       // must produce the same idempotency key or a lost 202 could double-charge.
+      // Stored, so the cron can retry a first charge that never went through.
       const authorizedAt = new Date(event.created_at)
       const periodStart = Number.isNaN(authorizedAt.getTime()) ? new Date() : authorizedAt
+      await pool.query(
+        `UPDATE billing_subscriptions
+            SET status = 'authorized', chain_ids = $2, current_period_start = $3,
+                email = COALESCE($4, email), updated_at = NOW()
+          WHERE user_ref = $1`,
+        [userRef, JSON.stringify(chainIds), periodStart, pick(data, 'verified_email') ?? null]
+      )
       await chargeForPeriod({ ...sub, status: 'authorized' }, periodStart)
       return
     }
 
     case 'charge.succeeded': {
-      const chargeId = pick(data, 'charge_id', 'charge', 'id')
+      const chargeId = await resolveChargeId(userRef, pick(data, 'charge_id', 'charge', 'id'))
       const { rows } = await pool.query<{ period_start: Date; period_end: Date }>(
         `UPDATE billing_charges
             SET status = 'succeeded', source_chain = $2, tx_hash = $3, updated_at = NOW()
@@ -321,7 +360,7 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
     }
 
     case 'charge.failed': {
-      const chargeId = pick(data, 'charge_id', 'charge', 'id')
+      const chargeId = await resolveChargeId(userRef, pick(data, 'charge_id', 'charge', 'id'))
       const failureCode = pick(data, 'failure_code') ?? 'unknown'
       const { rows } = await pool.query<{ status: string }>(
         `UPDATE billing_charges c SET status = 'failed', failure_code = $2, updated_at = NOW()
@@ -395,21 +434,24 @@ export interface RenewalRunResult {
  * charges whose webhook never arrived. Idempotent and overlap-safe.
  */
 export async function runRenewals(): Promise<RenewalRunResult> {
+  // A transaction-scoped lock held by an open transaction: it works behind a
+  // transaction-mode pooler (Supabase :6543), where a session lock and its
+  // unlock can land on different server connections and leak forever.
+  // COMMIT releases it; so does the server if this process dies mid-run.
   const client = await pool.connect()
   try {
+    await client.query('BEGIN')
     const { rows: lock } = await client.query<{ locked: boolean }>(
-      'SELECT pg_try_advisory_lock($1) AS locked',
+      'SELECT pg_try_advisory_xact_lock($1) AS locked',
       [RENEWAL_LOCK_ID]
     )
     if (!lock[0]?.locked) return { skipped: 'already_running', reconciled: 0, charged: 0, errors: 0 }
-    try {
-      const reconciled = await reconcilePendingCharges()
-      const { charged, errors } = await chargeDueSubscriptions()
-      return { reconciled, charged, errors }
-    } finally {
-      await client.query('SELECT pg_advisory_unlock($1)', [RENEWAL_LOCK_ID])
-    }
+    // The work itself runs on other pooled connections; this one only holds the lock.
+    const reconciled = await reconcilePendingCharges()
+    const { charged, errors } = await chargeDueSubscriptions()
+    return { reconciled, charged, errors }
   } finally {
+    await client.query('COMMIT').catch(() => {})
     client.release()
   }
 }
@@ -430,8 +472,34 @@ async function chargeDueSubscriptions(): Promise<{ charged: number; errors: numb
     [RENEWAL_BATCH_SIZE]
   )
 
+  // First charges that were never accepted (e.g. no payout wallet yet).
+  const { rows: firstDue } = await pool.query<SubscriptionRow>(
+    `SELECT s.* FROM billing_subscriptions s
+      WHERE s.status = 'authorized'
+        AND s.current_period_end IS NULL
+        AND s.current_period_start IS NOT NULL
+        AND s.mandate_id IS NOT NULL
+        AND s.updated_at < NOW() - interval '5 minutes'
+        AND NOT EXISTS (
+          SELECT 1 FROM billing_charges c
+           WHERE c.user_ref = s.user_ref AND c.mandate_id = s.mandate_id AND c.status IN ('pending', 'succeeded')
+        )
+      LIMIT $1`,
+    [RENEWAL_BATCH_SIZE]
+  )
+
   let charged = 0
   let errors = 0
+  for (const sub of firstDue) {
+    try {
+      await chargeForPeriod(sub, sub.current_period_start!)
+      await pool.query('UPDATE billing_subscriptions SET updated_at = NOW() WHERE user_ref = $1', [sub.user_ref])
+      charged++
+    } catch (err) {
+      errors++
+      console.error(`[Billing] First charge retry errored for ${sub.user_ref}:`, err)
+    }
+  }
   for (const sub of due) {
     try {
       // The new period starts where the paid one ended, even when a retry

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { IDENTITY_ERRORS, resolveBillingIdentity } from '@/lib/billing/identity'
 import { isBillingInterval, isPlanId, PAYMENT_CHAINS, PLANS } from '@/lib/billing/plans'
 import { getSubscription, isBillingLive, savePendingSubscription } from '@/lib/billing/subscriptions'
-import { createMandate, SweepError } from '@/lib/billing/sweep'
+import { createMandate, revokeMandate, SweepError } from '@/lib/billing/sweep'
 
 // The mandate outlives one billing cycle so a yearly plan can renew once and
 // a monthly plan runs a full year of renewals before asking to re-authorize.
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setUTCMonth(expiresAt.getUTCMonth() + MANDATE_LIFETIME_MONTHS)
 
-    const mandate = await createMandate({
+    const mandateParams = {
       externalRef: identity.ref,
       email: cleanEmail ?? undefined,
       // The ceiling equals the price, so the payer approves exactly what they'll pay.
@@ -51,7 +51,28 @@ export async function POST(req: NextRequest) {
       expiresAt,
       returnUrl: `${appUrl}/checkout/return`,
       metadata: { plan, interval },
-    })
+    }
+
+    // Sweep allows one live mandate per payer (409 mandate_exists).
+    let mandate
+    try {
+      mandate = await createMandate(mandateParams)
+    } catch (err) {
+      if (!(err instanceof SweepError) || err.code !== 'mandate_exists' || !err.mandateId) throw err
+      const sameTerms =
+        existing?.mandate_id === err.mandateId &&
+        existing.status === 'pending' &&
+        existing.billing_interval === interval &&
+        Number(existing.amount) === amount
+      if (sameTerms && err.authorizationUrl) {
+        // Still unsigned with the same terms: resend its link instead of a second mandate.
+        return NextResponse.json({ authorizationUrl: err.authorizationUrl, authorizationUrlExpiresAt: null })
+      }
+      // Different terms, or a signed mandate that stopped paying (incomplete/lapsed):
+      // isBillingLive above guarantees it is not funding a live subscription.
+      await revokeMandate(err.mandateId)
+      mandate = await createMandate(mandateParams)
+    }
 
     if (!mandate.id || !mandate.authorization_url) {
       console.error('[Billing Checkout] Unexpected mandate response:', mandate)
