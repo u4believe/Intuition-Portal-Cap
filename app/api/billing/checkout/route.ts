@@ -95,11 +95,20 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     if (error instanceof SweepError) {
-      console.error(`[Billing Checkout] Sweep error ${error.status} ${error.code}: ${error.message}`)
+      console.error(
+        `[Billing Checkout] Sweep error ${error.status} ${error.code}: ${error.message}`,
+        error.details ? JSON.stringify(error.details) : ''
+      )
+      // The code (never the key or payload) is shown so a failed checkout can be diagnosed from the page.
+      const code = error.code ?? `http_${error.status}`
       const message =
         error.code === 'rail_not_enabled'
           ? 'Payments are not enabled yet. Please try again later.'
-          : 'The payment provider could not start checkout. Please try again.'
+          : error.code === 'not_configured'
+            ? `Payments are not configured on this site yet. (code: ${code})`
+            : `The payment provider could not start checkout. Please try again. (code: ${code}${
+                error.details ? ` — ${Object.keys(error.details).join(', ')}` : ''
+              })`
       return NextResponse.json({ error: { code: error.code ?? 'sweep_error', message } }, { status: 502 })
     }
     console.error('[Billing Checkout] Error:', error)

@@ -17,7 +17,9 @@ export class SweepError extends Error {
     public code?: string,
     /** Set on mandate_exists: the payer's live mandate, and its link while still pending. */
     public mandateId?: string,
-    public authorizationUrl?: string
+    public authorizationUrl?: string,
+    /** Per-field messages on a 422. */
+    public details?: Record<string, string>
   ) {
     super(message)
     this.name = 'SweepError'
@@ -69,7 +71,8 @@ async function sweepRequest<T>(
       res.status,
       err?.code,
       err?.mandate_id,
-      err?.authorization_url
+      err?.authorization_url,
+      err?.details
     )
   }
   // Responses are documented flat; tolerate a { data } envelope as well.
