@@ -63,13 +63,29 @@ async function sweepRequest<T>(
     signal: AbortSignal.timeout(15_000),
   })
 
-  const json: any = await res.json().catch(() => null)
+  const text = await res.text()
+  let json: any = null
+  try {
+    json = JSON.parse(text)
+  } catch {}
   if (!res.ok) {
     const err = json?.error
+    // A non-JSON error never came from the Sweep API itself — usually a
+    // firewall in front of it (Cloudflare marks its blocks with cf-mitigated).
+    const blockedBy =
+      !err && (res.headers.get('cf-mitigated') || /cloudflare/i.test(res.headers.get('server') ?? ''))
+        ? 'firewall'
+        : null
+    if (!err) {
+      console.error(
+        `[Sweep] Non-API ${res.status} from ${path} (server=${res.headers.get('server')}, cf-mitigated=${res.headers.get('cf-mitigated')}, cf-ray=${res.headers.get('cf-ray')}):`,
+        text.slice(0, 300).replace(/\s+/g, ' ')
+      )
+    }
     throw new SweepError(
       err?.message || `Sweep API returned ${res.status}`,
       res.status,
-      err?.code,
+      err?.code ?? (blockedBy ? `blocked_by_${blockedBy}_${res.status}` : undefined),
       err?.mandate_id,
       err?.authorization_url,
       err?.details
