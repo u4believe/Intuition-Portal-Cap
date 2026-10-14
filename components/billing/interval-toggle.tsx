@@ -1,6 +1,6 @@
 'use client'
 
-import { INTERVAL_LABEL, PREMIUM_PLAN, type BillingInterval } from '@/lib/billing/plans'
+import { BILLING_INTERVALS, INTERVAL_LABEL, PREMIUM_PLAN, type BillingInterval } from '@/lib/billing/plans'
 
 export default function IntervalToggle({
   value,
@@ -15,7 +15,7 @@ export default function IntervalToggle({
       aria-label="Billing period"
       className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1"
     >
-      {(['monthly', 'yearly'] as const).map((interval) => {
+      {BILLING_INTERVALS.map((interval) => {
         const selected = value === interval
         const savings = PREMIUM_PLAN.prices[interval].savingsLabel
         return (

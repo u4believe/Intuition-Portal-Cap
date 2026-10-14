@@ -17,10 +17,22 @@ import { createCharge, getCharge, SweepError } from './sweep'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
-/** Premium stays on this long after a renewal fails, while we retry. */
-export const RENEWAL_GRACE_DAYS = 3
-/** Delay before each renewal retry; once exhausted the subscription lapses. */
-export const RENEWAL_RETRY_DELAYS_HOURS = [24, 72, 120]
+/**
+ * Per interval: how long Premium stays on after a renewal fails (grace), and
+ * the delay before each retry — once exhausted the subscription lapses. Both
+ * must fit well inside one period, or the next renewal arrives mid-retry.
+ */
+export const RENEWAL_POLICY: Record<BillingInterval, { graceHours: number; retryDelaysHours: number[] }> = {
+  daily: { graceHours: 12, retryDelaysHours: [1, 3, 6] },
+  monthly: { graceHours: 72, retryDelaysHours: [24, 72, 120] },
+  yearly: { graceHours: 72, retryDelaysHours: [24, 72, 120] },
+}
+/**
+ * Renewals run this long after the period ends, so they never reach Sweep a
+ * moment before its window (anchored on its own authorization timestamp) resets.
+ */
+const RENEWAL_BUFFER_MS = 5 * 60 * 1000
+const nextChargeAfter = (periodEnd: Date) => new Date(periodEnd.getTime() + RENEWAL_BUFFER_MS)
 /** Refusals that no retry can fix — the payer must authorize a new mandate. */
 const PERMANENT_FAILURES = new Set([
   'mandate_revoked',
@@ -71,7 +83,8 @@ export interface SubscriptionRow {
 export function accessEndsAt(sub: SubscriptionRow | null): Date | null {
   if (!sub?.current_period_end) return null
   if (sub.status !== 'past_due') return sub.current_period_end
-  return new Date(sub.current_period_end.getTime() + RENEWAL_GRACE_DAYS * 24 * 60 * 60 * 1000)
+  const { graceHours } = RENEWAL_POLICY[sub.billing_interval]
+  return new Date(sub.current_period_end.getTime() + graceHours * 60 * 60 * 1000)
 }
 
 /** Premium access follows the paid period, not the mandate status. */
@@ -171,7 +184,7 @@ async function recordChargeFailure(userRef: string, failureCode: string): Promis
   }
 
   const attempts = sub.renewal_attempts + 1
-  const delayHours = RENEWAL_RETRY_DELAYS_HOURS[attempts - 1]
+  const delayHours = RENEWAL_POLICY[sub.billing_interval].retryDelaysHours[attempts - 1]
   const lapse = PERMANENT_FAILURES.has(failureCode) || delayHours === undefined
   await pool.query(
     `UPDATE billing_subscriptions
@@ -309,7 +322,8 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
         // Re-subscribing during a paid period: next charge starts when it ends.
         await pool.query(
           `UPDATE billing_subscriptions
-              SET status = 'active', chain_ids = $2, next_charge_at = current_period_end,
+              SET status = 'active', chain_ids = $2,
+                  next_charge_at = current_period_end + make_interval(secs => ${RENEWAL_BUFFER_MS / 1000}),
                   email = COALESCE($3, email), updated_at = NOW()
             WHERE user_ref = $1`,
           [userRef, JSON.stringify(chainIds), pick(data, 'verified_email') ?? null]
@@ -349,12 +363,12 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
             SET status = CASE WHEN status IN ('canceled', 'expired') THEN status ELSE 'active' END,
                 current_period_start = $2,
                 current_period_end = GREATEST(COALESCE(current_period_end, $3), $3),
-                next_charge_at = CASE WHEN status IN ('canceled', 'expired') THEN NULL ELSE $3 END,
+                next_charge_at = CASE WHEN status IN ('canceled', 'expired') THEN NULL ELSE $4::timestamptz END,
                 last_failure_code = NULL,
                 renewal_attempts = 0,
                 updated_at = NOW()
           WHERE user_ref = $1`,
-        [userRef, charge.period_start, charge.period_end]
+        [userRef, charge.period_start, charge.period_end, nextChargeAfter(charge.period_end)]
       )
       return
     }
@@ -376,26 +390,31 @@ export async function handleSweepEvent(event: SweepEvent): Promise<void> {
       return
     }
 
+    case 'grant.revoked':
+    case 'grant.added': {
+      // One chain left or joined a live mandate — it keeps charging on the rest.
+      if (mandateId && mandateId !== sub.mandate_id) return
+      const chains = pick(data, 'remaining_chains', 'granted_chains')
+      if (Array.isArray(chains)) {
+        await pool.query(
+          'UPDATE billing_subscriptions SET chain_ids = $2, updated_at = NOW() WHERE user_ref = $1',
+          [userRef, JSON.stringify(chains)]
+        )
+      }
+      return
+    }
+
     case 'mandate.revoked': {
       if (mandateId && mandateId !== sub.mandate_id) return
-      // Disabling one chain's grant leaves the mandate chargeable on the others.
-      if (pick(data, 'reason') === 'disabled_on_chain') {
-        const chainId = pick(data, 'chain_id')
-        const remaining = (sub.chain_ids ?? []).filter((id) => String(id) !== String(chainId))
-        if (remaining.length > 0) {
-          await pool.query(
-            'UPDATE billing_subscriptions SET chain_ids = $2, updated_at = NOW() WHERE user_ref = $1',
-            [userRef, JSON.stringify(remaining)]
-          )
-          return
-        }
-      }
+      // Only a finished authorization stops service; a single chain leaving is grant.revoked.
+      if (pick(data, 'mandate_still_active') === true) return
       await pool.query(
         `UPDATE billing_subscriptions
-            SET status = 'canceled', next_charge_at = NULL, updated_at = NOW()
+            SET status = 'canceled', next_charge_at = NULL, chain_ids = '[]'::jsonb, updated_at = NOW()
           WHERE user_ref = $1`,
         [userRef]
       )
+      console.log(`[Billing] Mandate for ${userRef} revoked by ${pick(data, 'revoked_by') ?? 'unknown'}`)
       return
     }
 

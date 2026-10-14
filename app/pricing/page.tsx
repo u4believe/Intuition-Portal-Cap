@@ -64,7 +64,12 @@ export default function PricingPage() {
   useEffect(() => setMounted(true), [])
 
   const price = PREMIUM_PLAN.prices[interval]
-  const monthlyEquivalent = interval === 'yearly' ? price.amount / 12 : null
+  const priceNote =
+    interval === 'yearly'
+      ? `≈ ${formatUsdc(price.amount / 12)} USDC per month`
+      : interval === 'daily'
+        ? 'Try it for a day — renews daily, cancel anytime'
+        : null
   const checkoutHref = `/checkout?plan=${PREMIUM_PLAN.id}&interval=${interval}`
 
   return (
@@ -131,7 +136,7 @@ export default function PricingPage() {
                 <span className="text-sm text-slate-500 dark:text-slate-400">USDC / {INTERVAL_LABEL[interval].noun}</span>
               </p>
               <p className="mt-1 h-5 text-xs text-slate-500 dark:text-slate-400">
-                {monthlyEquivalent !== null && `≈ ${formatUsdc(monthlyEquivalent)} USDC per month`}
+                {priceNote}
               </p>
               <ul className="mt-5 space-y-3 flex-1">
                 {PREMIUM_PLAN.features.map((f) => (

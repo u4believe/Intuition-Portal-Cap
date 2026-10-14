@@ -3,7 +3,10 @@
  * Prices are USDC micro-units (6 decimals): 9_000_000 = 9.00 USDC.
  */
 
-export type BillingInterval = 'monthly' | 'yearly'
+export type BillingInterval = 'daily' | 'monthly' | 'yearly'
+
+/** Display order in the pricing toggle and checkout. */
+export const BILLING_INTERVALS: BillingInterval[] = ['daily', 'monthly', 'yearly']
 export type PlanId = 'premium'
 
 export interface PlanPrice {
@@ -39,6 +42,7 @@ export const PREMIUM_PLAN: Plan = {
     'Early access to new AI features',
   ],
   prices: {
+    daily: { amount: 1_000_000 },
     monthly: { amount: 9_000_000 },
     yearly: { amount: 90_000_000, savingsLabel: '2 months free' },
   },
@@ -47,6 +51,7 @@ export const PREMIUM_PLAN: Plan = {
 export const PLANS: Record<PlanId, Plan> = { premium: PREMIUM_PLAN }
 
 export const INTERVAL_LABEL: Record<BillingInterval, { adjective: string; noun: string }> = {
+  daily: { adjective: 'Daily', noun: 'day' },
   monthly: { adjective: 'Monthly', noun: 'month' },
   yearly: { adjective: 'Yearly', noun: 'year' },
 }
@@ -67,7 +72,7 @@ export function isPlanId(value: unknown): value is PlanId {
 }
 
 export function isBillingInterval(value: unknown): value is BillingInterval {
-  return value === 'monthly' || value === 'yearly'
+  return typeof value === 'string' && (BILLING_INTERVALS as string[]).includes(value)
 }
 
 export function formatUsdc(microUnits: number): string {
@@ -77,9 +82,18 @@ export function formatUsdc(microUnits: number): string {
   })
 }
 
+/**
+ * Sweep enforces each mandate's ceiling over fixed windows measured from the
+ * moment the payer signed (its `period_duration`): a "month" is 30 days, not a
+ * calendar month. Billing periods use the same lengths so a renewal never lands
+ * before Sweep's window has reset.
+ */
+export const PERIOD_SECONDS: Record<BillingInterval, number> = {
+  daily: 86_400,
+  monthly: 2_592_000, // 30 days
+  yearly: 31_536_000, // 365 days
+}
+
 export function addInterval(date: Date, interval: BillingInterval): Date {
-  const next = new Date(date)
-  if (interval === 'monthly') next.setUTCMonth(next.getUTCMonth() + 1)
-  else next.setUTCFullYear(next.getUTCFullYear() + 1)
-  return next
+  return new Date(date.getTime() + PERIOD_SECONDS[interval] * 1000)
 }

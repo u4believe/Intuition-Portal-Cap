@@ -13,6 +13,7 @@ import { useSubscription } from '@/hooks/useSubscription'
 import { billingAuthHeaders } from '@/lib/billing/auth-headers'
 import {
   addInterval,
+  BILLING_INTERVALS,
   BILLING_TESTNET,
   formatUsdc,
   INTERVAL_LABEL,
@@ -140,8 +141,8 @@ function CheckoutContent() {
 
         <fieldset className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
           <legend className="px-1 text-sm font-semibold text-slate-900 dark:text-white">Billing period</legend>
-          <div role="radiogroup" className="mt-2 grid sm:grid-cols-2 gap-3">
-            {(['monthly', 'yearly'] as const).map((option) => {
+          <div role="radiogroup" className="mt-2 grid sm:grid-cols-3 gap-3">
+            {BILLING_INTERVALS.map((option) => {
               const selected = interval === option
               const optionPrice = PREMIUM_PLAN.prices[option]
               return (
