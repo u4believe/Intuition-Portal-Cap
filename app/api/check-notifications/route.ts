@@ -7,6 +7,7 @@ import {
   ClaimSnapshot,
 } from '@/lib/web-push-server'
 import { queryIntuitionGraphQL } from '@/lib/intuition-graphql'
+import { getPrivateActivityAddresses } from '@/lib/billing/subscriptions'
 
 // ─── Claim snapshot query — uses term-level aggregates (Lin+Exp combined) ─────
 // Querying `terms` directly (not `vaults`) ensures we get the true combined total
@@ -43,6 +44,7 @@ const RECENT_DEPOSITS_QUERY = `
       created_at
       assets_after_fees
       shares
+      sender_id
       vault {
         term {
           id
@@ -69,6 +71,7 @@ const RECENT_REDEMPTIONS_QUERY = `
       created_at
       assets
       shares
+      receiver_id
       vault {
         term {
           id
@@ -107,6 +110,8 @@ interface LiveEvent {
   atomLabel: string
   assets: number
   createdAt: string
+  /** Lowercased wallet that deposited / redeemed — used for Premium private activity. */
+  actor: string
 }
 
 function toNumber(val: string | number | null | undefined): number {
@@ -150,6 +155,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
         atomLabel: resolveLabel(d.vault?.term),
         assets,
         createdAt: d.created_at,
+        actor: String(d.sender_id ?? '').toLowerCase(),
       })
     })
   } catch (e) {
@@ -167,6 +173,7 @@ async function fetchRecentLiveEvents(since: Date): Promise<LiveEvent[]> {
         atomLabel: resolveLabel(r.vault?.term),
         assets,
         createdAt: r.created_at,
+        actor: String(r.receiver_id ?? '').toLowerCase(),
       })
     })
   } catch (e) {
@@ -224,10 +231,19 @@ export async function GET(req: NextRequest) {
 
     // ── 2. Fetch live events (events mode only) ──────────────────────────────
     let liveEvents: LiveEvent[] = []
+    let privateActors: Set<string> | null = new Set()
     if (doEvents) {
       console.log(`[Check Notifications] [events] Fetching since: ${since.toISOString()}`)
       liveEvents = await fetchRecentLiveEvents(since)
       console.log(`[Check Notifications] Got ${liveEvents.length} live event(s)`)
+      // Premium private activity: these wallets' transactions alert nobody but themselves.
+      privateActors = await getPrivateActivityAddresses().catch((e) => {
+        // Column/table not created yet (migration 12 pending): nobody can have opted in.
+        if (e?.code === '42703' || e?.code === '42P01') return new Set<string>()
+        console.error('[Check Notifications] Could not load private-activity wallets — sending no event alerts:', e)
+        return null
+      })
+      if (privateActors === null) liveEvents = []
       for (const ev of liveEvents) {
         console.log(`  [Event] ${ev.type} id=${ev.id} assets=${ev.assets.toFixed(4)} TRUST termId="${ev.termId}" atom="${ev.atomLabel}"`)
       }
@@ -361,7 +377,9 @@ export async function GET(req: NextRequest) {
       const depositCfg = ranges?.deposits ?? DEFAULT_RANGE
       const redemptionCfg = ranges?.redemptions ?? DEFAULT_RANGE
 
+      const ownAddress = String(subscription.address ?? '').toLowerCase()
       for (const event of liveEvents) {
+        if (privateActors?.has(event.actor) && event.actor !== ownAddress) continue
         const claimPref = claimPrefs[event.termId]
 
         if (claimPref) {

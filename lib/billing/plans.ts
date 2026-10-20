@@ -39,6 +39,7 @@ export const PREMIUM_PLAN: Plan = {
     'AI analyst — ask anything about a claim, atom or vault',
     'AI summaries of your watchlist and positions',
     'Plain-English explanations for every smart alert',
+    'Private activity — keep your transactions out of other users’ alerts',
     'Early access to new AI features',
   ],
   prices: {

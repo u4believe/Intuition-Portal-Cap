@@ -13,6 +13,7 @@ import NotificationPreferencesPanel from '@/components/push-notifications/notifi
 import WalletPositionsLookup from '@/components/dashboard/wallet-positions-lookup'
 import { Bell, Star, ArrowRight, Trash2, Eye } from 'lucide-react'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
+import PrivateActivityCard from '@/components/premium/private-activity-card'
 
 type ClaimDetail = {
   label: string
@@ -282,6 +283,7 @@ export default function DashboardPage() {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
                 <NotificationPreferencesPanel onOpenSettings={() => setAlertsOpen(true)} />
               </div>
+              <PrivateActivityCard />
             </div>
           </div>
         </div>

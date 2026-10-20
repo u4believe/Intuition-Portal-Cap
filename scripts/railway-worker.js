@@ -178,7 +178,7 @@ const CLAIM_DATA_QUERY = `
 const RECENT_DEPOSITS_QUERY = `
   query GetRecentDeposits($since: timestamptz) {
     deposits(where: { created_at: { _gte: $since } }, order_by: { created_at: desc }) {
-      id created_at assets_after_fees
+      id created_at assets_after_fees sender_id
       vault { term { id atom { label } triple { term_id subject { label } predicate { label } object { label } } } }
     }
   }
@@ -187,11 +187,31 @@ const RECENT_DEPOSITS_QUERY = `
 const RECENT_REDEMPTIONS_QUERY = `
   query GetRecentRedemptions($since: timestamptz) {
     redemptions(where: { created_at: { _gte: $since } }, order_by: { created_at: desc }) {
-      id created_at assets
+      id created_at assets receiver_id
       vault { term { id atom { label } triple { term_id subject { label } predicate { label } object { label } } } }
     }
   }
 `
+
+// ── Premium private activity ─────────────────────────────────────────────────
+// Wallets whose deposits/redemptions must not alert other users: Premium
+// subscribers with hide_activity on. The access condition mirrors
+// hasPremiumAccess() / RENEWAL_POLICY in lib/billing/subscriptions.ts — keep in sync.
+async function getPrivateActivityAddresses() {
+  const result = await pool.query(`
+    SELECT lower(substring(user_ref FROM 8)) AS address
+      FROM billing_subscriptions
+     WHERE hide_activity AND user_ref LIKE 'wallet:%'
+       AND current_period_end IS NOT NULL
+       AND current_period_end + CASE
+             WHEN status = 'past_due' THEN CASE billing_interval
+               WHEN 'daily' THEN interval '12 hours'
+               WHEN 'monthly' THEN interval '72 hours'
+               WHEN 'yearly' THEN interval '72 hours'
+               ELSE interval '0' END
+             ELSE interval '0' END > NOW()`)
+  return new Set(result.rows.map(r => r.address))
+}
 
 // ── Live events fetch ─────────────────────────────────────────────────────────
 async function fetchRecentLiveEvents(since) {
@@ -214,6 +234,7 @@ async function fetchRecentLiveEvents(since) {
         atomLabel: resolveLabel(d.vault?.term),
         assets: toNumber(d.assets_after_fees),
         createdAt: d.created_at,
+        actor: String(d.sender_id || '').toLowerCase(),
       })
     })
   } catch (e) { console.warn('[Worker] Deposit fetch failed:', e.message) }
@@ -227,6 +248,7 @@ async function fetchRecentLiveEvents(since) {
         atomLabel: resolveLabel(r.vault?.term),
         assets: toNumber(r.assets),
         createdAt: r.created_at,
+        actor: String(r.receiver_id || '').toLowerCase(),
       })
     })
   } catch (e) { console.warn('[Worker] Redemption fetch failed:', e.message) }
@@ -244,8 +266,21 @@ async function runCheck(mode, since) {
 
   // 1. Live events
   let liveEvents = []
+  let privateActors = new Set()
   if (doEvents) {
     liveEvents = await fetchRecentLiveEvents(since)
+    try {
+      privateActors = await getPrivateActivityAddresses()
+    } catch (e) {
+      if (e.code === '42703' || e.code === '42P01') {
+        // Column/table not created yet (migration 12 pending): nobody can have opted in.
+        privateActors = new Set()
+      } else {
+        // Fail closed: better to skip one round of event alerts than leak private activity.
+        console.error('[Worker] Could not load private-activity wallets — skipping event alerts:', e.message)
+        liveEvents = []
+      }
+    }
     if (liveEvents.length > 0) {
       console.log(`[Worker] [events] ${liveEvents.length} event(s) since ${since.toISOString()}`)
     }
@@ -351,7 +386,10 @@ async function runCheck(mode, since) {
       const depositCfg = ranges?.deposits ?? DEFAULT_RANGE
       const redemptionCfg = ranges?.redemptions ?? DEFAULT_RANGE
 
+      const ownAddress = String(subscription.address || '').toLowerCase()
       for (const event of liveEvents) {
+        // Private activity: only the wallet's owner is alerted about it.
+        if (privateActors.has(event.actor) && event.actor !== ownAddress) continue
         const claimPref = claimPrefs[event.termId]
         if (claimPref) {
           if (event.type === 'deposit' && claimPref.deposits) {

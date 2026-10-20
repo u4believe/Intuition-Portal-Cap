@@ -75,6 +75,7 @@ export interface SubscriptionRow {
   next_charge_at: Date | null
   last_failure_code: string | null
   renewal_attempts: number
+  hide_activity: boolean
   created_at: Date
   updated_at: Date
 }
@@ -567,6 +568,42 @@ async function reconcilePendingCharges(): Promise<number> {
     }
   }
   return reconciled
+}
+
+// ─── Private activity (Premium) ─────────────────────────────────────────────
+
+/**
+ * SQL condition mirroring hasPremiumAccess(): paid period not over, plus the
+ * per-interval grace window while a failed renewal is retried. Generated from
+ * RENEWAL_POLICY so the two cannot drift. (scripts/railway-worker.js keeps a
+ * copy of this — update it there too.)
+ */
+const PREMIUM_ACCESS_SQL = `current_period_end IS NOT NULL AND current_period_end + CASE
+    WHEN status = 'past_due' THEN CASE billing_interval ${Object.entries(RENEWAL_POLICY)
+      .map(([interval, p]) => `WHEN '${interval}' THEN interval '${p.graceHours} hours'`)
+      .join(' ')} ELSE interval '0' END
+    ELSE interval '0' END > NOW()`
+
+/**
+ * Lowercased wallets whose transactions must not trigger other users' push
+ * alerts: Premium subscribers who turned on private activity. Lapsed
+ * subscribers drop out automatically.
+ */
+export async function getPrivateActivityAddresses(): Promise<Set<string>> {
+  const { rows } = await pool.query<{ address: string }>(
+    `SELECT lower(substring(user_ref FROM 8)) AS address
+       FROM billing_subscriptions
+      WHERE hide_activity AND user_ref LIKE 'wallet:%' AND ${PREMIUM_ACCESS_SQL}`
+  )
+  return new Set(rows.map((r) => r.address))
+}
+
+export async function setHideActivity(userRef: string, hide: boolean): Promise<boolean> {
+  const { rowCount } = await pool.query(
+    'UPDATE billing_subscriptions SET hide_activity = $2, updated_at = NOW() WHERE user_ref = $1',
+    [userRef, hide]
+  )
+  return (rowCount ?? 0) > 0
 }
 
 export function formatSubscription(sub: SubscriptionRow | null) {
