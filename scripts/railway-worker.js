@@ -64,6 +64,45 @@ async function triggerBillingRenewals() {
   }
 }
 
+// ── Activity patterns (scripts/patterns) ──────────────────────────────────────
+// Collects all Intuition deposits/redemptions/creations every 5 min and
+// recomputes pattern metrics hourly. Disable with PATTERNS_ENABLED=false.
+const { collectOnce } = require('./patterns/collector')
+const { computeMetrics } = require('./patterns/metrics')
+const POLL_INTERVAL_PATTERNS_MS = 5 * 60 * 1000
+const PATTERN_METRICS_EVERY_MS = 60 * 60 * 1000
+let patternsRunning = false
+let patternsPausedUntil = 0
+let lastMetricsAt = 0
+
+async function runPatterns() {
+  if (patternsRunning || Date.now() < patternsPausedUntil) return
+  patternsRunning = true
+  try {
+    const c = await collectOnce(pool, queryGraphQL)
+    if (c.inserted || c.balances || c.pruned) {
+      console.log(`[Patterns] collected=${c.inserted} balances=${c.balances} pruned=${c.pruned}${c.caughtUp ? '' : ' (backfilling…)'}`)
+    }
+    // Measure once the backfill has caught up, then hourly.
+    if (c.caughtUp && Date.now() - lastMetricsAt >= PATTERN_METRICS_EVERY_MS) {
+      const results = await computeMetrics(pool)
+      lastMetricsAt = Date.now()
+      const failed = results.filter(r => !r.ok)
+      console.log(`[Patterns] metrics computed: ${results.length - failed.length}/${results.length} ok`)
+    }
+  } catch (e) {
+    if (e.code === '42P01') {
+      // Tables missing: migration 14 hasn't run yet. Check again in an hour.
+      console.warn('[Patterns] Pattern tables not found — run scripts/14-add-pattern-tables.sql. Pausing for 1h.')
+      patternsPausedUntil = Date.now() + 60 * 60 * 1000
+    } else {
+      console.error('[Patterns] Run failed:', e.message)
+    }
+  } finally {
+    patternsRunning = false
+  }
+}
+
 // ── GraphQL ───────────────────────────────────────────────────────────────────
 async function queryGraphQL(query, variables) {
   const res = await fetch(GRAPHQL_URL, {
@@ -532,6 +571,12 @@ async function main() {
     setInterval(triggerBillingRenewals, POLL_INTERVAL_BILLING_MS)
   } else {
     console.warn('[Worker] APP_URL / CRON_SECRET not set — Premium renewals will not be triggered')
+  }
+
+  if (process.env.PATTERNS_ENABLED !== 'false') {
+    console.log(`[Worker] Activity patterns: collect every ${POLL_INTERVAL_PATTERNS_MS / 60000} min, metrics hourly`)
+    setTimeout(runPatterns, 5000)
+    setInterval(runPatterns, POLL_INTERVAL_PATTERNS_MS)
   }
 
   console.log('[Worker] Running.')
