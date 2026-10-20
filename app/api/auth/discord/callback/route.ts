@@ -80,8 +80,9 @@ export async function GET(request: NextRequest) {
     // Set the JWT as an HttpOnly, cross-site immune secure cookie
     const cookieStore = await cookies();
     cookieStore.set('portal_cap_session', sessionToken, {
-      httpOnly: false, // We must allow client to check if it's there via JS or we expose a /api/auth/session endpoint. Wait, HttpOnly should be true to prevent XSS!
-      // But wait! Let me use an HttpOnly cookie and a `/api/auth/session` route to fetch it.
+      // Server-only: the client asks /api/auth/session instead, so injected
+      // scripts can't read the session token.
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60, // 7 days
