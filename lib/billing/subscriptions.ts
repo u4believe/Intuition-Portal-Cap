@@ -595,7 +595,22 @@ export async function getPrivateActivityAddresses(): Promise<Set<string>> {
        FROM billing_subscriptions
       WHERE hide_activity AND user_ref LIKE 'wallet:%' AND ${PREMIUM_ACCESS_SQL}`
   )
-  return new Set(rows.map((r) => r.address))
+  const addresses = new Set(rows.map((r) => r.address))
+  // Subscribers who signed in another way (Discord) hide the wallet they linked.
+  // Queried separately so a missing links table (migration 13 pending) can't
+  // take wallet sign-ins' privacy down with it.
+  try {
+    const linked = await pool.query<{ address: string }>(
+      `SELECT l.wallet_address AS address
+         FROM billing_subscriptions s
+         JOIN account_wallet_links l ON l.account_ref = s.user_ref
+        WHERE s.hide_activity AND ${PREMIUM_ACCESS_SQL.replace(/\b(current_period_end|status|billing_interval)\b/g, 's.$1')}`
+    )
+    for (const r of linked.rows) addresses.add(r.address)
+  } catch (err: any) {
+    if (err?.code !== '42P01') throw err
+  }
+  return addresses
 }
 
 export async function setHideActivity(userRef: string, hide: boolean): Promise<boolean> {

@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { EyeOff, Loader2, Lock, Sparkles } from 'lucide-react'
 import { billingAuthHeaders } from '@/lib/billing/auth-headers'
+import LinkWalletPrompt from '@/components/account/link-wallet-prompt'
+import { useWalletLink } from '@/hooks/useWalletLink'
 
 interface Status {
   isPremium: boolean
   isWallet: boolean
+  canLinkWallet?: boolean
   hideActivity: boolean
 }
 
@@ -16,6 +19,7 @@ export default function PrivateActivityCard() {
   const [status, setStatus] = useState<Status | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { discordUser } = useWalletLink()
 
   useEffect(() => {
     fetch('/api/premium/private-activity', { headers: billingAuthHeaders(), cache: 'no-store' })
@@ -95,7 +99,16 @@ export default function PrivateActivityCard() {
         </Link>
       )}
       {noWallet && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">Sign in with your wallet to keep its activity private.</p>
+        <div className="space-y-2">
+          <p className="text-xs text-amber-600 dark:text-amber-400">Link your wallet to choose whose activity stays private.</p>
+          {status?.canLinkWallet && discordUser && (
+            <LinkWalletPrompt
+              variant="inline"
+              discordId={discordUser.id}
+              onLinked={() => setStatus((s) => (s ? { ...s, isWallet: true, canLinkWallet: false } : s))}
+            />
+          )}
+        </div>
       )}
       {status && !locked && !noWallet && (
         <p className="text-xs text-slate-500 dark:text-slate-400">

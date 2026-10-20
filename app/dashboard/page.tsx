@@ -14,6 +14,8 @@ import WalletPositionsLookup from '@/components/dashboard/wallet-positions-looku
 import { Bell, Star, ArrowRight, Trash2, Eye } from 'lucide-react'
 import WatchPreferencesDialog from '@/components/watch-preferences-dialog'
 import PrivateActivityCard from '@/components/premium/private-activity-card'
+import LinkWalletPrompt from '@/components/account/link-wallet-prompt'
+import { useWalletLink } from '@/hooks/useWalletLink'
 
 type ClaimDetail = {
   label: string
@@ -38,6 +40,7 @@ export default function DashboardPage() {
   const { getWatchedClaims, removeWatchedClaim } = useUserPreferences()
   const { isConnected, address: connectedAddress } = useAccount()
   const { discordUser } = useDiscordAuth()
+  const { linkedWallet, needsWallet, setLinkedWallet } = useWalletLink()
   const [alertsOpen, setAlertsOpen] = useState(false)
   const [watchedClaims, setWatchedClaims] = useState<string[]>([])
   const [claimDetails, setClaimDetails] = useState<Record<string, ClaimDetail>>({})
@@ -158,6 +161,10 @@ export default function DashboardPage() {
             <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your watched claims and alert preferences</p>
           </div>
 
+          {needsWallet && discordUser && (
+            <LinkWalletPrompt discordId={discordUser.id} onLinked={setLinkedWallet} />
+          )}
+
           {/* Stat row */}
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-1">
@@ -180,7 +187,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Portfolio lookup */}
-          <WalletPositionsLookup defaultAddress={connectedAddress ?? ''} />
+          <WalletPositionsLookup defaultAddress={connectedAddress ?? linkedWallet ?? ''} />
 
           <div className="grid lg:grid-cols-3 gap-6 items-start">
             {/* Watched claims list */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePremium } from '@/lib/billing/access'
+import { walletOf } from '@/lib/billing/identity'
 import { runAnalystTurn, type AnalystEvent, type TurnResult } from '@/lib/ai/analyst'
 import { AiConfigError, runOpenAITurn } from '@/lib/ai/analyst-openai'
 import { currentProvider } from '@/lib/ai/provider'
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
   // Claude sees the whole stored history, so wallet and watchlist are re-sent
   // only when they change. The open-model engine trims old turns, so it gets
   // the full context every time or the wallet could fall out of view.
-  const walletAddress = identity.kind === 'wallet' ? identity.address : null
+  const walletAddress = walletOf(identity)
   const snapshot = JSON.stringify({ walletAddress, watchlist })
   const contextText =
     provider === 'anthropic' && snapshot === conv.context_snapshot

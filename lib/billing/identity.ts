@@ -10,6 +10,7 @@ import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { isAddress, verifyMessage } from 'viem'
 import { decryptSession } from '@/lib/session'
+import { getLinkedWallet } from '@/lib/account/wallet-links'
 
 export const WALLET_AUTH_HEADER = 'x-portal-wallet-auth'
 
@@ -18,7 +19,7 @@ const MAX_WALLET_PROOF_AGE_MS = 30 * 24 * 60 * 60 * 1000
 
 export type BillingIdentity =
   | { kind: 'wallet'; ref: string; address: `0x${string}` }
-  | { kind: 'discord'; ref: string; discordId: string }
+  | { kind: 'discord'; ref: string; discordId: string; linkedWallet: `0x${string}` | null }
 
 export type IdentityResult =
   | { ok: true; identity: BillingIdentity }
@@ -77,11 +78,18 @@ export async function resolveBillingIdentity(req: NextRequest): Promise<Identity
     const session = await decryptSession(token)
     if (session?.id && (!session.expiresAt || session.expiresAt > Date.now())) {
       const discordId = String(session.id)
-      return { ok: true, identity: { kind: 'discord', ref: `discord:${discordId}`, discordId } }
+      const ref = `discord:${discordId}`
+      const linkedWallet = (await getLinkedWallet(ref)) as `0x${string}` | null
+      return { ok: true, identity: { kind: 'discord', ref, discordId, linkedWallet } }
     }
   }
 
   return { ok: false, reason: 'unauthenticated' }
+}
+
+/** The user's verified wallet: the one they signed in with, or one linked to their account. */
+export function walletOf(identity: BillingIdentity): `0x${string}` | null {
+  return identity.kind === 'wallet' ? identity.address : identity.linkedWallet
 }
 
 export const IDENTITY_ERRORS: Record<Exclude<IdentityResult, { ok: true }>['reason'], string> = {

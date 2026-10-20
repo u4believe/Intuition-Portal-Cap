@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePremium } from '@/lib/billing/access'
-import { IDENTITY_ERRORS, resolveBillingIdentity } from '@/lib/billing/identity'
+import { IDENTITY_ERRORS, resolveBillingIdentity, walletOf } from '@/lib/billing/identity'
 import { getSubscription, hasPremiumAccess, setHideActivity } from '@/lib/billing/subscriptions'
 
 // GET: whether private activity is on, and whether this user can use it
@@ -14,8 +14,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       isPremium,
-      // Only a wallet's transactions can be hidden; Discord sign-ins have none.
-      isWallet: auth.identity.kind === 'wallet',
+      // Only a wallet's transactions can be hidden: the sign-in wallet or a linked one.
+      isWallet: walletOf(auth.identity) !== null,
+      canLinkWallet: auth.identity.kind === 'discord' && !auth.identity.linkedWallet,
       // Reported as off once Premium lapses, because it is no longer honoured.
       hideActivity: isPremium && !!sub?.hide_activity,
     },
@@ -27,9 +28,9 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const gate = await requirePremium(req)
   if (!gate.ok) return gate.response
-  if (gate.identity.kind !== 'wallet') {
+  if (!walletOf(gate.identity)) {
     return NextResponse.json(
-      { error: { code: 'wallet_required', message: 'Sign in with your wallet to keep its activity private.' } },
+      { error: { code: 'wallet_required', message: 'Link your wallet to keep its activity private.' } },
       { status: 400 }
     )
   }

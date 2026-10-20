@@ -210,7 +210,28 @@ async function getPrivateActivityAddresses() {
                WHEN 'yearly' THEN interval '72 hours'
                ELSE interval '0' END
              ELSE interval '0' END > NOW()`)
-  return new Set(result.rows.map(r => r.address))
+  const addresses = new Set(result.rows.map(r => r.address))
+  // Discord subscribers hide the wallet they linked. Separate query so a missing
+  // links table (migration 13 pending) can't break wallet sign-ins' privacy.
+  try {
+    const linked = await pool.query(`
+      SELECT l.wallet_address AS address
+        FROM billing_subscriptions s
+        JOIN account_wallet_links l ON l.account_ref = s.user_ref
+       WHERE s.hide_activity
+         AND s.current_period_end IS NOT NULL
+         AND s.current_period_end + CASE
+               WHEN s.status = 'past_due' THEN CASE s.billing_interval
+                 WHEN 'daily' THEN interval '12 hours'
+                 WHEN 'monthly' THEN interval '72 hours'
+                 WHEN 'yearly' THEN interval '72 hours'
+                 ELSE interval '0' END
+               ELSE interval '0' END > NOW()`)
+    for (const r of linked.rows) addresses.add(r.address)
+  } catch (e) {
+    if (e.code !== '42P01') throw e
+  }
+  return addresses
 }
 
 // ── Live events fetch ─────────────────────────────────────────────────────────
