@@ -426,13 +426,24 @@ async function computeMetrics(pool) {
       try {
         const { rows } = await pool.query(m.sql, [window])
         const { sample, data } = m.transform(rows)
+        const payload = JSON.stringify({ description: m.describe, ...data })
         await pool.query(
           `INSERT INTO pattern_metrics (metric, window_days, computed_at, sample_size, data)
            VALUES ($1, $2, NOW(), $3, $4)
            ON CONFLICT (metric, window_days) DO UPDATE SET
              computed_at = NOW(), sample_size = EXCLUDED.sample_size, data = EXCLUDED.data`,
-          [m.name, window, sample, JSON.stringify({ description: m.describe, ...data })]
+          [m.name, window, sample, payload]
         )
+        // Keep every snapshot forever (all-time pattern history). Skipped until migration 15 exists.
+        await pool
+          .query(
+            `INSERT INTO pattern_metrics_history (metric, window_days, computed_at, sample_size, data)
+             VALUES ($1, $2, date_trunc('minute', NOW()), $3, $4) ON CONFLICT DO NOTHING`,
+            [m.name, window, sample, payload]
+          )
+          .catch((e) => {
+            if (e.code !== '42P01') throw e
+          })
         results.push({ metric: m.name, window, ok: true, ms: Date.now() - started, sample })
       } catch (e) {
         console.error(`[Patterns] ${m.name} (${window}d) failed:`, e.message)

@@ -69,6 +69,7 @@ async function triggerBillingRenewals() {
 // recomputes pattern metrics hourly. Disable with PATTERNS_ENABLED=false.
 const { collectOnce } = require('./patterns/collector')
 const { computeMetrics } = require('./patterns/metrics')
+const { archiveOnce } = require('./patterns/archive')
 const POLL_INTERVAL_PATTERNS_MS = 5 * 60 * 1000
 const PATTERN_METRICS_EVERY_MS = 60 * 60 * 1000
 let patternsRunning = false
@@ -90,6 +91,7 @@ async function runPatterns() {
       const failed = results.filter(r => !r.ok)
       console.log(`[Patterns] metrics computed: ${results.length - failed.length}/${results.length} ok`)
     }
+    await runArchive()
   } catch (e) {
     if (e.code === '42P01') {
       // Tables missing: migration 14 hasn't run yet. Check again in an hour.
@@ -100,6 +102,28 @@ async function runPatterns() {
     }
   } finally {
     patternsRunning = false
+  }
+}
+
+// All-time archive in Cloudflare R2 (no-op until R2_* variables are set).
+// Isolated from collection: an archive problem never pauses data collection.
+let archivePausedUntil = 0
+async function runArchive() {
+  if (Date.now() < archivePausedUntil) return
+  try {
+    const a = await archiveOnce(pool, queryGraphQL)
+    if (a && a.archived.length) {
+      const unverified = a.archived.filter(d => !d.verified).map(d => d.day)
+      console.log(`[Archive] +${a.archived.length} day(s), ${a.remaining} left; total ${a.manifest.total_events} events`
+        + (unverified.length ? `; unverified: ${unverified.join(', ')}` : ''))
+    }
+  } catch (e) {
+    if (e.code === '42P01') {
+      console.warn('[Archive] Archive tables not found — run scripts/15-add-archive-tables.sql. Pausing for 1h.')
+    } else {
+      console.error('[Archive] Run failed:', e.message)
+    }
+    archivePausedUntil = Date.now() + (e.code === '42P01' ? 60 : 10) * 60 * 1000
   }
 }
 
