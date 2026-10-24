@@ -9,7 +9,9 @@
  * runs never duplicate. The first run backfills PATTERN_RETENTION_DAYS.
  */
 
-const RETENTION_DAYS = Number(process.env.PATTERN_RETENTION_DAYS) || 90
+// Metrics look back at most 30 days and all-time history lives in the R2
+// archive, so the database keeps only a little more than that window.
+const RETENTION_DAYS = Number(process.env.PATTERN_RETENTION_DAYS) || 35
 // The indexer caps each response (250 rows today) regardless of the limit asked
 // for, so paging continues until an EMPTY page — never on a short one.
 const PAGE_SIZE = 1000
@@ -121,13 +123,25 @@ async function insertRows(pool, rows) {
 }
 
 /** Pulls new rows for one source. Returns { inserted, caughtUp, earliest }. */
+/** Retries transient indexer failures (timeouts are common during a backfill). */
+async function withRetry(fn, attempts = 4) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (i >= attempts) throw e
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** i))
+    }
+  }
+}
+
 async function syncSource(pool, queryGraphQL, name) {
   const source = SOURCES[name]
   let cursor = await getCursor(pool, name)
   let inserted = 0
   let earliest = null
   for (let page = 0; page < MAX_PAGES_PER_SOURCE; page++) {
-    const data = await queryGraphQL(source.query, { at: cursor.at, id: cursor.id, limit: PAGE_SIZE })
+    const data = await withRetry(() => queryGraphQL(source.query, { at: cursor.at, id: cursor.id, limit: PAGE_SIZE }))
     const raw = data?.rows || []
     if (raw.length === 0) return { inserted, caughtUp: true, earliest }
     const rows = raw.map(source.toRow)

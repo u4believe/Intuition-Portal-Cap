@@ -599,6 +599,9 @@ async function main() {
 
   if (process.env.PATTERNS_ENABLED !== 'false') {
     console.log(`[Worker] Activity patterns: collect every ${POLL_INTERVAL_PATTERNS_MS / 60000} min, metrics hourly`)
+    const missingR2 = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'].filter(k => !process.env[k])
+    if (missingR2.length) console.warn(`[Worker] R2 archive: OFF — missing ${missingR2.join(', ')}`)
+    else console.log(`[Worker] R2 archive: ON (bucket ${process.env.R2_BUCKET})`)
     setTimeout(runPatterns, 5000)
     setInterval(runPatterns, POLL_INTERVAL_PATTERNS_MS)
   }
