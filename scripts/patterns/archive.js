@@ -4,7 +4,7 @@
  * All-time archive of Intuition activity in Cloudflare R2 (S3-compatible).
  *
  * Layout (all gzipped newline-delimited JSON, one object per line):
- *   events/date=YYYY-MM-DD.ndjson.gz     every deposit, redemption, atom and claim creation that day
+ *   events/date=YYYY-MM-DD/<kind>-NNNNN.ndjson.gz   that day's deposits / redemptions / creations, ≤25k per part
  *   patterns/date=YYYY-MM-DD.ndjson.gz   every hourly pattern snapshot computed that day
  *   summaries/daily_stats.ndjson.gz      the permanent per-day summary (rewritten daily)
  *   manifest.json                        what is archived, with counts and the format version
@@ -22,7 +22,7 @@ const zlib = require('zlib')
 if (!globalThis.crypto) globalThis.crypto = require('crypto').webcrypto
 const { AwsClient } = require('aws4fetch')
 
-const FORMAT_VERSION = 1
+const FORMAT_VERSION = 2 // v2: each day split into parts per kind
 const ARCHIVE_START = process.env.ARCHIVE_START_DATE || '2025-11-01' // Intuition mainnet's first deposit
 const PREFIX = process.env.ARCHIVE_PREFIX || ''
 const SETTLE_MS = 2 * 60 * 60 * 1000 // export a day only 2h after it ends, so late indexing is included
@@ -98,47 +98,117 @@ async function withRetry(fn, attempts = 4) {
   }
 }
 
-/** Every event of one UTC day, straight from the indexer, in a stable order. */
-async function fetchDay(queryGraphQL, day) {
-  const { from, to } = dayBounds(day)
-  const out = []
-  const counts = {}
-  for (const [kind, query] of Object.entries(DAY_QUERIES)) {
-    let at = from, id = '', n = 0
-    for (;;) {
-      const data = await withRetry(() => queryGraphQL(query, { from, to, at, id, limit: PAGE }))
-      const rows = data?.rows || []
-      if (rows.length === 0) break
-      for (const r of rows) out.push({ kind, ...r })
-      n += rows.length
-      at = rows[rows.length - 1].created_at
-      id = rows[rows.length - 1].id
-    }
-    counts[kind] = n
-  }
-  return { rows: out, counts }
+const PART_SIZE = 25_000 // events per part file, so even the 2M-event launch day streams through in pieces
+const KINDS = Object.keys(DAY_QUERIES)
+
+/** The indexer sometimes answers an overloaded query with no data instead of an error: treat that as a failure (retried). */
+function requireData(data, what) {
+  if (!data || typeof data !== 'object') throw new Error(`indexer returned no data for ${what}`)
+  return data
 }
+
+async function getJson(cfg, key) {
+  const res = await cfg.client.fetch(cfg.base + PREFIX + key)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`R2 GET ${key} failed: ${res.status}`)
+  return res.json()
+}
+
+async function listKeys(cfg, prefix) {
+  const keys = []
+  let token = ''
+  for (;;) {
+    const url = `${cfg.base.replace(/\/$/, '')}?list-type=2&prefix=${encodeURIComponent(PREFIX + prefix)}${token ? `&continuation-token=${encodeURIComponent(token)}` : ''}`
+    const xml = await (await cfg.client.fetch(url)).text()
+    keys.push(...[...xml.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]))
+    const next = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)
+    if (!next) return keys
+    token = next[1]
+  }
+}
+
+async function deleteKeys(cfg, keys) {
+  for (const k of keys) await cfg.client.fetch(cfg.base + k, { method: 'DELETE' })
+}
+
+const progressKey = (day) => `progress/date=${day}.json`
+const freshProgress = () => Object.fromEntries(KINDS.map((k) => [k, { at: null, id: '', parts: 0, events: 0, bytes: 0, done: false }]))
 
 async function indexerCounts(queryGraphQL, day) {
   const { from, to } = dayBounds(day)
-  const data = await withRetry(() => queryGraphQL(DAY_COUNTS, { from, to }))
-  return Object.fromEntries(Object.keys(DAY_QUERIES).map((k) => [k, Number(data[k].aggregate.count)]))
+  const data = await withRetry(async () => requireData(await queryGraphQL(DAY_COUNTS, { from, to }), `counts ${day}`))
+  return Object.fromEntries(KINDS.map((k) => [k, Number(data[k].aggregate.count)]))
 }
 
-async function archiveDay(pool, queryGraphQL, cfg, day) {
-  const { rows, counts } = await fetchDay(queryGraphQL, day)
+/**
+ * Archives one UTC day in parts (events/date=D/<kind>-NNNNN.ndjson.gz),
+ * resuming from progress/date=D.json. Stops at `deadline` after flushing what
+ * it has, so a huge day spreads across many runs. Returns { done, ... }.
+ */
+async function archiveDay(pool, queryGraphQL, cfg, day, deadline = Infinity) {
+  const { from, to } = dayBounds(day)
+  const progress = (await getJson(cfg, progressKey(day))) || freshProgress()
+
+  for (const kind of KINDS) {
+    const p = progress[kind]
+    if (p.done) continue
+    let buffer = []
+    let at = p.at || from, id = p.id
+    const flush = async () => {
+      if (!buffer.length) return
+      const body = gzipLines(buffer)
+      const part = String(p.parts + 1).padStart(5, '0')
+      await withRetry(() => put(cfg, `events/date=${day}/${kind}-${part}.ndjson.gz`, body, 'application/gzip'))
+      p.parts += 1
+      p.events += buffer.length
+      p.bytes += body.length
+      p.at = at
+      p.id = id
+      buffer = []
+      await withRetry(() => put(cfg, progressKey(day), JSON.stringify(progress), 'application/json'))
+    }
+    for (;;) {
+      const data = await withRetry(async () =>
+        requireData(await queryGraphQL(DAY_QUERIES[kind], { from, to, at, id, limit: PAGE }), `${kind} ${day}`)
+      )
+      const rows = Array.isArray(data.rows) ? data.rows : null
+      if (!rows) throw new Error(`indexer returned no rows array for ${kind} ${day}`)
+      if (rows.length === 0) {
+        await flush()
+        p.done = true
+        await withRetry(() => put(cfg, progressKey(day), JSON.stringify(progress), 'application/json'))
+        break
+      }
+      for (const r of rows) buffer.push({ kind, ...r })
+      at = rows[rows.length - 1].created_at
+      id = rows[rows.length - 1].id
+      if (buffer.length >= PART_SIZE) await flush()
+      if (Date.now() > deadline) {
+        await flush()
+        return { day, done: false, events: KINDS.reduce((s, k) => s + progress[k].events, 0) }
+      }
+    }
+  }
+
+  // Every kind exhausted: verify against the indexer's own totals.
   const expected = await indexerCounts(queryGraphQL, day)
-  const verified = Object.keys(expected).every((k) => expected[k] === counts[k])
-  const body = gzipLines(rows)
-  await withRetry(() => put(cfg, `events/date=${day}.ndjson.gz`, body, 'application/gzip'))
+  const got = Object.fromEntries(KINDS.map((k) => [k, progress[k].events]))
+  const verified = KINDS.every((k) => expected[k] === got[k])
+  const events = KINDS.reduce((s, k) => s + progress[k].events, 0)
+  const bytes = KINDS.reduce((s, k) => s + progress[k].bytes, 0)
+  if (!verified) {
+    // Start the day over next time: remove its parts and progress.
+    console.warn(`[Archive] ${day}: counts differ from indexer — will redo`, { got, expected })
+    await deleteKeys(cfg, await listKeys(cfg, `events/date=${day}/`))
+    await deleteKeys(cfg, [PREFIX + progressKey(day)])
+  }
   await pool.query(
     `INSERT INTO archive_days (day, events, bytes, verified) VALUES ($1, $2, $3, $4)
      ON CONFLICT (day) DO UPDATE SET events = EXCLUDED.events, bytes = EXCLUDED.bytes,
        verified = EXCLUDED.verified, exported_at = NOW()`,
-    [day, rows.length, body.length, verified]
+    [day, events, bytes, verified]
   )
-  if (!verified) console.warn(`[Archive] ${day}: counts differ from indexer`, { got: counts, expected })
-  return { day, events: rows.length, bytes: body.length, verified }
+  return { day, done: true, events, bytes, verified }
 }
 
 /** Pattern snapshots computed on `day` (from the append-only history table). */
@@ -162,7 +232,7 @@ async function writeSummaryAndManifest(pool, cfg) {
     generated_at: new Date().toISOString(),
     source: 'Intuition mainnet indexer (https://mainnet.intuition.sh/v1/graphql), chain 1155',
     layout: {
-      events: 'events/date=YYYY-MM-DD.ndjson.gz — kinds: deposit, redemption, atom_created, triple_created; amounts in wei strings',
+      events: 'events/date=YYYY-MM-DD/<kind>-NNNNN.ndjson.gz — kinds: deposit, redemption, atom_created, triple_created; up to 25,000 events per part; amounts in wei strings',
       patterns: 'patterns/date=YYYY-MM-DD.ndjson.gz — hourly pattern snapshots (aggregates only)',
       daily_stats: 'summaries/daily_stats.ndjson.gz',
     },
@@ -196,9 +266,12 @@ async function archiveOnce(pool, queryGraphQL, { budgetMs = 3 * 60 * 1000 } = {}
     [ARCHIVE_START, lastComplete]
   )
   const done = []
+  let inProgress = null
   for (const { day } of todo) {
     if (Date.now() > deadline) break
-    done.push(await archiveDay(pool, queryGraphQL, cfg, day))
+    const r = await archiveDay(pool, queryGraphQL, cfg, day, deadline)
+    if (!r.done) { inProgress = r; break }
+    done.push(r)
   }
 
   // Pattern snapshots for days that just completed (cheap; rewrite the last 2).
@@ -207,7 +280,7 @@ async function archiveOnce(pool, queryGraphQL, { budgetMs = 3 * 60 * 1000 } = {}
     await archivePatterns(pool, cfg, day)
   }
   const manifest = await writeSummaryAndManifest(pool, cfg)
-  return { archived: done, remaining: Math.max(todo.length - done.length, 0), manifest }
+  return { archived: done, inProgress, remaining: Math.max(todo.length - done.length, 0), manifest }
 }
 
-module.exports = { archiveOnce, archiveDay, fetchDay, indexerCounts, config }
+module.exports = { archiveOnce, archiveDay, indexerCounts, listKeys, deleteKeys, config }

@@ -141,8 +141,13 @@ async function syncSource(pool, queryGraphQL, name) {
   let inserted = 0
   let earliest = null
   for (let page = 0; page < MAX_PAGES_PER_SOURCE; page++) {
-    const data = await withRetry(() => queryGraphQL(source.query, { at: cursor.at, id: cursor.id, limit: PAGE_SIZE }))
-    const raw = data?.rows || []
+    const data = await withRetry(async () => {
+      const d = await queryGraphQL(source.query, { at: cursor.at, id: cursor.id, limit: PAGE_SIZE })
+      // An overloaded indexer can answer with no data instead of an error; never read that as "caught up".
+      if (!d || !Array.isArray(d.rows)) throw new Error(`indexer returned no data for ${name}`)
+      return d
+    })
+    const raw = data.rows
     if (raw.length === 0) return { inserted, caughtUp: true, earliest }
     const rows = raw.map(source.toRow)
     inserted += await insertRows(pool, rows)

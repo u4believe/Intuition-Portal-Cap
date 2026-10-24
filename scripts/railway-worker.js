@@ -112,10 +112,11 @@ async function runArchive() {
   if (Date.now() < archivePausedUntil) return
   try {
     const a = await archiveOnce(pool, queryGraphQL)
-    if (a && a.archived.length) {
+    if (a && (a.archived.length || a.inProgress)) {
       const unverified = a.archived.filter(d => !d.verified).map(d => d.day)
       console.log(`[Archive] +${a.archived.length} day(s), ${a.remaining} left; total ${a.manifest.total_events} events`
-        + (unverified.length ? `; unverified: ${unverified.join(', ')}` : ''))
+        + (a.inProgress ? `; ${a.inProgress.day} in progress (${a.inProgress.events} events so far)` : '')
+        + (unverified.length ? `; redoing: ${unverified.join(', ')}` : ''))
     }
   } catch (e) {
     if (e.code === '42P01') {
