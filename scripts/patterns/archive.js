@@ -17,6 +17,9 @@
  */
 
 const zlib = require('zlib')
+// aws4fetch signs with the Web Crypto API, which Node only exposes as a global
+// from v19/20. Railway's runtime is older, so provide it from node:crypto.
+if (!globalThis.crypto) globalThis.crypto = require('crypto').webcrypto
 const { AwsClient } = require('aws4fetch')
 
 const FORMAT_VERSION = 1
