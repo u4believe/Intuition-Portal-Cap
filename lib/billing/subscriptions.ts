@@ -40,9 +40,16 @@ const PERMANENT_FAILURES = new Set([
   'mandate_expired',
   'amount_over_cap',
   'grant_disabled', // payer disabled the permission in their wallet
+  'mandate_not_found', // the mandate no longer exists (e.g. a sandbox mandate after going live)
 ])
 /** Failures that are our configuration problem, not the payer's: retry without penalty. */
-const MERCHANT_FAILURES = new Set(['no_payout_wallet', 'rail_not_enabled'])
+const MERCHANT_FAILURES = new Set([
+  'no_payout_wallet',
+  'payout_wallet_missing', // no payout wallet for this mode (test and live are separate)
+  'rail_not_enabled',
+  'wrong_environment', // test key on the live API or the reverse
+  'amount_below_minimum', // price under Sweep's mainnet minimum
+])
 const MERCHANT_RETRY_MINUTES = 60
 /** A charge still pending after this long is checked with GET /v1/charges/:id. */
 const PENDING_RECONCILE_AFTER_MINUTES = 30

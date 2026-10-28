@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { IDENTITY_ERRORS, resolveBillingIdentity } from '@/lib/billing/identity'
 import { isBillingInterval, isPlanId, PAYMENT_CHAINS, PLANS } from '@/lib/billing/plans'
 import { getSubscription, isBillingLive, savePendingSubscription } from '@/lib/billing/subscriptions'
-import { createMandate, revokeMandate, SweepError } from '@/lib/billing/sweep'
+import { createMandate, minimumCharge, revokeMandate, SweepError } from '@/lib/billing/sweep'
 
 // The mandate outlives one billing cycle so a yearly plan can renew once and
 // a monthly plan runs a full year of renewals before asking to re-authorize.
@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
     }
 
     const amount = PLANS[plan].prices[interval].amount
+    // On mainnet Sweep refuses charges under its minimum, so a too-cheap tier
+    // would let users sign and then never be charged. Refuse up front instead.
+    if (amount < minimumCharge()) {
+      console.error(`[Billing Checkout] ${plan}/${interval} costs ${amount} µUSDC, below Sweep's live minimum ${minimumCharge()}`)
+      return NextResponse.json(
+        { error: { code: 'price_below_minimum', message: 'This billing option is not available right now.' } },
+        { status: 500 }
+      )
+    }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin
     const expiresAt = new Date()
     expiresAt.setUTCMonth(expiresAt.getUTCMonth() + MANDATE_LIFETIME_MONTHS)

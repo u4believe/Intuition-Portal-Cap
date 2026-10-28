@@ -8,7 +8,43 @@
 import crypto from 'crypto'
 import type { BillingInterval } from './plans'
 
-const SWEEP_API_URL = process.env.SWEEP_API_URL || 'https://api.sweepconsole.xyz'
+/**
+ * Sweep serves each environment from its own host and refuses the other's keys
+ * (403 wrong_environment): test_ keys → sandbox (Base/Arbitrum/Optimism Sepolia,
+ * no minimum), live_ keys → live (mainnet, real USDC). The key decides, as in
+ * Sweep's own SDK, so going live is only a key swap. SWEEP_API_URL overrides
+ * (tunnels, tests).
+ */
+const HOSTS = { live: 'https://api.sweepconsole.xyz', test: 'https://api-sandbox.sweepconsole.xyz' } as const
+
+export type SweepMode = 'live' | 'test'
+
+/** Which environment the configured key belongs to, or null if none/unknown. */
+export function sweepMode(): SweepMode | null {
+  const key = process.env.SWEEP_API_KEY ?? ''
+  if (key.startsWith('live_')) return 'live'
+  if (key.startsWith('test_')) return 'test'
+  return null
+}
+
+/**
+ * Smallest charge Sweep accepts on mainnet (amount_below_minimum below it):
+ * 2.00 USDC, set by Sweep to cover cross-chain collection fees. Testnet has none.
+ */
+export const LIVE_MIN_CHARGE = 2_000_000
+
+export function minimumCharge(): number {
+  return sweepMode() === 'live' ? LIVE_MIN_CHARGE : 0
+}
+
+function apiBase(): string {
+  if (process.env.SWEEP_API_URL) return process.env.SWEEP_API_URL
+  const mode = sweepMode()
+  if (!mode) {
+    throw new SweepError('SWEEP_API_KEY must start with live_ or test_', 500, 'not_configured')
+  }
+  return HOSTS[mode]
+}
 
 export class SweepError extends Error {
   constructor(
@@ -56,7 +92,7 @@ async function sweepRequest<T>(
   }
   if (init.idempotencyKey) headers['Idempotency-Key'] = init.idempotencyKey
 
-  const res = await fetch(`${SWEEP_API_URL}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     method: init.method,
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),

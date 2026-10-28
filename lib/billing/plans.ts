@@ -43,7 +43,8 @@ export const PREMIUM_PLAN: Plan = {
     'Early access to new AI features',
   ],
   prices: {
-    daily: { amount: 1_000_000 },
+    // Sweep's mainnet minimum is 2.00 USDC per charge (checkout enforces it on live).
+    daily: { amount: 2_000_000 },
     monthly: { amount: 9_000_000 },
     yearly: { amount: 90_000_000, savingsLabel: '2 months free' },
   },
@@ -64,9 +65,6 @@ export const PAYMENT_CHAIN_LABELS: Record<(typeof PAYMENT_CHAINS)[number], strin
   arbitrum: 'Arbitrum',
   optimism: 'Optimism',
 }
-
-/** Sweep only issues test-mode keys today; flip when live keys exist. */
-export const BILLING_TESTNET = true
 
 export function isPlanId(value: unknown): value is PlanId {
   return typeof value === 'string' && value in PLANS

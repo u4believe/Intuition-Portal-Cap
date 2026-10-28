@@ -8,8 +8,8 @@ import BillingHeader from '@/components/billing/billing-header'
 import IntervalToggle from '@/components/billing/interval-toggle'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useBillingMode } from '@/hooks/useBillingMode'
 import {
-  BILLING_TESTNET,
   FREE_FEATURES,
   formatUsdc,
   INTERVAL_LABEL,
@@ -60,6 +60,7 @@ export default function PricingPage() {
   const [interval, setBillingInterval] = useState<BillingInterval>('monthly')
   const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
   const { isPremium } = useSubscription(isAuthenticated)
+  const billingMode = useBillingMode()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -81,7 +82,7 @@ export default function PricingPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-300">
             <Sparkles className="w-3.5 h-3.5" />
             Portal Cap Premium
-            {BILLING_TESTNET && <span className="text-cyan-600/70 dark:text-cyan-400/70">· Testnet</span>}
+            {billingMode === 'test' && <span className="text-cyan-600/70 dark:text-cyan-400/70">· Testnet</span>}
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
             Understand every claim, faster

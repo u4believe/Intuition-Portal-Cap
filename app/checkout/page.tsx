@@ -10,11 +10,11 @@ import { Label } from '@/components/ui/label'
 import BillingHeader from '@/components/billing/billing-header'
 import { useAuthCheck, logout } from '@/hooks/useAuth'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useBillingMode } from '@/hooks/useBillingMode'
 import { billingAuthHeaders } from '@/lib/billing/auth-headers'
 import {
   addInterval,
   BILLING_INTERVALS,
-  BILLING_TESTNET,
   formatUsdc,
   INTERVAL_LABEL,
   isBillingInterval,
@@ -42,6 +42,7 @@ function CheckoutContent() {
   const [error, setError] = useState<{ message: string; reauth?: boolean } | null>(null)
 
   const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
+  const billingMode = useBillingMode()
   const { subscription, isLoading: subLoading, authError } = useSubscription(isAuthenticated)
 
   // Keep the URL shareable as the period changes.
@@ -213,7 +214,7 @@ function CheckoutContent() {
               <dt className="text-slate-500 dark:text-slate-400">Pay from</dt>
               <dd className="mt-0.5 font-medium text-slate-900 dark:text-white">
                 {PAYMENT_CHAINS.map((c) => PAYMENT_CHAIN_LABELS[c]).join(', ')}
-                {BILLING_TESTNET && <span className="font-normal text-slate-500"> (Sepolia)</span>}
+                {billingMode === 'test' && <span className="font-normal text-slate-500"> (Sepolia)</span>}
               </dd>
             </div>
             <div>
@@ -239,7 +240,7 @@ function CheckoutContent() {
       <aside className="lg:sticky lg:top-24 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-slate-900 dark:text-white">Order summary</h2>
-          {BILLING_TESTNET && (
+          {billingMode === 'test' && (
             <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
               Testnet
             </span>
