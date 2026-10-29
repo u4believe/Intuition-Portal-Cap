@@ -81,8 +81,15 @@ function CheckoutContent() {
         setSubmitting(false)
         return
       }
-      // Leave the button in its loading state while the browser navigates away.
-      window.location.href = data.authorizationUrl
+      // Sign in Sweep's panel over this page instead of navigating away.
+      // Loaded on demand: it only touches the DOM when opened.
+      const { openAuthorize } = await import('@sweepconsole/js')
+      openAuthorize(data.authorizationUrl, {
+        // A UI signal only — Premium is granted by the mandate.authorized
+        // webhook. The return page shows the first payment settling.
+        onAuthorized: () => router.push('/checkout/return'),
+        onCancelled: () => setSubmitting(false),
+      })
     } catch {
       setError({ message: 'Could not reach the server. Check your connection and try again.' })
       setSubmitting(false)
