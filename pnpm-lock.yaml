@@ -108,8 +108,8 @@ importers:
         specifier: latest
         version: 2.95.3
       '@sweepconsole/js':
-        specifier: 0.2.4
-        version: 0.2.4
+        specifier: 0.2.5
+        version: 0.2.5
       '@tanstack/react-query':
         specifier: 5.90.19
         version: 5.90.19(react@19.2.0)
@@ -1251,8 +1251,8 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
-  '@sweepconsole/js@0.2.4':
-    resolution: {integrity: sha512-ZXa4TWVVvnzS3yB9NJBNgjqvqNvLKkCTayPXxF+btQis0GTZz05U1wyhespBWpx24z8F/GwZdjGnoaIenk0pRw==}
+  '@sweepconsole/js@0.2.5':
+    resolution: {integrity: sha512-YtDXq9iQ9uuuV9tVDzdOTOFpOrlYO674ZnAUoAlaHbSpgPt6q6x9u/D1ltYHPr9PgBNeMaSpELM6H3e8nYXK0Q==}
 
   '@tailwindcss/node@4.1.18':
     resolution: {integrity: sha512-DoR7U1P7iYhw16qJ49fgXUlry1t4CpXeErJHnQ44JgTSKMaZUdf17cfn5mHchfJ4KRBZRFA/Coo+MUF5+gOaCQ==}
@@ -3813,7 +3813,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@sweepconsole/js@0.2.4': {}
+  '@sweepconsole/js@0.2.5': {}
 
   '@tailwindcss/node@4.1.18':
     dependencies:
