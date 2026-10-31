@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
+import { disconnect } from 'wagmi/actions'
+import { config } from '@/lib/wagmi'
 
 export interface PortalCapAuth {
   address: string
@@ -99,10 +101,16 @@ export function useAuthProtected() {
 }
 
 /**
- * Sign out — clears both wallet and Discord sessions
+ * Sign out — clears the wallet sign-in, disconnects the wallet and ends the
+ * Discord session. Every sign-out button uses this, so none leaves a session behind.
  */
 export async function logout() {
   localStorage.removeItem('portal_cap_auth')
+  try {
+    await disconnect(config)
+  } catch (err) {
+    console.error('Failed to disconnect wallet', err)
+  }
   try {
     await fetch('/api/auth/logout', { method: 'POST' })
   } catch (err) {

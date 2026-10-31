@@ -1,8 +1,9 @@
 'use client'
 
-import { useAccount, useDisconnect } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { LogOut, LayoutDashboard, ChevronDown } from 'lucide-react'
 import { useDiscordAuth, getDiscordAvatarUrl } from '@/hooks/useDiscordAuth'
+import { logout } from '@/hooks/useAuth'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -61,8 +62,7 @@ function Dropdown({ onLogout, label, avatar }: {
 
 export function UserAccountInfo() {
   const { address, isConnected } = useAccount()
-  const { disconnect } = useDisconnect()
-  const { discordUser, logout: discordLogout } = useDiscordAuth()
+  const { discordUser } = useDiscordAuth()
 
   // Discord-authenticated user
   if (!isConnected && discordUser) {
@@ -72,7 +72,7 @@ export function UserAccountInfo() {
     return (
       <Dropdown
         label={displayName}
-        onLogout={() => { discordLogout(); window.location.href = '/auth/login' }}
+        onLogout={logout}
         avatar={
           <img src={avatarUrl} alt={displayName} width={22} height={22} className="rounded-full flex-shrink-0" />
         }
@@ -85,7 +85,7 @@ export function UserAccountInfo() {
     return (
       <Dropdown
         label={`${address.slice(0, 6)}…${address.slice(-4)}`}
-        onLogout={() => disconnect()}
+        onLogout={logout}
         avatar={
           <span className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 flex-shrink-0 inline-block" />
         }
