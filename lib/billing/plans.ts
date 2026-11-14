@@ -58,12 +58,30 @@ export const INTERVAL_LABEL: Record<BillingInterval, { adjective: string; noun: 
   yearly: { adjective: 'Yearly', noun: 'year' },
 }
 
-/** Networks a payer can authorize on. Sweep settles every charge to Arc. */
-export const PAYMENT_CHAINS = ['base', 'arbitrum', 'optimism'] as const
-export const PAYMENT_CHAIN_LABELS: Record<(typeof PAYMENT_CHAINS)[number], string> = {
+/**
+ * Networks a payer can authorize on. Sweep settles every charge to Arc.
+ * Monad is live-only: Sweep's sandbox skips it, so the same list is sent in both.
+ */
+export const PAYMENT_CHAINS = ['base', 'arbitrum', 'optimism', 'monad'] as const
+export type PaymentChain = (typeof PAYMENT_CHAINS)[number]
+export const PAYMENT_CHAIN_LABELS: Record<PaymentChain, string> = {
   base: 'Base',
   arbitrum: 'Arbitrum',
   optimism: 'Optimism',
+  monad: 'Monad',
+}
+const LIVE_ONLY_CHAINS: readonly PaymentChain[] = ['monad']
+
+/** Display names of the networks offered in this billing mode, e.g. ["Base", "Arbitrum", …]. */
+export function paymentChainNames(mode: 'live' | 'test' | null): string[] {
+  return PAYMENT_CHAINS.filter((c) => mode !== 'test' || !LIVE_ONLY_CHAINS.includes(c)).map(
+    (c) => PAYMENT_CHAIN_LABELS[c]
+  )
+}
+
+/** "Base, Arbitrum or Monad" */
+export function joinNames(names: string[], last: 'or' | 'and'): string {
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} ${last} ${names[names.length - 1]}`
 }
 
 export function isPlanId(value: unknown): value is PlanId {

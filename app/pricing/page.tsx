@@ -13,8 +13,8 @@ import {
   FREE_FEATURES,
   formatUsdc,
   INTERVAL_LABEL,
-  PAYMENT_CHAIN_LABELS,
-  PAYMENT_CHAINS,
+  joinNames,
+  paymentChainNames,
   PREMIUM_PLAN,
   type BillingInterval,
 } from '@/lib/billing/plans'
@@ -23,7 +23,7 @@ const STEPS = [
   {
     icon: Wallet,
     title: 'Connect MetaMask',
-    body: `Pay in USDC from ${PAYMENT_CHAINS.map((c) => PAYMENT_CHAIN_LABELS[c]).join(', ')}. No card, no account to create.`,
+    body: (chains: string[]) => `Pay in USDC from ${joinNames(chains, 'or')}. No card, no account to create.`,
   },
   {
     icon: PenLine,
@@ -44,7 +44,8 @@ const FAQ = [
   },
   {
     q: 'Where does the USDC come from?',
-    a: 'Any one of Base, Arbitrum or Optimism. Each charge is taken from a single network that holds the full amount — balances are not combined across networks.',
+    a: (chains: string[]) =>
+      `Any one of ${joinNames(chains, 'or')}. Each charge is taken from a single network that holds the full amount — balances are not combined across networks.`,
   },
   {
     q: 'How do I cancel?',
@@ -61,6 +62,7 @@ export default function PricingPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
   const { isPremium } = useSubscription(isAuthenticated)
   const billingMode = useBillingMode()
+  const chainNames = paymentChainNames(billingMode)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -174,7 +176,7 @@ export default function PricingPage() {
                   <span className="text-xs font-semibold text-slate-400">Step {i + 1}</span>
                 </div>
                 <h3 className="mt-3 font-semibold text-slate-900 dark:text-white">{title}</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{body}</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{typeof body === 'function' ? body(chainNames) : body}</p>
               </li>
             ))}
           </ol>
@@ -186,7 +188,7 @@ export default function PricingPage() {
             {FAQ.map(({ q, a }) => (
               <div key={q} className="p-5">
                 <dt className="font-medium text-slate-900 dark:text-white">{q}</dt>
-                <dd className="mt-1 text-sm text-slate-500 dark:text-slate-400">{a}</dd>
+                <dd className="mt-1 text-sm text-slate-500 dark:text-slate-400">{typeof a === 'function' ? a(chainNames) : a}</dd>
               </div>
             ))}
           </dl>

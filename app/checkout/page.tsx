@@ -18,8 +18,7 @@ import {
   formatUsdc,
   INTERVAL_LABEL,
   isBillingInterval,
-  PAYMENT_CHAIN_LABELS,
-  PAYMENT_CHAINS,
+  paymentChainNames,
   PREMIUM_PLAN,
   type BillingInterval,
 } from '@/lib/billing/plans'
@@ -220,7 +219,7 @@ function CheckoutContent() {
             <div>
               <dt className="text-slate-500 dark:text-slate-400">Pay from</dt>
               <dd className="mt-0.5 font-medium text-slate-900 dark:text-white">
-                {PAYMENT_CHAINS.map((c) => PAYMENT_CHAIN_LABELS[c]).join(', ')}
+                {paymentChainNames(billingMode).join(', ')}
                 {billingMode === 'test' && <span className="font-normal text-slate-500"> (Sepolia)</span>}
               </dd>
             </div>
