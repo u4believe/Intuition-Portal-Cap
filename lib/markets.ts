@@ -7,7 +7,7 @@
  * only thing retired (see tradingview-widget-integration.md).
  */
 
-export type MarketCategoryId = 'fx' | 'crypto' | 'stocks' | 'commodities' | 'indices' | 'bonds'
+export type MarketCategoryId = 'fx' | 'crypto' | 'stocks' | 'commodities' | 'indices'
 
 export interface MarketInstrument {
   /** Our id, stable across chart providers */
@@ -69,8 +69,8 @@ export const MARKET_CATEGORIES: MarketCategory[] = [
     instruments: [
       { id: 'gold', label: 'Gold', name: 'Gold spot', tvSymbol: 'OANDA:XAUUSD' },
       { id: 'silver', label: 'Silver', name: 'Silver spot', tvSymbol: 'OANDA:XAGUSD' },
-      { id: 'wti', label: 'WTI', name: 'WTI crude oil', tvSymbol: 'TVC:USOIL' },
-      { id: 'brent', label: 'Brent', name: 'Brent crude oil', tvSymbol: 'TVC:UKOIL' },
+      { id: 'wti', label: 'WTI', name: 'WTI crude oil', tvSymbol: 'OANDA:WTICOUSD' },
+      { id: 'brent', label: 'Brent', name: 'Brent crude oil', tvSymbol: 'OANDA:BCOUSD' },
       { id: 'natgas', label: 'Nat Gas', name: 'Natural gas', tvSymbol: 'OANDA:NATGASUSD' },
       { id: 'copper', label: 'Copper', name: 'Copper', tvSymbol: 'OANDA:XCUUSD' },
     ],
@@ -85,18 +85,6 @@ export const MARKET_CATEGORIES: MarketCategory[] = [
       { id: 'ftse', label: 'FTSE 100', name: 'UK FTSE 100', tvSymbol: 'OANDA:UK100GBP' },
       { id: 'dax', label: 'DAX', name: 'Germany DAX', tvSymbol: 'OANDA:DE30EUR' },
       { id: 'nikkei', label: 'Nikkei 225', name: 'Japan Nikkei 225', tvSymbol: 'OANDA:JP225USD' },
-    ],
-  },
-  {
-    id: 'bonds',
-    label: 'Bonds',
-    instruments: [
-      { id: 'us10y', label: 'US 10Y', name: 'US 10-year Treasury yield', tvSymbol: 'TVC:US10Y' },
-      { id: 'us02y', label: 'US 2Y', name: 'US 2-year Treasury yield', tvSymbol: 'TVC:US02Y' },
-      { id: 'us30y', label: 'US 30Y', name: 'US 30-year Treasury yield', tvSymbol: 'TVC:US30Y' },
-      { id: 'de10y', label: 'Germany 10Y', name: 'German 10-year Bund yield', tvSymbol: 'TVC:DE10Y' },
-      { id: 'gb10y', label: 'UK 10Y', name: 'UK 10-year Gilt yield', tvSymbol: 'TVC:GB10Y' },
-      { id: 'jp10y', label: 'Japan 10Y', name: 'Japan 10-year government bond yield', tvSymbol: 'TVC:JP10Y' },
     ],
   },
 ]

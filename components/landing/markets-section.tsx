@@ -23,7 +23,7 @@ export default function MarketsSection() {
         <div className="space-y-1">
           <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Global markets</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            A market overview across crypto, FX, stocks, commodities, indices and bonds. Charts and prices by TradingView.
+            A market overview across crypto, FX, stocks, commodities and indices. Charts and prices by TradingView.
           </p>
         </div>
 
